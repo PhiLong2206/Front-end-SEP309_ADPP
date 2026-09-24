@@ -40,19 +40,19 @@ const Topics: React.FC = () => {
   }, [filteredTopics, currentPage, pageSize]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Title Header */}
       <div>
-        <h1 className="text-xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
           Chủ đề tranh biện
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Chọn một chủ đề để bắt đầu luyện tập.
+        <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+          Chọn một chủ đề để bắt đầu luyện tập lập luận và phản biện đa chiều cùng AI.
         </p>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center gap-2.5 justify-between">
+      <div className="bg-[#0e1626]/90 backdrop-blur-xl p-4 rounded-2xl border border-slate-800 shadow-lg flex flex-col sm:flex-row items-center gap-3 justify-between">
         <SearchInput
           value={searchTerm}
           onChange={(val) => {
@@ -63,7 +63,7 @@ const Topics: React.FC = () => {
           className="w-full sm:max-w-xs"
         />
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           {/* Category Dropdown */}
           <select
             value={selectedCategory}
@@ -71,7 +71,7 @@ const Topics: React.FC = () => {
               setSelectedCategory(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full sm:w-auto px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+            className="w-full sm:w-auto px-3 py-2 text-xs bg-slate-900 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium cursor-pointer"
           >
             <option value="ALL">Tất cả danh mục</option>
             {categories.filter((c) => c !== "ALL").map((c) => (
@@ -86,7 +86,7 @@ const Topics: React.FC = () => {
               setSelectedDifficulty(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full sm:w-auto px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+            className="w-full sm:w-auto px-3 py-2 text-xs bg-slate-900 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium cursor-pointer"
           >
             <option value="ALL">Tất cả độ khó</option>
             {difficulties.filter((d) => d !== "ALL").map((d) => (

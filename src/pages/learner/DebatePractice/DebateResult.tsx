@@ -1,7 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ScoreBreakdown from "../../../components/debate/ScoreBreakdown";
-import Button from "../../../components/common/Button";
 import { MOCK_DEBATE_RESULT } from "../../../mocks/debate";
 import { CheckCircle2, AlertCircle, RotateCcw, ArrowRight, FileText } from "lucide-react";
 
@@ -11,40 +10,40 @@ const DebateResult: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
-      {/* 3 Main Columns matching Panel 7 */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+      {/* 3 Main Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
         {/* LEFT COLUMN: Kết quả tranh biện & Circular Score (~30%) */}
-        <div className="md:col-span-4 bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col justify-between">
+        <div className="md:col-span-4 bg-[#0e1626]/90 backdrop-blur-xl p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col justify-between">
           <div className="space-y-2">
-            <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
               Kết quả tranh biện
             </h2>
-            <p className="text-xs text-slate-500 line-clamp-2">
-              Chủ đề: <span className="font-semibold text-slate-800">&ldquo;{result.topicTitle}&rdquo;</span>
+            <p className="text-xs text-slate-400 line-clamp-2">
+              Chủ đề: <span className="font-semibold text-cyan-300">&ldquo;{result.topicTitle}&rdquo;</span>
             </p>
           </div>
 
           {/* Circular Score Badge Center */}
           <div className="my-6 flex flex-col items-center justify-center">
-            <div className="w-28 h-28 rounded-full border-4 border-blue-600 flex flex-col items-center justify-center bg-blue-50/40 shadow-inner">
-              <span className="text-3xl font-black text-slate-900 leading-none">
+            <div className="w-32 h-32 rounded-full border-4 border-blue-500/80 flex flex-col items-center justify-center bg-blue-950/40 shadow-xl shadow-blue-500/10">
+              <span className="text-4xl font-black text-white font-mono leading-none">
                 {result.overallScore}
               </span>
-              <span className="text-[10px] font-bold text-slate-400 mt-0.5">/ 100</span>
+              <span className="text-[11px] font-bold text-slate-400 mt-1">/ 100</span>
             </div>
-            <span className="mt-3 px-3 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="mt-4 px-3.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
               {result.ratingText}
             </span>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 text-center">
-            Đánh giá tự động bởi AI Judge
+          <div className="pt-3 border-t border-slate-800 text-xs text-slate-400 text-center">
+            Đánh giá tự động bởi AI Judge • Rubric Quốc tế
           </div>
         </div>
 
         {/* CENTER COLUMN: Điểm theo tiêu chí (~35%) */}
-        <div className="md:col-span-4 bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+        <div className="md:col-span-4 bg-[#0e1626]/90 backdrop-blur-xl p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
             Điểm theo tiêu chí
           </h3>
 
@@ -52,18 +51,18 @@ const DebateResult: React.FC = () => {
         </div>
 
         {/* RIGHT COLUMN: Nhận xét (Điểm mạnh & Điểm cần cải thiện) (~35%) */}
-        <div className="md:col-span-4 bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-            Nhận xét
+        <div className="md:col-span-4 bg-[#0e1626]/90 backdrop-blur-xl p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Nhận xét chi tiết
           </h3>
 
           {/* Điểm mạnh */}
           <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
-              <CheckCircle2 size={14} className="text-emerald-600" />
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+              <CheckCircle2 size={15} className="text-emerald-400" />
               <span>Điểm mạnh</span>
             </div>
-            <ul className="space-y-1.5 text-xs text-slate-600 pl-4 list-disc leading-relaxed">
+            <ul className="space-y-1.5 text-xs text-slate-300 pl-4 list-disc leading-relaxed">
               {result.strengths.map((st, i) => (
                 <li key={i}>{st}</li>
               ))}
@@ -71,12 +70,12 @@ const DebateResult: React.FC = () => {
           </div>
 
           {/* Điểm cần cải thiện */}
-          <div className="space-y-2 pt-2 border-t border-slate-100">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
-              <AlertCircle size={14} className="text-amber-600" />
+          <div className="space-y-2 pt-3 border-t border-slate-800">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
+              <AlertCircle size={15} className="text-amber-400" />
               <span>Điểm cần cải thiện</span>
             </div>
-            <ul className="space-y-1.5 text-xs text-slate-600 pl-4 list-disc leading-relaxed">
+            <ul className="space-y-1.5 text-xs text-slate-300 pl-4 list-disc leading-relaxed">
               {result.improvements.map((imp, i) => (
                 <li key={i}>{imp}</li>
               ))}
@@ -86,36 +85,34 @@ const DebateResult: React.FC = () => {
       </div>
 
       {/* Bottom CTA Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="bg-[#0e1626]/90 backdrop-blur-xl p-5 rounded-3xl border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/learner/history"
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1"
+            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition-all inline-flex items-center gap-2"
           >
-            <FileText size={13} />
+            <FileText size={15} />
             <span>Xem transcript</span>
           </Link>
 
-          <Button
-            variant="secondary"
-            size="sm"
+          <button
+            type="button"
             onClick={() => navigate("/learner/topics/topic-social-media")}
-            className="inline-flex items-center gap-1 text-xs font-semibold"
+            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition-all inline-flex items-center gap-2"
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={15} />
             <span>Luyện tập lại</span>
-          </Button>
+          </button>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
+        <button
+          type="button"
           onClick={() => navigate("/learner/dashboard")}
-          className="px-5 font-bold inline-flex items-center gap-1"
+          className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-blue-600/30 transition-all inline-flex items-center gap-2 hover:scale-102"
         >
-          <span>Quay về dashboard</span>
-          <ArrowRight size={13} />
-        </Button>
+          <span>Quay về Dashboard</span>
+          <ArrowRight size={15} />
+        </button>
       </div>
     </div>
   );

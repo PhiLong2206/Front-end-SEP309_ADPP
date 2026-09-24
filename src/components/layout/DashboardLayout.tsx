@@ -5,11 +5,11 @@ import DashboardHeader from "./DashboardHeader";
 
 const DashboardLayout: React.FC = () => {
   return (
-    <div className="min-h-screen flex bg-slate-50/70">
+    <div className="min-h-screen flex bg-[#070b14] text-slate-100 selection:bg-blue-600 selection:text-white">
       <Sidebar />
-      <div className="flex-1 ml-56 flex flex-col min-h-screen min-w-0">
+      <div className="flex-1 ml-64 flex flex-col min-h-screen min-w-0">
         <DashboardHeader />
-        <main className="flex-1 p-5 sm:p-6 max-w-6xl w-full mx-auto">
+        <main className="flex-1 p-6 sm:p-8 max-w-6xl w-full mx-auto animate-fade-in">
           <Outlet />
         </main>
       </div>
@@ -18,3 +18,4 @@ const DashboardLayout: React.FC = () => {
 };
 
 export default DashboardLayout;
+

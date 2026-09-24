@@ -1,5 +1,4 @@
 import React from "react";
-import Button from "./Button";
 
 export interface PaginationProps {
   currentPage: number;
@@ -23,35 +22,38 @@ const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div className={`flex items-center justify-center gap-2 mt-6 ${className}`}>
-      <Button
-        variant="secondary"
-        size="sm"
+      <button
+        type="button"
         disabled={currentPage === 1}
         onClick={() => onPageChange(currentPage - 1)}
+        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
-        Previous
-      </Button>
+        Trước
+      </button>
 
       {pages.map((page) => (
-        <Button
+        <button
           key={page}
-          variant={page === currentPage ? "primary" : "secondary"}
-          size="sm"
+          type="button"
           onClick={() => onPageChange(page)}
-          className={page === currentPage ? "font-bold" : ""}
+          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+            page === currentPage
+              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30"
+              : "bg-slate-900 border border-slate-700/80 text-slate-300 hover:bg-slate-800"
+          }`}
         >
           {page}
-        </Button>
+        </button>
       ))}
 
-      <Button
-        variant="secondary"
-        size="sm"
+      <button
+        type="button"
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(currentPage + 1)}
+        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
-        Next
-      </Button>
+        Sau
+      </button>
     </div>
   );
 };

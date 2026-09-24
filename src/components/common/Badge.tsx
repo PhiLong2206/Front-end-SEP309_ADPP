@@ -14,22 +14,22 @@ const Badge: React.FC<BadgeProps> = ({
   className = "",
 }) => {
   const sizeStyles = {
-    sm: "px-2 py-0.5 text-xs",
-    md: "px-2.5 py-1 text-xs",
+    sm: "px-2.5 py-0.5 text-xs",
+    md: "px-3 py-1 text-xs",
   };
 
   const variantStyles = {
-    primary: "bg-blue-50 text-blue-700 border border-blue-200",
-    secondary: "bg-indigo-50 text-indigo-700 border border-indigo-200",
-    success: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    warning: "bg-amber-50 text-amber-700 border border-amber-200",
-    danger: "bg-rose-50 text-rose-700 border border-rose-200",
-    neutral: "bg-slate-100 text-slate-700 border border-slate-200",
+    primary: "bg-blue-500/15 text-blue-400 border border-blue-500/30",
+    secondary: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30",
+    success: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+    warning: "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+    danger: "bg-rose-500/15 text-rose-400 border border-rose-500/30",
+    neutral: "bg-slate-800 text-slate-300 border border-slate-700",
   };
 
   return (
     <span
-      className={`inline-flex items-center font-medium rounded-md tracking-tight ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center font-bold rounded-lg tracking-tight backdrop-blur-xs ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
     >
       {children}
     </span>

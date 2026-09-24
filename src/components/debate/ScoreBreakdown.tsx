@@ -37,12 +37,12 @@ const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({ scores }) => {
       {items.map((item) => (
         <div key={item.label} className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700">{item.label}</span>
-            <span className="font-bold text-slate-900">{item.score} / 100</span>
+            <span className="font-semibold text-slate-300">{item.label}</span>
+            <span className="font-bold text-white font-mono">{item.score} / 100</span>
           </div>
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${getColorClass(item.score)}`}
+              className={`h-full rounded-full transition-all duration-500 shadow-sm ${getColorClass(item.score)}`}
               style={{ width: `${Math.min(100, Math.max(0, item.score))}%` }}
             />
           </div>

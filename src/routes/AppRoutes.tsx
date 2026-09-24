@@ -9,6 +9,9 @@ import { ROLES } from "../utils/constants";
 import Home from "../pages/public/Home/Home";
 import Login from "../pages/public/Login/Login";
 import Register from "../pages/public/Register/Register";
+import ForgotPassword from "../pages/public/ForgotPassword/ForgotPassword";
+import ResetPassword from "../pages/public/ResetPassword/ResetPassword";
+import VerifyOtp from "../pages/public/VerifyOtp/VerifyOtp";
 import NotFound from "../pages/public/NotFound/NotFound";
 import Unauthorized from "../pages/public/Unauthorized/Unauthorized";
 
@@ -25,6 +28,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
       </Route>
 

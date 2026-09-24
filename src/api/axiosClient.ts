@@ -24,7 +24,7 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// Response interceptor: unwrap response data and handle 401 Unauthorized
+// Response interceptor: unwrap response data and handle errors
 axiosClient.interceptors.response.use(
   (response) => {
     return response.data;
@@ -36,8 +36,25 @@ axiosClient.interceptors.response.use(
         window.location.href = "/login";
       }
     }
-    return Promise.reject(error?.response?.data || error);
+
+    if (error.response?.data) {
+      return Promise.reject(error.response.data);
+    }
+
+    // Friendly message when server is down or unreachable
+    if (error.message === "Network Error" || error.code === "ERR_NETWORK") {
+      return Promise.reject({
+        success: false,
+        message: "Không thể kết nối đến máy chủ Backend (Port 5001). Vui lòng đảm bảo SystemService đang chạy.",
+      });
+    }
+
+    return Promise.reject({
+      success: false,
+      message: error.message || "Đã xảy ra lỗi khi kết nối máy chủ.",
+    });
   }
 );
 
 export default axiosClient;
+

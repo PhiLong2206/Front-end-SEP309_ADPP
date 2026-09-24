@@ -12,53 +12,53 @@ export interface TopicTableProps {
 const TopicTable: React.FC<TopicTableProps> = ({ topics }) => {
   if (topics.length === 0) {
     return (
-      <div className="py-10 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
-        <BookOpen className="mx-auto text-slate-400 mb-2" size={28} />
-        <p className="text-xs font-medium">Không tìm thấy chủ đề phù hợp</p>
+      <div className="py-12 text-center text-slate-400 bg-[#0e1626]/90 rounded-2xl border border-slate-800 shadow-lg">
+        <BookOpen className="mx-auto text-slate-500 mb-2" size={32} />
+        <p className="text-sm font-medium">Không tìm thấy chủ đề phù hợp</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/90 overflow-hidden shadow-2xs">
+    <div className="bg-[#0e1626]/90 backdrop-blur-xl rounded-2xl border border-slate-800 overflow-hidden shadow-xl shadow-black/30">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs text-slate-600">
-          <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-400 tracking-wider border-b border-slate-200/80">
+        <table className="w-full text-left text-xs text-slate-300">
+          <thead className="bg-slate-900/90 text-[11px] font-bold uppercase text-slate-400 tracking-wider border-b border-slate-800">
             <tr>
-              <th scope="col" className="px-5 py-3">Tiêu đề</th>
-              <th scope="col" className="px-5 py-3">Danh mục</th>
-              <th scope="col" className="px-5 py-3">Độ khó</th>
-              <th scope="col" className="px-5 py-3 text-right">Lượt luyện</th>
-              <th scope="col" className="px-5 py-3 text-right">Thao tác</th>
+              <th scope="col" className="px-5 py-3.5">Tiêu đề & Kiến nghị</th>
+              <th scope="col" className="px-5 py-3.5">Danh mục</th>
+              <th scope="col" className="px-5 py-3.5">Độ khó</th>
+              <th scope="col" className="px-5 py-3.5 text-right">Lượt luyện</th>
+              <th scope="col" className="px-5 py-3.5 text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-800/80">
             {topics.map((topic) => (
-              <tr key={topic.id} className="hover:bg-slate-50/60 transition-colors">
-                <td className="px-5 py-3.5 max-w-md">
-                  <div className="font-bold text-slate-900 line-clamp-1">{topic.title}</div>
-                  <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{topic.motion}</div>
+              <tr key={topic.id} className="hover:bg-slate-800/40 transition-colors">
+                <td className="px-5 py-4 max-w-md">
+                  <div className="font-bold text-white text-sm line-clamp-1">{topic.title}</div>
+                  <div className="text-xs text-slate-400 line-clamp-1 mt-0.5">{topic.motion}</div>
                 </td>
-                <td className="px-5 py-3.5 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   <Badge variant="primary" size="sm">{topic.category}</Badge>
                 </td>
-                <td className="px-5 py-3.5 whitespace-nowrap">
+                <td className="px-5 py-4 whitespace-nowrap">
                   <DifficultyBadge difficulty={topic.difficulty} />
                 </td>
-                <td className="px-5 py-3.5 whitespace-nowrap text-right text-xs font-semibold text-slate-700">
+                <td className="px-5 py-4 whitespace-nowrap text-right text-xs font-semibold text-slate-300 font-mono">
                   {topic.practicesCount.toLocaleString()}
                 </td>
-                <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                <td className="px-5 py-4 whitespace-nowrap text-right">
                   <div className="inline-flex items-center gap-2">
                     <Link
                       to={`/learner/topics/${topic.id}`}
-                      className="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800/90 hover:bg-slate-700 hover:text-white border border-slate-700 rounded-xl transition-colors"
                     >
-                      Xem chi tiết
+                      Chi tiết
                     </Link>
                     <Link
                       to={`/learner/topics/${topic.id}`}
-                      className="px-3 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-2xs"
+                      className="px-3.5 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl transition-all shadow-md shadow-blue-600/30 hover:scale-102"
                     >
                       Bắt đầu
                     </Link>

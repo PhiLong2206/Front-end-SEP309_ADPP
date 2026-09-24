@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { User, LoginRequest, AuthContextType, RoleType } from "../types";
 import { getToken, setToken, getUserData, setUserData, clearAuthStorage } from "../utils/token";
-import { MOCK_ACCOUNTS, toUser } from "../mocks/accounts";
+import authApi from "../api/authApi";
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -43,44 +43,108 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(async (credentials: LoginRequest) => {
     setLoading(true);
 
-    // TODO: Replace mock authentication with authApi.login()
-    // when Identity Service is available.
     try {
-      // Simulate minimal async delay for realism
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      const res = await authApi.login({
+        email: (credentials.email || "").trim(),
+        password: credentials.password,
+      });
 
-      const normalizedEmail = (credentials.email || "").trim().toLowerCase();
-      const matchedAccount = MOCK_ACCOUNTS.find(
-        (acc) => acc.email.toLowerCase() === normalizedEmail
-      );
+      if (res && res.success && res.data?.accessToken) {
+        const roles = res.data.user?.roles || [];
+        let mappedRole: RoleType = "Learner";
+        if (roles.includes("Admin") || roles.includes("Administrator")) {
+          mappedRole = "Administrator";
+        } else if (roles.includes("Educator")) {
+          mappedRole = "Educator";
+        } else {
+          mappedRole = "Learner";
+        }
 
-      if (!matchedAccount || matchedAccount.password !== credentials.password) {
+        const authenticatedUser: User = {
+          id: String(res.data.user.userId),
+          userId: res.data.user.userId,
+          email: res.data.user.email,
+          fullName: res.data.user.fullName,
+          role: mappedRole,
+          roles: roles,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+        };
+
+        setToken(res.data.accessToken);
+        setUserData(authenticatedUser);
+        setTokenState(res.data.accessToken);
+        setUser(authenticatedUser);
+
         return {
-          success: false,
-          message: "Email hoặc mật khẩu không chính xác.",
+          success: true,
+          user: authenticatedUser,
         };
       }
 
-      const authenticatedUser = toUser(matchedAccount);
-      const mockToken = `mock-jwt-${matchedAccount.role.toLowerCase()}`;
-
-      // Persist auth data in localStorage
-      setToken(mockToken);
-      setUserData(authenticatedUser);
-
-      // Update state
-      setTokenState(mockToken);
-      setUser(authenticatedUser);
-
-      return {
-        success: true,
-        user: authenticatedUser,
-      };
-    } catch (error: unknown) {
-      console.error("Login processing error:", error);
       return {
         success: false,
-        message: "Email hoặc mật khẩu không chính xác.",
+        message: res?.message || "Email hoặc mật khẩu không chính xác.",
+      };
+    } catch (apiError: unknown) {
+      const errorResponse = apiError as { message?: string; errors?: unknown };
+      return {
+        success: false,
+        message: errorResponse?.message || "Không thể kết nối đến máy chủ xác thực.",
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const googleLogin = useCallback(async (idToken: string) => {
+    setLoading(true);
+
+    try {
+      const res = await authApi.googleLogin({ idToken });
+
+      if (res && res.success && res.data?.accessToken) {
+        const roles = res.data.user?.roles || [];
+        let mappedRole: RoleType = "Learner";
+        if (roles.includes("Admin") || roles.includes("Administrator")) {
+          mappedRole = "Administrator";
+        } else if (roles.includes("Educator")) {
+          mappedRole = "Educator";
+        } else {
+          mappedRole = "Learner";
+        }
+
+        const authenticatedUser: User = {
+          id: String(res.data.user.userId),
+          userId: res.data.user.userId,
+          email: res.data.user.email,
+          fullName: res.data.user.fullName,
+          role: mappedRole,
+          roles: roles,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+        };
+
+        setToken(res.data.accessToken);
+        setUserData(authenticatedUser);
+        setTokenState(res.data.accessToken);
+        setUser(authenticatedUser);
+
+        return {
+          success: true,
+          user: authenticatedUser,
+        };
+      }
+
+      return {
+        success: false,
+        message: res?.message || "Đăng nhập bằng Google không thành công.",
+      };
+    } catch (apiError: unknown) {
+      const errorResponse = apiError as { message?: string };
+      return {
+        success: false,
+        message: errorResponse?.message || "Không thể xác thực tài khoản Google với máy chủ.",
       };
     } finally {
       setLoading(false);
@@ -105,6 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated,
     loading,
     login,
+    googleLogin,
     logout,
     setUser: (updatedUser: User | null) => {
       setUser(updatedUser);
@@ -114,3 +179,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+

@@ -1,16 +1,50 @@
 import axiosClient from "./axiosClient";
-import { User, ApiResponse, PaginatedResponse, PaginationParams } from "../types";
+import {
+  ApiResponse,
+  PaginatedResponse,
+  PaginationParams,
+  UpdateProfileRequest,
+  User,
+  UserProfileResponse,
+} from "../types";
 
 const userApi = {
-  getProfile: (): Promise<ApiResponse<User>> => axiosClient.get("/users/profile"),
+  /**
+   * GET /api/users/me [Authorized]
+   * Gets current logged-in user profile with roles and account metadata.
+   */
+  getMyProfile: (): Promise<ApiResponse<UserProfileResponse>> =>
+    axiosClient.get("/users/me"),
 
-  updateProfile: (data: Partial<User>): Promise<ApiResponse<User>> =>
-    axiosClient.put("/users/profile", data),
+  /**
+   * Alias for getMyProfile
+   */
+  getProfile: (): Promise<ApiResponse<UserProfileResponse>> =>
+    axiosClient.get("/users/me"),
 
-  changePassword: (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<void>> =>
-    axiosClient.post("/users/change-password", data),
+  /**
+   * PUT /api/users/me [Authorized]
+   * Updates profile information (FullName, AvatarUrl, DateOfBirth, Gender, PhoneNumber)
+   */
+  updateMyProfile: (data: UpdateProfileRequest): Promise<ApiResponse<UserProfileResponse>> =>
+    axiosClient.put("/users/me", data),
 
-  // Administrator user management
+  /**
+   * Alias for updateMyProfile
+   */
+  updateProfile: (data: UpdateProfileRequest): Promise<ApiResponse<UserProfileResponse>> =>
+    axiosClient.put("/users/me", data),
+
+  /**
+   * GET /api/admin/test [Authorized(Roles = "Admin")]
+   * Tests administrator authorization and role validation.
+   */
+  testAdminAuth: (): Promise<ApiResponse<object>> =>
+    axiosClient.get("/admin/test"),
+
+  // -------------------------------------------------------------
+  // Admin Management Endpoints (Mock / Placeholder for Microservice Expansion)
+  // -------------------------------------------------------------
   getAllUsers: (params?: PaginationParams): Promise<ApiResponse<PaginatedResponse<User>>> =>
     axiosClient.get("/admin/users", { params }),
 
@@ -31,3 +65,4 @@ const userApi = {
 };
 
 export default userApi;
+

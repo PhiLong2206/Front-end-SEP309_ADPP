@@ -1,17 +1,21 @@
-import React from "react";
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import Footer from "./Footer";
 import { useAuth } from "../../hooks/useAuth";
 import { ROLES } from "../../utils/constants";
-import { LogOut } from "lucide-react";
+import { LogOut, Moon, LayoutDashboard, ArrowRight } from "lucide-react";
 
 const PublicLayout: React.FC = () => {
-  const { user, isAuthenticated, role, logout } = useAuth();
+  const { isAuthenticated, role, logout } = useAuth();
   const navigate = useNavigate();
 
+  const location = useLocation();
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
   const getDashboardPath = () => {
-    if (role === ROLES.ADMIN) return "/admin/dashboard";
-    if (role === ROLES.EDUCATOR) return "/educator/dashboard";
+    const userRole = String(role);
+    if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) return "/admin/dashboard";
+    if (userRole === "Educator" || userRole === ROLES.EDUCATOR) return "/educator/dashboard";
     return "/learner/dashboard";
   };
 
@@ -20,80 +24,100 @@ const PublicLayout: React.FC = () => {
     navigate("/");
   };
 
+  const navLinks = [
+    { label: "Trang chủ", path: "/" },
+    { label: "Phương pháp", path: "/#methods" },
+    { label: "Chủ đề nổi bật", path: "/#featured-topics" },
+    { label: "Kho đề tài", path: "/learner/topics" },
+    { label: "Bảng xếp hạng", path: "/#leaderboard" },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Compact White Navigation Bar */}
-      <header className="h-14 bg-white border-b border-slate-200 px-4 sm:px-6 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
+    <div className="min-h-screen flex flex-col bg-[#070b14] text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
+      {/* Exact Reference Top Navigation Bar */}
+      <header className="h-20 bg-[#070b14]/90 backdrop-blur-xl border-b border-slate-800/60 px-6 sm:px-12 sticky top-0 z-50">
+        <div className="max-w-[1400px] mx-auto h-full flex items-center justify-between">
           {/* Left Brand Area */}
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2 font-black text-base text-slate-900">
-              <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-xs">
-                A
-              </div>
-              <span className="tracking-tight font-extrabold text-slate-900">ADPP</span>
-            </Link>
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
+              A
+            </div>
+            <div className="flex flex-col">
+              <span className="tracking-tight font-extrabold text-lg text-white leading-tight">
+                ADPP
+              </span>
+              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest leading-none">
+                AI DEBATE PLATFORM
+              </span>
+            </div>
+          </Link>
 
-            <div className="h-4 w-px bg-slate-300 hidden sm:block" />
-
-            <span className="text-xs text-slate-500 font-normal hidden md:inline">
-              Nền tảng luyện tập tranh biện AI
-            </span>
-          </div>
-
-          {/* Center Navigation */}
-          <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-600">
-            <Link to="/" className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
-              Trang chủ
-            </Link>
-            <a href="#methods" className="hover:text-blue-600 transition-colors">
-              Phương pháp
-            </a>
-            <a href="#featured-topics" className="hover:text-blue-600 transition-colors">
-              Chủ đề nổi bật
-            </a>
-            <a href="#about" className="hover:text-blue-600 transition-colors">
-              Về dự án
-            </a>
+          {/* Center Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-300">
+            {navLinks.map((item) => {
+              const isActive = location.pathname === item.path && !item.path.includes("#");
+              return (
+                <Link
+                  key={item.label}
+                  to={item.path}
+                  className={`relative py-1.5 transition-colors hover:text-white ${
+                    isActive ? "text-cyan-400 font-semibold" : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  {item.label}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50" />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs font-medium text-slate-700 hidden sm:inline max-w-[150px] truncate">
-                  {user?.fullName || "Người dùng"}
-                </span>
+          {/* Right Action Buttons */}
+          <div className="flex items-center gap-3.5">
+            {/* Dark Mode Icon Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="w-10 h-10 rounded-full bg-slate-900/90 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 transition-colors shadow-inner"
+              title="Giao diện tối"
+            >
+              <Moon size={17} />
+            </button>
 
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
                 <Link
                   to={getDashboardPath()}
-                  className="px-3.5 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-xs"
+                  className="px-5 py-2.5 text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2"
                 >
-                  Bảng điều khiển
+                  <LayoutDashboard size={16} />
+                  <span>Bảng điều khiển</span>
                 </Link>
 
                 <button
                   onClick={handleLogout}
-                  className="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-slate-100 rounded-md transition-colors flex items-center gap-1"
+                  className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-full transition-colors"
                   title="Đăng xuất"
                 >
-                  <LogOut size={13} />
-                  <span className="hidden sm:inline">Đăng xuất</span>
+                  <LogOut size={18} />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
+                  className="px-5 py-2.5 text-sm font-semibold text-slate-200 hover:text-white bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-full transition-all shadow-sm"
                 >
                   Đăng nhập
                 </Link>
+
                 <Link
                   to="/register"
-                  className="px-3.5 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-xs"
+                  className="px-6 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white rounded-full transition-all shadow-lg shadow-blue-600/30 hover:scale-102 flex items-center gap-1.5"
                 >
-                  Đăng ký
+                  <span>Bắt đầu ngay</span>
+                  <ArrowRight size={16} />
                 </Link>
               </div>
             )}
@@ -112,3 +136,5 @@ const PublicLayout: React.FC = () => {
 };
 
 export default PublicLayout;
+
+
