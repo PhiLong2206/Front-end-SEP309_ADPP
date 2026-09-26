@@ -89,7 +89,7 @@ const Login: React.FC = () => {
             <div className="flex items-center gap-1.5 justify-center">
               <span className="font-extrabold text-base tracking-tight text-white">ADPP</span>
               <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-                AI DEBATE PLATFORM
+                NỀN TẢNG TRANH BIỆN AI
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white pt-1">

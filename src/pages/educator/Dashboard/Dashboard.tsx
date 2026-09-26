@@ -14,46 +14,46 @@ const EducatorDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase">Created Motions</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase">Chủ đề đã tạo</span>
             <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
               <FolderKanban size={18} />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 mt-3">0</p>
-          <span className="text-xs text-slate-400 mt-1 inline-block">Debate topics</span>
+          <span className="text-xs text-slate-400 mt-1 inline-block">Chủ đề tranh biện</span>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase">Hosted Events</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase">Sự kiện đã tổ chức</span>
             <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
               <Calendar size={18} />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 mt-3">0</p>
-          <span className="text-xs text-slate-400 mt-1 inline-block">Workshops & sessions</span>
+          <span className="text-xs text-slate-400 mt-1 inline-block">Hội thảo & buổi luyện</span>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase">Competitions</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase">Cuộc thi & Giải đấu</span>
             <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
               <Trophy size={18} />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 mt-3">0</p>
-          <span className="text-xs text-slate-400 mt-1 inline-block">Tournaments managed</span>
+          <span className="text-xs text-slate-400 mt-1 inline-block">Giải đấu quản lý</span>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase">Active Learners</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase">Học viên hoạt động</span>
             <div className="p-2 rounded-lg bg-sky-50 text-sky-600">
               <Users size={18} />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 mt-3">0</p>
-          <span className="text-xs text-slate-400 mt-1 inline-block">Participants coached</span>
+          <span className="text-xs text-slate-400 mt-1 inline-block">Người tham gia hướng dẫn</span>
         </div>
       </div>
     </div>

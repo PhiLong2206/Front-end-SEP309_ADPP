@@ -4,14 +4,19 @@ import userApi from "../../api/userApi";
 import authApi from "../../api/authApi";
 import { useAuth } from "../../hooks/useAuth";
 import {
+  Camera,
   CheckCircle2,
   Eye,
   EyeOff,
+  ImagePlus,
   KeyRound,
+  Loader2,
   Lock,
   Mail,
   Save,
   Shield,
+  Trash2,
+  UploadCloud,
   User as UserIcon,
 } from "lucide-react";
 
@@ -26,6 +31,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
   const [, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [changingPassword, setChangingPassword] = useState<boolean>(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Profile Form State
   const [profileData, setProfileData] = useState<{
@@ -42,7 +49,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
     fullName: "",
     email: "",
     phoneNumber: "",
-    gender: "Nam",
+    gender: "Male",
     dateOfBirth: "",
     avatarUrl: "",
     roles: [],
@@ -69,6 +76,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
     fetchProfile();
   }, []);
 
+  const normalizeGender = (g?: string) => {
+    if (!g) return "Male";
+    const lower = g.toLowerCase();
+    if (lower === "male" || lower === "nam") return "Male";
+    if (lower === "female" || lower === "nu" || lower === "nữ") return "Female";
+    return "Other";
+  };
+
   const fetchProfile = async () => {
     setLoading(true);
     setInfoError("");
@@ -77,13 +92,16 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
       const res = await userApi.getMyProfile();
       if (res && res.success && res.data) {
         const d = res.data;
+        const localSavedAvatar = localStorage.getItem(`adpp_user_avatar_${d.email}`);
+        const effectiveAvatar = localSavedAvatar || (d.avatarUrl && d.avatarUrl !== "string" ? d.avatarUrl : "");
+
         setProfileData({
           fullName: d.fullName || "",
           email: d.email || "",
           phoneNumber: d.phoneNumber || "",
-          gender: d.gender || "Nam",
+          gender: normalizeGender(d.gender),
           dateOfBirth: d.dateOfBirth ? d.dateOfBirth.split("T")[0] : "",
-          avatarUrl: d.avatarUrl || "",
+          avatarUrl: effectiveAvatar,
           roles: d.roles || [],
           isEmailVerified: d.isEmailVerified,
           createdAt: d.createdAt ? new Date(d.createdAt).toLocaleDateString("vi-VN") : "",
@@ -94,6 +112,51 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
       setInfoError(errorObj?.message || "Không thể tải thông tin hồ sơ từ máy chủ.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setInfoError("Vui lòng chỉ chọn tệp hình ảnh (JPG, PNG, WEBP, GIF).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setInfoError("Dung lượng ảnh không được vượt quá 5MB.");
+      return;
+    }
+
+    setInfoError("");
+    setUploadingAvatar(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        if (result) {
+          setProfileData((prev) => ({ ...prev, avatarUrl: result }));
+          setInfoSuccess("Đã tải ảnh lên! Hãy bấm 'Lưu thay đổi' để hoàn tất.");
+        }
+        setUploadingAvatar(false);
+      };
+      reader.onerror = () => {
+        setInfoError("Không thể đọc tệp ảnh từ thiết bị.");
+        setUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setInfoError("Không thể tải ảnh lên. Vui lòng thử lại.");
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setProfileData((prev) => ({ ...prev, avatarUrl: "" }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -110,21 +173,50 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
     setSaving(true);
 
     try {
-      const res = await userApi.updateMyProfile({
+      // Determine safe avatarUrl for backend (DB column is nvarchar(500))
+      let backendAvatarUrl: string | undefined = undefined;
+      if (profileData.avatarUrl && profileData.avatarUrl !== "string") {
+        if (profileData.avatarUrl.startsWith("http") && profileData.avatarUrl.length <= 500) {
+          backendAvatarUrl = profileData.avatarUrl;
+        } else {
+          // If local Base64 / blob (which is >500 chars), provide a clean short placeholder to backend
+          backendAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.fullName.trim())}&background=2563eb&color=fff`;
+        }
+      }
+
+      const payload: {
+        fullName: string;
+        avatarUrl?: string;
+        phoneNumber?: string;
+        gender?: string;
+        dateOfBirth?: string;
+      } = {
         fullName: profileData.fullName.trim(),
-        avatarUrl: profileData.avatarUrl || undefined,
-        phoneNumber: profileData.phoneNumber || undefined,
-        gender: profileData.gender || undefined,
-        dateOfBirth: profileData.dateOfBirth ? new Date(profileData.dateOfBirth).toISOString() : undefined,
-      });
+        avatarUrl: backendAvatarUrl,
+        phoneNumber: profileData.phoneNumber.trim() ? profileData.phoneNumber.trim() : undefined,
+        gender: profileData.gender || "Male",
+        dateOfBirth: profileData.dateOfBirth
+          ? new Date(profileData.dateOfBirth).toISOString()
+          : undefined,
+      };
+
+      const res = await userApi.updateMyProfile(payload);
 
       if (res && res.success) {
         setInfoSuccess(res.message || "Cập nhật hồ sơ thành công!");
+
+        // Persist full-quality chosen photo in localStorage for crisp UI display across the application
+        if (profileData.avatarUrl && profileData.avatarUrl !== "string") {
+          localStorage.setItem(`adpp_user_avatar_${profileData.email}`, profileData.avatarUrl);
+        } else {
+          localStorage.removeItem(`adpp_user_avatar_${profileData.email}`);
+        }
+
         if (authUser) {
           setUser({
             ...authUser,
-            fullName: profileData.fullName.trim(),
-            phoneNumber: profileData.phoneNumber,
+            fullName: payload.fullName,
+            phoneNumber: payload.phoneNumber,
             avatarUrl: profileData.avatarUrl,
           });
         }
@@ -192,7 +284,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
           <div className="flex items-center gap-5">
-            {profileData.avatarUrl ? (
+            {profileData.avatarUrl && profileData.avatarUrl !== "string" ? (
               <img
                 src={profileData.avatarUrl}
                 alt={profileData.fullName}
@@ -209,7 +301,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                   {profileData.fullName || authUser?.fullName || "Người dùng"}
                 </h1>
                 <span className="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
-                  {profileData.roles?.length ? profileData.roles.join(", ") : authUser?.role || "Learner"}
+                  {profileData.roles?.length
+                    ? profileData.roles.map((r) => (r === "Admin" || r === "Administrator" ? "Quản trị viên" : r === "Educator" ? "Giảng viên" : "Học viên")).join(", ")
+                    : authUser?.role === "Administrator" || authUser?.role === "Admin"
+                    ? "Quản trị viên"
+                    : authUser?.role === "Educator"
+                    ? "Giảng viên"
+                    : "Học viên"}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-300 mt-1.5 flex items-center gap-2">
@@ -317,9 +415,9 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                   onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
                   className="w-full px-4 py-2.5 text-sm sm:text-base bg-slate-900 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 >
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
+                  <option value="Male">Nam</option>
+                  <option value="Female">Nữ</option>
+                  <option value="Other">Khác</option>
                 </select>
               </div>
 
@@ -332,19 +430,91 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
               />
             </div>
 
-            <Input
-              label="Đường dẫn Ảnh đại diện (Avatar URL)"
-              name="avatarUrl"
-              placeholder="https://images.unsplash.com/..."
-              value={profileData.avatarUrl}
-              onChange={(e) => setProfileData({ ...profileData, avatarUrl: e.target.value })}
-            />
+            {/* Avatar Upload Section */}
+            <div className="pt-2 pb-1">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-3">
+                Ảnh đại diện (Tải lên từ máy tính hoặc điện thoại)
+              </label>
+
+              <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-slate-900/70 border border-slate-800">
+                {/* Avatar Preview with hover upload overlay */}
+                <div
+                  className="relative group cursor-pointer shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Nhấn để chọn ảnh mới"
+                >
+                  {profileData.avatarUrl && profileData.avatarUrl !== "string" ? (
+                    <img
+                      src={profileData.avatarUrl}
+                      alt="Avatar Preview"
+                      className="w-24 h-24 rounded-2xl object-cover border-2 border-blue-500/50 shadow-md transition-all group-hover:opacity-80"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 border border-blue-400/40 flex items-center justify-center font-black text-3xl text-white shadow-md group-hover:opacity-80 transition-all">
+                      {profileData.fullName ? profileData.fullName.charAt(0).toUpperCase() : "U"}
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-slate-950/60 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera size={22} className="text-white mb-1" />
+                    <span className="text-[10px] text-white font-medium">Đổi ảnh</span>
+                  </div>
+
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-slate-950/80 rounded-2xl flex flex-col items-center justify-center">
+                      <Loader2 size={24} className="text-blue-400 animate-spin" />
+                      <span className="text-[10px] text-blue-300 mt-1">Đang tải...</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Buttons & Details */}
+                <div className="flex-1 space-y-2 text-center sm:text-left">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="avatar-upload-input"
+                    />
+
+                    <button
+                      type="button"
+                      disabled={uploadingAvatar}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/40 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 hover:scale-102 cursor-pointer disabled:opacity-50"
+                    >
+                      {uploadingAvatar ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                      <span>{uploadingAvatar ? "Đang xử lý ảnh..." : "Chọn ảnh từ thiết bị"}</span>
+                    </button>
+
+                    {profileData.avatarUrl && profileData.avatarUrl !== "string" && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                        title="Xóa ảnh đại diện"
+                      >
+                        <Trash2 size={15} />
+                        <span>Xóa ảnh</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-slate-400">
+                    Hỗ trợ định dạng JPG, PNG, WEBP, GIF (Tối đa 5MB). Tương thích mọi trình duyệt và camera điện thoại.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="pt-4 flex justify-end">
               <button
                 type="submit"
-                disabled={saving}
-                className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm sm:text-base font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition-all inline-flex items-center gap-2 disabled:opacity-50 hover:scale-102"
+                disabled={saving || uploadingAvatar}
+                className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm sm:text-base font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition-all inline-flex items-center gap-2 disabled:opacity-50 hover:scale-102 cursor-pointer"
               >
                 <Save size={18} />
                 <span>{saving ? "Đang lưu..." : "Lưu thay đổi"}</span>

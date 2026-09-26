@@ -68,9 +68,9 @@ const UserManagement: React.FC = () => {
             className="w-full sm:w-auto px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 font-medium text-slate-700"
           >
             <option value="ALL">Tất cả vai trò</option>
-            <option value="Learner">Học viên (Learner)</option>
-            <option value="Educator">Nhà giáo dục (Educator)</option>
-            <option value="Administrator">Quản trị viên (Admin)</option>
+            <option value="Learner">Học viên</option>
+            <option value="Educator">Giảng viên</option>
+            <option value="Administrator">Quản trị viên</option>
           </select>
         </div>
       </div>
@@ -119,7 +119,7 @@ const UserManagement: React.FC = () => {
                             : "bg-emerald-100 text-emerald-700"
                         }`}
                       >
-                        {u.role}
+                        {u.role === "Administrator" ? "Quản trị viên" : u.role === "Educator" ? "Giảng viên" : "Học viên"}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">

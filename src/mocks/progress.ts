@@ -18,7 +18,7 @@ export const MOCK_PROGRESS_DATA = {
     { date: "01/03", score: 68, topicTitle: "Đại học miễn phí" },
     { date: "03/03", score: 72, topicTitle: "Xe tự hành" },
     { date: "06/03", score: 70, topicTitle: "Đồ nhựa dùng 1 lần" },
-    { date: "09/03", score: 75, topicTitle: "Remote work" },
+    { date: "09/03", score: 75, topicTitle: "Làm việc từ xa" },
     { date: "11/03", score: 78, topicTitle: "Quản lý AI" },
     { date: "14/03", score: 82, topicTitle: "Mạng xã hội" }
   ],

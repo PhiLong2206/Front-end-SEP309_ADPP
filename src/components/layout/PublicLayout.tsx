@@ -47,7 +47,7 @@ const PublicLayout: React.FC = () => {
                 ADPP
               </span>
               <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest leading-none">
-                AI DEBATE PLATFORM
+                NỀN TẢNG TRANH BIỆN AI
               </span>
             </div>
           </Link>

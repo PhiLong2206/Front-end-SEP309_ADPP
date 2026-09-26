@@ -13,6 +13,7 @@ import Events from "../pages/learner/Events/Events";
 import Competitions from "../pages/learner/Competitions/Competitions";
 import Payments from "../pages/learner/Payments/Payments";
 import LearnerProfile from "../pages/learner/Profile/Profile";
+import LearnerSettings from "../pages/learner/Settings/Settings";
 
 const LearnerRoutes: React.FC = () => {
   return (
@@ -30,6 +31,7 @@ const LearnerRoutes: React.FC = () => {
       <Route path="competitions" element={<Competitions />} />
       <Route path="payments" element={<Payments />} />
       <Route path="profile" element={<LearnerProfile />} />
+      <Route path="settings" element={<LearnerSettings />} />
       <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Routes>
   );

@@ -126,7 +126,7 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
         console.warn("Prompt failed:", e);
       }
     } else {
-      onError?.("Dịch vụ Google Sign-in chưa sẵn sàng. Vui lòng thử lại sau giây lát.");
+      onError?.("Dịch vụ Đăng nhập Google chưa sẵn sàng. Vui lòng thử lại sau giây lát.");
     }
   };
 

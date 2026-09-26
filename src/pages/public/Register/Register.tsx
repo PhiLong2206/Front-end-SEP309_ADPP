@@ -175,7 +175,7 @@ const Register: React.FC = () => {
             </h1>
             <p className="text-sm sm:text-base text-slate-500 mt-2 max-w-md mx-auto">
               {step === "form"
-                ? "Gia nhập nền tảng luyện tập tranh biện học thuật AI Debate Platform"
+                ? "Gia nhập nền tảng luyện tập tranh biện ứng dụng Trí tuệ nhân tạo ADPP"
                 : `Hệ thống đã gửi mã OTP 6 chữ số đến hộp thư: ${formData.email}`}
             </p>
           </div>

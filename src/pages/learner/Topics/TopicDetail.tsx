@@ -90,7 +90,7 @@ const TopicDetail: React.FC = () => {
               <div className="sm:col-span-8 space-y-3 text-xs sm:text-sm text-slate-300 leading-relaxed">
                 <p>{topic.backgroundInfo || topic.description}</p>
                 <p className="text-slate-400">
-                  Phiên luyện tập sẽ giúp bạn rèn luyện kỹ năng xây dựng luận điểm (Claim), phân tích lập luận (Reasoning) và cung cấp bằng chứng thuyết phục (Evidence) trong tranh biện.
+                  Phiên luyện tập sẽ giúp bạn rèn luyện kỹ năng xây dựng luận điểm, phân tích lập luận và cung cấp bằng chứng thuyết phục trong tranh biện.
                 </p>
               </div>
 

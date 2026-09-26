@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
             <a href="#about" className="hover:text-white transition-colors">Về chúng tôi</a>
           </div>
           <span className="text-[11px] text-slate-500 md:pl-6 md:border-l md:border-slate-800">
-            © 2026 ADPP. All rights reserved.
+            © 2026 ADPP. Bảo lưu mọi quyền.
           </span>
         </div>
       </div>

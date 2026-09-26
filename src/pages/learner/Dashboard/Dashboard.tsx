@@ -42,7 +42,7 @@ const LearnerDashboard: React.FC = () => {
             <div className="text-3xl sm:text-4xl font-black text-white tracking-tight group-hover:text-cyan-400 transition-colors">
               {MOCK_PROGRESS_DATA.totalDebates}
             </div>
-            <span className="text-sm font-semibold text-slate-400 mt-1 inline-block">
+            <span className="text-sm font-medium text-slate-300 mt-1 inline-block">
               Phiên đã hoàn thành
             </span>
           </div>
@@ -57,7 +57,7 @@ const LearnerDashboard: React.FC = () => {
             <div className="text-3xl sm:text-4xl font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors">
               {Math.round(MOCK_PROGRESS_DATA.averageScore)}
             </div>
-            <span className="text-sm font-semibold text-slate-400 mt-1 inline-block">
+            <span className="text-sm font-medium text-slate-300 mt-1 inline-block">
               Điểm trung bình
             </span>
           </div>
@@ -72,7 +72,7 @@ const LearnerDashboard: React.FC = () => {
             <div className="text-3xl sm:text-4xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">
               {MOCK_PROGRESS_DATA.streakDays}
             </div>
-            <span className="text-sm font-semibold text-slate-400 mt-1 inline-block">
+            <span className="text-sm font-medium text-slate-300 mt-1 inline-block">
               Ngày luyện tập liên tiếp
             </span>
           </div>

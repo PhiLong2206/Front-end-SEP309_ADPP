@@ -18,11 +18,11 @@ export interface ScoreBreakdownProps {
 
 const ScoreBreakdown: React.FC<ScoreBreakdownProps> = ({ scores }) => {
   const items: ScoreItem[] = [
-    { label: "Lập luận (Logic)", score: scores.logic },
-    { label: "Dẫn chứng (Evidence)", score: scores.evidence },
-    { label: "Tính liên quan (Relevance)", score: scores.relevance },
-    { label: "Cấu trúc (Structure)", score: scores.structure },
-    { label: "Thuyết phục (Persuasiveness)", score: scores.persuasiveness },
+    { label: "Lập luận", score: scores.logic },
+    { label: "Dẫn chứng", score: scores.evidence },
+    { label: "Tính liên quan", score: scores.relevance },
+    { label: "Cấu trúc", score: scores.structure },
+    { label: "Tính thuyết phục", score: scores.persuasiveness },
   ];
 
   const getColorClass = (score: number) => {

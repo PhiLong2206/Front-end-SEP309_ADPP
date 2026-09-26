@@ -147,12 +147,12 @@ const Debate1v1: React.FC = () => {
                         {user.status === "Online" ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span>Đang online</span>
+                            <span>Trực tuyến</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
                             <span className="w-2 h-2 rounded-full bg-slate-500" />
-                            <span>Đang offline</span>
+                            <span>Ngoại tuyến</span>
                           </span>
                         )}
                       </td>

@@ -37,7 +37,7 @@ const DebateResult: React.FC = () => {
           </div>
 
           <div className="pt-3 border-t border-slate-800 text-xs text-slate-400 text-center">
-            Đánh giá tự động bởi AI Judge • Rubric Quốc tế
+            Đánh giá tự động bởi Ban giám khảo AI • Tiêu chuẩn Quốc tế
           </div>
         </div>
 
@@ -92,7 +92,7 @@ const DebateResult: React.FC = () => {
             className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs sm:text-sm font-semibold rounded-xl transition-all inline-flex items-center gap-2"
           >
             <FileText size={15} />
-            <span>Xem transcript</span>
+            <span>Xem biên bản tranh luận</span>
           </Link>
 
           <button

@@ -7,7 +7,7 @@ export interface LoadingProps {
 
 const Loading: React.FC<LoadingProps> = ({
   fullScreen = false,
-  message = "Loading...",
+  message = "Đang tải dữ liệu...",
 }) => {
   if (fullScreen) {
     return (
