@@ -48,18 +48,18 @@ const DebateHistory: React.FC = () => {
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
           Trận của tôi
         </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
           Danh sách các phiên tranh biện và đánh giá đã hoàn thành của bạn.
         </p>
       </div>
 
-      <div className="bg-[#0e1626]/90 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-900/90 text-[11px] font-bold uppercase text-slate-400 tracking-wider border-b border-slate-800">
+          <table className="w-full text-left text-xs text-slate-600">
+            <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-500 tracking-wider border-b border-slate-200">
               <tr>
                 <th scope="col" className="px-5 py-3.5">Chủ đề</th>
                 <th scope="col" className="px-5 py-3.5">Hình thức</th>
@@ -69,39 +69,39 @@ const DebateHistory: React.FC = () => {
                 <th scope="col" className="px-5 py-3.5 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80">
+            <tbody className="divide-y divide-slate-100">
               {historyList.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
+                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-5 py-4 max-w-sm">
-                    <div className="font-bold text-white line-clamp-1">{item.topic.title}</div>
+                    <div className="font-bold text-slate-900 line-clamp-1">{item.topic.title}</div>
                     <div className="flex items-center gap-1.5 mt-1">
                       <Badge variant="primary" size="sm">{item.topic.category}</Badge>
                       <DifficultyBadge difficulty={item.topic.difficulty} />
                     </div>
                   </td>
-                  <td className="px-5 py-4 whitespace-nowrap text-xs font-medium text-slate-300">
+                  <td className="px-5 py-4 whitespace-nowrap text-xs font-medium text-slate-700">
                     {item.mode}
                   </td>
                   <td className="px-5 py-4 whitespace-nowrap">
                     <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
                       item.side === "Ủng hộ"
-                        ? "bg-blue-500/20 text-blue-300 border border-blue-400/30"
-                        : "bg-rose-500/20 text-rose-300 border border-rose-400/30"
+                        ? "bg-[#ECFDF5] text-[#008A64] border border-[#008A64]/30"
+                        : "bg-rose-50 text-rose-700 border border-rose-200"
                     }`}>
                       {item.side}
                     </span>
                   </td>
                   <td className="px-5 py-4 text-center whitespace-nowrap">
-                    <span className="font-black text-white text-base font-mono">{item.score}</span>
+                    <span className="font-black text-slate-900 text-base font-mono">{item.score}</span>
                     <span className="text-xs text-slate-400">/100</span>
                   </td>
-                  <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-400 font-mono">
+                  <td className="px-5 py-4 whitespace-nowrap text-xs text-slate-500 font-mono">
                     {item.date}
                   </td>
                   <td className="px-5 py-4 text-right whitespace-nowrap">
                     <Link
                       to={`/learner/debate/${item.id}/result`}
-                      className="px-3.5 py-1.5 bg-slate-800/90 hover:bg-cyan-500 hover:text-slate-950 border border-slate-700 text-cyan-400 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 shadow-xs"
+                      className="px-3.5 py-1.5 bg-white hover:bg-[#ECFDF5] border border-slate-200 text-[#008A64] text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 shadow-xs"
                     >
                       <span>Xem kết quả</span>
                       <ArrowRight size={13} />

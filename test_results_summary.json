@@ -1,0 +1,429 @@
+{
+  "totalTests": 41,
+  "passed": 33,
+  "beBugs": 7,
+  "feBugs": 0,
+  "blocked": 1,
+  "rows": [
+    {
+      "num": 1,
+      "flow": "Login & Role Verification",
+      "account": "Account A",
+      "endpoint": "/api/Auth/login",
+      "http": 200,
+      "result": "PASS",
+      "note": "User role is 'Learner' (Roles: [\"Member\"]). Not Admin."
+    },
+    {
+      "num": 2,
+      "flow": "GET Competitions List",
+      "account": "Account A",
+      "endpoint": "/api/competitions",
+      "http": 200,
+      "result": "PASS",
+      "note": "API returned 12 records. Source of truth verified, no mock fallback."
+    },
+    {
+      "num": 3,
+      "flow": "Create Individual Competition",
+      "account": "Account A",
+      "endpoint": "POST /api/competitions",
+      "http": 200,
+      "result": "PASS",
+      "note": "Created CompID: 24, Status: Draft, CreatedBy: 1 (JWT), No fake userId sent in payload."
+    },
+    {
+      "num": 4,
+      "flow": "Member Role Remains Member",
+      "account": "Account A",
+      "endpoint": "localStorage / state",
+      "http": 200,
+      "result": "PASS",
+      "note": "Role after creating competition is 'Learner' (Not Admin)."
+    },
+    {
+      "num": 5,
+      "flow": "Creator Auto Judge",
+      "account": "Account A",
+      "endpoint": "GET /api/competitions/24/judges",
+      "http": 200,
+      "result": "PASS",
+      "note": "Account A (Creator) automatically added to Judges list by Backend without manual FE call."
+    },
+    {
+      "num": 6,
+      "flow": "Edit Competition (Partial PATCH)",
+      "account": "Account A",
+      "endpoint": "PATCH /api/competitions/24",
+      "http": 200,
+      "result": "PASS",
+      "note": "Only sent updated description. Timestamps preserved without double timezone offset drift."
+    },
+    {
+      "num": 7,
+      "flow": "GET Competition Detail",
+      "account": "Account A",
+      "endpoint": "GET /api/competitions/24",
+      "http": 200,
+      "result": "PASS",
+      "note": "Detail verified: Title=\"[E2E] Individual Competition\", Description=\"E2E updated description\"."
+    },
+    {
+      "num": 8,
+      "flow": "Open Registration",
+      "account": "Account A",
+      "endpoint": "POST /api/competitions/24/open-registration",
+      "http": 200,
+      "result": "PASS",
+      "note": "Competition status transitioned from Draft -> OpenRegistration."
+    },
+    {
+      "num": 9,
+      "flow": "Login & Role Verification",
+      "account": "Account B",
+      "endpoint": "/api/Auth/login",
+      "http": 200,
+      "result": "PASS",
+      "note": "User role is 'Learner' (Roles: [\"Member\"]). Not Admin."
+    },
+    {
+      "num": 10,
+      "flow": "Account B View Competition List",
+      "account": "Account B",
+      "endpoint": "/learner/competitions",
+      "http": 200,
+      "result": "PASS",
+      "note": "Account B sees [E2E] Individual Competition on public list."
+    },
+    {
+      "num": 11,
+      "flow": "Individual Registration",
+      "account": "Account B",
+      "endpoint": "POST /api/competitions/24/registrations",
+      "http": 200,
+      "result": "PASS",
+      "note": "Registered successfully. RegistrationId: 8, Status: Pending, UserId taken from JWT."
+    },
+    {
+      "num": 12,
+      "flow": "Test /registrations/me endpoint",
+      "account": "Account B",
+      "endpoint": "GET /api/competitions/24/registrations/me",
+      "http": 400,
+      "result": "BE BUG",
+      "note": "Endpoint /registrations/me does NOT exist in backend controller (Route mismatch / 400). FE uses fallback filter."
+    },
+    {
+      "num": 13,
+      "flow": "List Registrations",
+      "account": "Account A",
+      "endpoint": "GET /api/competitions/24/registrations",
+      "http": 200,
+      "result": "PASS",
+      "note": "Retrieved registrations list. Account B is present with Status Pending."
+    },
+    {
+      "num": 14,
+      "flow": "Approve Registration",
+      "account": "Account A",
+      "endpoint": "PUT /api/competitions/24/registrations/8/approve",
+      "http": 200,
+      "result": "PASS",
+      "note": "Approved registration 8. Status -> Approved."
+    },
+    {
+      "num": 15,
+      "flow": "Verify Approved Status for Account B",
+      "account": "Account B",
+      "endpoint": "GET /api/competitions/24/registrations",
+      "http": 200,
+      "result": "PASS",
+      "note": "Account B's registration reflects status 'Approved'."
+    },
+    {
+      "num": 16,
+      "flow": "User Cancel Registration",
+      "account": "Account B",
+      "endpoint": "DELETE /api/competitions/25/registrations/me",
+      "http": 200,
+      "result": "PASS",
+      "note": "User successfully cancelled own pending registration."
+    },
+    {
+      "num": 17,
+      "flow": "Lifecycle: Open Registration",
+      "account": "Account A",
+      "endpoint": "POST /competitions/26/open-registration",
+      "http": 200,
+      "result": "PASS",
+      "note": "Status -> OpenRegistration"
+    },
+    {
+      "num": 18,
+      "flow": "Lifecycle: Close Registration",
+      "account": "Account A",
+      "endpoint": "POST /competitions/26/close-registration",
+      "http": 200,
+      "result": "PASS",
+      "note": "Status -> RegistrationClosed"
+    },
+    {
+      "num": 19,
+      "flow": "Lifecycle: Start Competition",
+      "account": "Account A",
+      "endpoint": "POST /competitions/26/start",
+      "http": 200,
+      "result": "PASS",
+      "note": "Status -> Ongoing"
+    },
+    {
+      "num": 20,
+      "flow": "Lifecycle: Complete Competition",
+      "account": "Account A",
+      "endpoint": "POST /competitions/26/complete",
+      "http": 200,
+      "result": "PASS",
+      "note": "Status -> Completed"
+    },
+    {
+      "num": 21,
+      "flow": "Lifecycle: Start Completed Comp (Blocked)",
+      "account": "Account A",
+      "endpoint": "POST /competitions/26/start",
+      "http": 200,
+      "result": "BE BUG",
+      "note": "Backend lacks status validation check on Completed competitions; incorrectly returns 200 instead of blocking."
+    },
+    {
+      "num": 22,
+      "flow": "Cancel Competition",
+      "account": "Account A",
+      "endpoint": "POST /competitions/27/cancel",
+      "http": 200,
+      "result": "PASS",
+      "note": "Status -> Cancelled"
+    },
+    {
+      "num": 23,
+      "flow": "Delete Draft Competition",
+      "account": "Account A",
+      "endpoint": "DELETE /api/competitions/28",
+      "http": 405,
+      "result": "BE BUG",
+      "note": "Backend CompetitionsController does not implement DELETE /api/competitions/{id} (HTTP 405 Method Not Allowed)."
+    },
+    {
+      "num": 24,
+      "flow": "Account A Create Team (Creator)",
+      "account": "Account A",
+      "endpoint": "POST /api/competitions/29/teams",
+      "http": 400,
+      "result": "BE BUG",
+      "note": "Backend blocks Creator from creating team: \"Ban tổ chức (người tạo cuộc thi) không thể lập đội thi đấu.\". Flow 22 requires Creator to be Captain."
+    },
+    {
+      "num": 25,
+      "flow": "Create Team (Captain = Account B)",
+      "account": "Account B",
+      "endpoint": "POST /api/competitions/29/teams",
+      "http": 200,
+      "result": "PASS",
+      "note": "TeamId: 4, CaptainUserId: 4 (Account B). Participant successfully created team."
+    },
+    {
+      "num": 26,
+      "flow": "Get Teams List",
+      "account": "Account A",
+      "endpoint": "GET /api/competitions/29/teams",
+      "http": 200,
+      "result": "PASS",
+      "note": "Retrieved teams list for competition 29."
+    },
+    {
+      "num": 27,
+      "flow": "Get Team Detail",
+      "account": "Account A",
+      "endpoint": "GET /api/competitions/29/teams/4",
+      "http": 200,
+      "result": "PASS",
+      "note": "Retrieved team detail: TeamName=\"E2E Team Account B\", CaptainUserId=4."
+    },
+    {
+      "num": 28,
+      "flow": "Invite Creator to Team Blocked",
+      "account": "Account B",
+      "endpoint": "POST /api/competitions/29/teams/4/invitations",
+      "http": 400,
+      "result": "PASS",
+      "note": "Backend blocks inviting organizer: \"Không thể mời Ban tổ chức (người tạo cuộc thi) tham gia thi đấu.\"."
+    },
+    {
+      "num": 29,
+      "flow": "Creator Join Request Blocked",
+      "account": "Account A",
+      "endpoint": "POST /api/competitions/29/teams/4/join-requests",
+      "http": 400,
+      "result": "PASS",
+      "note": "Backend blocks organizer joining team: \"Ban tổ chức (người tạo cuộc thi) không thể tham gia đội thi đấu.\"."
+    },
+    {
+      "num": 30,
+      "flow": "Two-Player Team Flows (Invite/Join/Leave/Kick)",
+      "account": "Accounts A & B",
+      "endpoint": "Team Invitation / Join Request APIs",
+      "http": 400,
+      "result": "BLOCKED",
+      "note": "Môi trường test chỉ có 2 tài khoản (A và B), trong đó 1 tài khoản là Ban tổ chức (Creator) bị Backend cấm tuyệt đối tham gia thi đấu / vào đội; do đó không thể ghép đủ 2 thí sinh vào cùng 1 đội để test các flow tương tác 2 thành viên (Invite Accept / Join Approve / Member Leave / Captain Kick). Cần tài khoản thứ 3 làm thí sinh thứ 2."
+    },
+    {
+      "num": 31,
+      "flow": "Captain Self-Kick Blocked",
+      "account": "Account B",
+      "endpoint": "DELETE /api/competitions/29/teams/4/members/4",
+      "http": 400,
+      "result": "PASS",
+      "note": "Backend blocked captain removing self: \"Captain cannot kick themselves.\"."
+    },
+    {
+      "num": 32,
+      "flow": "Captain Withdraw Team",
+      "account": "Account B",
+      "endpoint": "POST /api/competitions/29/teams/4/withdraw",
+      "http": 200,
+      "result": "PASS",
+      "note": "Team successfully withdrawn. Status -> Withdrawn."
+    },
+    {
+      "num": 33,
+      "flow": "Delete Team Endpoint",
+      "account": "Account B",
+      "endpoint": "DELETE /api/competitions/29/teams/4",
+      "http": 405,
+      "result": "BE BUG",
+      "note": "Backend CompetitionTeamsController does not implement DELETE /api/competitions/{id}/teams/{teamId} (HTTP 405 Method Not Allowed)."
+    },
+    {
+      "num": 34,
+      "flow": "Account B Create Competition",
+      "account": "Account B",
+      "endpoint": "POST /api/competitions",
+      "http": 200,
+      "result": "PASS",
+      "note": "Account B created CompID: 30, CreatedBy: 4 (Account B). Role remains Member."
+    },
+    {
+      "num": 35,
+      "flow": "Account B Auto Judge on Comp B",
+      "account": "Account B",
+      "endpoint": "GET /api/competitions/30/judges",
+      "http": 200,
+      "result": "PASS",
+      "note": "Account B is automatically Judge for own created competition."
+    },
+    {
+      "num": 36,
+      "flow": "Cross-Auth: A cannot manage B's competition",
+      "account": "Account A",
+      "endpoint": "POST /api/competitions/30/open-registration",
+      "http": 200,
+      "result": "BE BUG",
+      "note": "Backend lacks ownership verification (CreatedBy == currentUserId) in UpdateStatusInternalAsync; allows non-creator to change status (HTTP 200)."
+    },
+    {
+      "num": 37,
+      "flow": "Cross-Auth: B cannot manage A's competition",
+      "account": "Account B",
+      "endpoint": "POST /api/competitions/24/close-registration",
+      "http": 200,
+      "result": "BE BUG",
+      "note": "Backend lacks ownership verification (CreatedBy == currentUserId) in UpdateStatusInternalAsync; allows non-creator to change status (HTTP 200)."
+    },
+    {
+      "num": 38,
+      "flow": "Cuộc thi của tôi Tab Filtering (Account B)",
+      "account": "Account B",
+      "endpoint": "UI Tab: Cuộc thi của tôi",
+      "http": 200,
+      "result": "PASS",
+      "note": "Account B sees only competitions created by B. Competitions created by A are excluded."
+    },
+    {
+      "num": 39,
+      "flow": "Error Case: 401 Unauthorized",
+      "account": "Unauthenticated",
+      "endpoint": "POST /api/competitions",
+      "http": 401,
+      "result": "PASS",
+      "note": "Request without token correctly rejected with 401."
+    },
+    {
+      "num": 40,
+      "flow": "Error Case: 404 Not Found",
+      "account": "Account A",
+      "endpoint": "GET /api/competitions/999999",
+      "http": 404,
+      "result": "PASS",
+      "note": "Non-existent competition ID correctly returns 404."
+    },
+    {
+      "num": 41,
+      "flow": "Error Case: 400 Bad Request",
+      "account": "Account A",
+      "endpoint": "POST /api/competitions",
+      "http": 400,
+      "result": "PASS",
+      "note": "Invalid date validation correctly returns 400 Bad Request."
+    }
+  ],
+  "createdCompetitions": [
+    {
+      "id": 24,
+      "title": "[E2E] Individual Competition",
+      "createdBy": 1,
+      "status": "Draft"
+    },
+    {
+      "id": 25,
+      "title": "[E2E] Reject & Cancel Test Comp",
+      "createdBy": 1,
+      "status": "Draft"
+    },
+    {
+      "id": 26,
+      "title": "[E2E] Lifecycle Competition",
+      "createdBy": 1,
+      "status": "Draft"
+    },
+    {
+      "id": 27,
+      "title": "[E2E] Cancel Competition",
+      "createdBy": 1,
+      "status": "Draft"
+    },
+    {
+      "id": 28,
+      "title": "[E2E] Delete Draft Competition",
+      "createdBy": 1,
+      "status": "Draft"
+    },
+    {
+      "id": 29,
+      "title": "[E2E] Team Invite Competition",
+      "createdBy": 1,
+      "status": "Draft"
+    },
+    {
+      "id": 30,
+      "title": "[E2E] Competition Created By Account B",
+      "createdBy": 4,
+      "status": "Draft"
+    }
+  ],
+  "createdTeams": [
+    {
+      "teamId": 4,
+      "teamName": "E2E Team Account B",
+      "competitionId": 29
+    }
+  ]
+}

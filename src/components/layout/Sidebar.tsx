@@ -7,11 +7,8 @@ import {
   BookOpen,
   Bot,
   Swords,
-  History,
-  TrendingUp,
   User as UserIcon,
   Settings,
-  Sparkles,
   Calendar,
   Trophy,
   Users,
@@ -48,28 +45,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggleCollapse,
 }) => {
   const { user, role } = useAuth();
-
-  const getRoleLabel = () => {
-    switch (role) {
-      case ROLES.ADMIN:
-        return "Quản trị viên";
-      case ROLES.EDUCATOR:
-        return "Giảng viên";
-      default:
-        return "Học viên";
-    }
-  };
-
-  const getRoleBadgeVariant = () => {
-    switch (role) {
-      case ROLES.ADMIN:
-        return "bg-rose-500/10 text-rose-400 border-rose-500/20";
-      case ROLES.EDUCATOR:
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
-      default:
-        return "bg-cyan-500/10 text-cyan-400 border-cyan-500/20";
-    }
-  };
 
   const getSections = (): NavSection[] => {
     if (role === ROLES.ADMIN) {
@@ -115,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         items: [
           { label: "Bảng điều khiển", path: "/learner/dashboard", icon: LayoutDashboard },
           { label: "Chủ đề tranh biện", path: "/learner/topics", icon: BookOpen },
-          { label: "Tranh biện với AI", path: "/learner/debate/session-demo-01", icon: Bot },
+          { label: "Tranh biện với AI", path: "/learner/debate", icon: Bot },
           { label: "Tranh biện 1 vs 1", path: "/learner/debate-1v1", icon: Swords },
           { label: "Giải đấu & Cuộc thi", path: "/learner/competitions", icon: Trophy },
           { label: "Sự kiện học tập", path: "/learner/events", icon: Calendar },
@@ -124,8 +99,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       {
         title: "PHÂN TÍCH & TIẾN ĐỘ",
         items: [
-          { label: "Trận của tôi", path: "/learner/history", icon: History },
-          { label: "Tiến độ học tập", path: "/learner/progress", icon: TrendingUp },
+          { label: "Hồ sơ cá nhân", path: "/learner/profile", icon: UserIcon },
+          { label: "Cài đặt & Tùy chọn", path: "/learner/settings", icon: Settings },
         ],
       },
     ];
@@ -137,12 +112,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (role === ROLES.ADMIN) return "/admin/dashboard";
     if (role === ROLES.EDUCATOR) return "/educator/profile";
     return "/learner/profile";
-  };
-
-  const getSettingsPath = () => {
-    if (role === ROLES.ADMIN) return "/admin/system";
-    if (role === ROLES.EDUCATOR) return "/educator/dashboard";
-    return "/learner/settings";
   };
 
   return (
@@ -157,15 +126,15 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Main Sidebar */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 bg-[#0a0f1d] border-r border-slate-800/80 z-50 flex flex-col justify-between select-none shadow-2xl transition-all duration-300 ease-in-out ${
-          isOpen ? "translate-x-0 w-[280px]" : "-translate-x-full lg:translate-x-0"
-        } ${isCollapsed ? "lg:w-[76px]" : "lg:w-[280px]"}`}
+        className={`fixed top-0 bottom-0 left-0 bg-white dark:bg-[#0F1C17] border-r border-slate-200/80 dark:border-[rgba(148,163,184,0.18)] z-50 flex flex-col justify-between select-none shadow-sm dark:shadow-black/30 transition-all duration-300 ease-in-out ${
+          isOpen ? "translate-x-0 w-[260px]" : "-translate-x-full lg:translate-x-0"
+        } ${isCollapsed ? "lg:w-[76px]" : "lg:w-[260px]"}`}
       >
         <div className="flex flex-col flex-1 min-h-0">
           {/* Brand Header */}
           <div
-            className={`h-20 flex items-center border-b border-slate-800/80 bg-slate-900/30 shrink-0 transition-all duration-300 ${
-              isCollapsed ? "justify-center px-2" : "justify-between px-4"
+            className={`h-20 flex items-center border-b border-slate-100 dark:border-[rgba(148,163,184,0.12)] shrink-0 transition-all duration-300 ${
+              isCollapsed ? "justify-center px-2" : "justify-between px-5"
             }`}
           >
             {isCollapsed ? (
@@ -173,53 +142,44 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/20 hover:scale-105 transition-all group relative cursor-pointer"
+                  className="w-10 h-10 rounded-xl bg-[#008A64] flex items-center justify-center text-white shadow-md shadow-[#008A64]/20 hover:scale-105 transition-all group relative cursor-pointer font-black text-base"
                   title="Mở rộng thanh bên"
                 >
-                  <Sparkles size={20} className="group-hover:hidden text-white" />
-                  <PanelLeftOpen size={20} className="hidden group-hover:block text-white" />
-                  <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
+                  <span className="group-hover:hidden">A</span>
+                  <PanelLeftOpen size={18} className="hidden group-hover:block text-white" />
+                  <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
                     Mở rộng thanh bên
                   </div>
                 </button>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/20 shrink-0">
-                    <Sparkles size={20} className="text-white" />
+                <NavLink to="/" className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#008A64] flex items-center justify-center text-white shadow-sm font-black text-base shrink-0">
+                    A
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-black text-[17px] tracking-tight text-white leading-none">
+                    <div className="flex items-center gap-1">
+                      <span className="font-extrabold text-[15px] tracking-tight text-slate-900 dark:text-[#F8FAFC] leading-tight">
                         ADPP
                       </span>
-                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500 to-cyan-400 text-slate-950 leading-none">
-                        AI
-                      </span>
                     </div>
-                    <span className="text-xs font-medium text-slate-400 tracking-normal mt-1 leading-none truncate">
-                      Nền tảng Tranh biện
+                    <span className="text-[9px] font-bold text-[#008A64] uppercase tracking-wider leading-none mt-0.5">
+                      NỀN TẢNG TRANH BIỆN AI
                     </span>
                   </div>
-                </div>
+                </NavLink>
 
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shrink-0 ${getRoleBadgeVariant()}`}
-                  >
-                    {getRoleLabel()}
-                  </span>
-
+                <div className="flex items-center gap-1">
                   {/* Desktop Collapse Button */}
                   {onToggleCollapse && (
                     <button
                       type="button"
                       onClick={onToggleCollapse}
-                      className="hidden lg:flex p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors cursor-pointer"
+                      className="hidden lg:flex p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-[#172C23] transition-colors cursor-pointer"
                       title="Thu gọn thanh bên"
                     >
-                      <PanelLeftClose size={18} />
+                      <PanelLeftClose size={17} />
                     </button>
                   )}
 
@@ -228,10 +188,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="p-1.5 text-slate-400 hover:text-white rounded-lg lg:hidden"
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg lg:hidden cursor-pointer"
                       title="Đóng menu"
                     >
-                      <X size={18} />
+                      <X size={17} />
                     </button>
                   )}
                 </div>
@@ -242,13 +202,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Navigation Area */}
           <div
             className={`flex-1 sidebar-scroll py-4 space-y-6 transition-all duration-300 ${
-              isCollapsed ? "px-2" : "px-4"
+              isCollapsed ? "px-2" : "px-3.5"
             }`}
           >
             {sections.map((sec, secIdx) => (
               <div key={secIdx} className="space-y-1">
                 {!isCollapsed && sec.title && (
-                  <div className="px-3 pb-1.5 text-[12px] font-bold tracking-[0.5px] text-slate-400 uppercase">
+                  <div className="px-3 pb-1.5 text-[11px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                     {sec.title}
                   </div>
                 )}
@@ -262,17 +222,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                       title={item.label}
                       onClick={() => onClose?.()}
                       className={({ isActive }) =>
-                        `group relative flex items-center h-[54px] rounded-xl transition-all duration-150 cursor-pointer ${
+                        `group relative flex items-center h-[44px] rounded-xl transition-all duration-150 cursor-pointer ${
                           isCollapsed
                             ? `justify-center w-full ${
                                 isActive
-                                  ? "bg-[#14213d] text-white shadow-inner before:absolute before:left-0 before:top-2.5 before:bottom-2.5 before:w-1 before:rounded-r-md before:bg-blue-500"
-                                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
+                                  ? "bg-[#008A64] text-white shadow-sm shadow-[#008A64]/20 font-semibold"
+                                  : "text-slate-600 dark:text-slate-300 hover:text-[#008A64] dark:hover:text-[#34D399] hover:bg-emerald-50/60 dark:hover:bg-emerald-500/15"
                               }`
-                            : `px-3.5 ${
+                            : `px-3 ${
                                 isActive
-                                  ? "bg-[#14213d]/80 text-white font-semibold shadow-inner before:absolute before:left-0 before:top-2.5 before:bottom-2.5 before:w-1 before:rounded-r-md before:bg-blue-500"
-                                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium"
+                                  ? "bg-[#008A64] text-white font-semibold shadow-sm shadow-[#008A64]/20"
+                                  : "text-slate-600 dark:text-slate-300 hover:text-[#008A64] dark:hover:text-[#34D399] hover:bg-emerald-50/60 dark:hover:bg-emerald-500/15 font-medium"
                               }`
                         }`
                       }
@@ -280,24 +240,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                       {({ isActive }) => (
                         <>
                           <div
-                            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                               isActive
-                                ? "bg-blue-500/20 text-blue-400"
-                                : "text-slate-400 group-hover:text-slate-200"
+                                ? "text-white"
+                                : "text-slate-500 dark:text-slate-400 group-hover:text-[#008A64] dark:group-hover:text-[#34D399]"
                             }`}
                           >
-                            <Icon size={21} />
+                            <Icon size={18} />
                           </div>
 
                           {!isCollapsed && (
-                            <span className="text-[15px] truncate ml-[14px]">
+                            <span className="text-[13.5px] truncate ml-2.5">
                               {item.label}
                             </span>
                           )}
 
                           {/* Floating Tooltip when Collapsed */}
                           {isCollapsed && (
-                            <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 flex items-center">
+                            <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 flex items-center">
                               {item.label}
                               <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
                             </div>
@@ -314,151 +274,60 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Bottom Area: Account Navigation & User Card */}
         <div
-          className={`border-t border-slate-800/80 bg-slate-900/40 space-y-3 shrink-0 transition-all duration-300 ${
-            isCollapsed ? "p-2" : "p-4"
+          className={`border-t border-slate-100 dark:border-[rgba(148,163,184,0.12)] bg-slate-50/60 dark:bg-[#0B1713] space-y-2 shrink-0 transition-all duration-300 ${
+            isCollapsed ? "p-2" : "p-3"
           }`}
         >
-          <div className="space-y-1">
-            {/* Hồ sơ cá nhân */}
-            <NavLink
-              to={getProfilePath()}
-              title="Hồ sơ cá nhân"
-              onClick={() => onClose?.()}
-              className={({ isActive }) =>
-                `group relative flex items-center h-[48px] rounded-xl transition-all duration-150 cursor-pointer ${
-                  isCollapsed
-                    ? `justify-center w-full ${
-                        isActive
-                          ? "bg-[#14213d] text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-md before:bg-blue-500"
-                          : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
-                      }`
-                    : `px-3.5 ${
-                        isActive
-                          ? "bg-[#14213d]/80 text-white font-semibold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-md before:bg-blue-500"
-                          : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium"
-                      }`
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                      isActive
-                        ? "bg-blue-500/20 text-blue-400"
-                        : "text-slate-400 group-hover:text-slate-200"
-                    }`}
-                  >
-                    <UserIcon size={20} />
-                  </div>
-
-                  {!isCollapsed && (
-                    <span className="text-[15px] truncate ml-[14px]">
-                      Hồ sơ cá nhân
-                    </span>
-                  )}
-
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 flex items-center">
-                      Hồ sơ cá nhân
-                      <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
-                    </div>
-                  )}
-                </>
-              )}
-            </NavLink>
-
-            {/* Cài đặt & Tùy chọn */}
-            <NavLink
-              to={getSettingsPath()}
-              title="Cài đặt & Tùy chọn"
-              onClick={() => onClose?.()}
-              className={({ isActive }) =>
-                `group relative flex items-center h-[48px] rounded-xl transition-all duration-150 cursor-pointer ${
-                  isCollapsed
-                    ? `justify-center w-full ${
-                        isActive
-                          ? "bg-[#14213d] text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-md before:bg-blue-500"
-                          : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
-                      }`
-                    : `px-3.5 ${
-                        isActive
-                          ? "bg-[#14213d]/80 text-white font-semibold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-md before:bg-blue-500"
-                          : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50 font-medium"
-                      }`
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                      isActive
-                        ? "bg-blue-500/20 text-blue-400"
-                        : "text-slate-400 group-hover:text-slate-200"
-                    }`}
-                  >
-                    <Settings size={20} />
-                  </div>
-
-                  {!isCollapsed && (
-                    <span className="text-[15px] truncate ml-[14px]">
-                      Cài đặt & Tùy chọn
-                    </span>
-                  )}
-
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 flex items-center">
-                      Cài đặt & Tùy chọn
-                      <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
-                    </div>
-                  )}
-                </>
-              )}
-            </NavLink>
-          </div>
-
           {/* User Profile Card */}
-          <div
-            className={`rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center hover:border-slate-700/80 transition-colors relative group ${
-              isCollapsed ? "justify-center p-2" : "p-2.5 gap-3"
-            }`}
-            title={user?.fullName || user?.email || "Người dùng"}
-          >
-            <div className="relative shrink-0">
-              {user?.avatarUrl && user.avatarUrl !== "string" ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user?.fullName || "Avatar"}
-                  className="w-10 h-10 rounded-full object-cover border border-slate-700 shadow-xs"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-sm flex items-center justify-center shadow-md">
-                  {(user?.fullName || user?.email || "U").charAt(0).toUpperCase()}
+          {(() => {
+            const effectiveAvatar =
+              (user?.avatarUrl && user.avatarUrl !== "string" ? user.avatarUrl : null) ||
+              (user?.email ? localStorage.getItem(`adpp_user_avatar_${user.email}`) : null);
+
+            return (
+              <NavLink
+                to={getProfilePath()}
+                className={`rounded-xl bg-white dark:bg-[#12231C] border border-slate-200/80 dark:border-[rgba(148,163,184,0.18)] flex items-center hover:border-[#008A64]/40 hover:shadow-xs transition-all relative group cursor-pointer ${
+                  isCollapsed ? "justify-center p-2" : "p-2 gap-2.5"
+                }`}
+                title={user?.fullName || user?.email || "Người dùng"}
+              >
+                <div className="relative shrink-0">
+                  {effectiveAvatar ? (
+                    <img
+                      src={effectiveAvatar}
+                      alt={user?.fullName || "Avatar"}
+                      className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#008A64] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                      {(user?.fullName || user?.email || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-[#1DB881] ring-1.5 ring-white" />
                 </div>
-              )}
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#0a0f1d]" />
-            </div>
 
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate leading-tight">
-                  {user?.fullName || user?.email?.split("@")[0] || "Người dùng"}
-                </p>
-                <p className="text-xs text-slate-400 truncate mt-0.5">
-                  {user?.email || "Tài khoản ADPP"}
-                </p>
-              </div>
-            )}
+                {!isCollapsed && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
+                      {user?.fullName || user?.email?.split("@")[0] || "Người dùng"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-400 truncate mt-0.5">
+                      {user?.email || ""}
+                    </p>
+                  </div>
+                )}
 
-            {isCollapsed && (
-              <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-                <div className="font-bold">{user?.fullName || "Người dùng"}</div>
-                <div className="text-[11px] text-slate-400 font-normal">{user?.email}</div>
-                <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
-              </div>
-            )}
-          </div>
+                {isCollapsed && (
+                  <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
+                    <div className="font-bold">{user?.fullName || user?.email?.split("@")[0] || "Người dùng"}</div>
+                    <div className="text-[10px] text-slate-400 font-normal">{user?.email || ""}</div>
+                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 border-y-4 border-y-transparent border-r-4 border-r-slate-900" />
+                  </div>
+                )}
+              </NavLink>
+            );
+          })()}
         </div>
       </aside>
     </>

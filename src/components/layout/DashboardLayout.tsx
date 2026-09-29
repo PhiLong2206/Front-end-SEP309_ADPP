@@ -26,7 +26,7 @@ const DashboardLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#070b14] text-slate-100 selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen flex bg-[#FAFBF8] text-slate-800 selection:bg-[#008A64] selection:text-white">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -35,11 +35,11 @@ const DashboardLayout: React.FC = () => {
       />
       <div
         className={`flex-1 flex flex-col min-h-screen min-w-0 transition-all duration-300 ease-in-out ${
-          isCollapsed ? "lg:ml-[76px]" : "lg:ml-[280px]"
+          isCollapsed ? "lg:ml-[76px]" : "lg:ml-[260px]"
         }`}
       >
         <DashboardHeader onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 p-5 sm:p-7 lg:p-8 max-w-6xl w-full mx-auto animate-fade-in">
+        <main className="flex-1 p-5 sm:p-7 lg:p-8 max-w-7xl w-full mx-auto animate-fade-in">
           <Outlet />
         </main>
       </div>

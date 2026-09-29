@@ -1,67 +1,143 @@
-import { PaginationParams } from "./api.types";
+export type CompetitionLifecycleStatus =
+  | "Draft"
+  | "OpenRegistration"
+  | "RegistrationClosed"
+  | "Ongoing"
+  | "Completed"
+  | "Cancelled";
 
-export type CompetitionStatus = "Draft" | "RegistrationOpen" | "Ongoing" | "Finished" | "Cancelled";
-export type MatchStatus = "Pending" | "Ongoing" | "Finished";
+export type CompetitionType = "INDIVIDUAL" | "TEAM";
 
-export interface CompetitionTeam {
-  id: string;
-  name: string;
-  competitionId: string;
-  members: Array<{
-    userId: string;
-    fullName: string;
-    email: string;
-    roleInTeam: string;
-  }>;
-  totalScore: number;
-  rank?: number;
-}
+export type RegistrationStatus = "Pending" | "Approved" | "Rejected" | "Cancelled";
+export type TeamStatus = "Active" | "Withdrawn";
+export type TeamRequestType = "Invitation" | "JoinRequest";
+export type TeamRequestStatus = "Pending" | "Accepted" | "Rejected" | "Cancelled";
 
-export interface CompetitionMatch {
-  id: string;
-  competitionId: string;
-  roundName: string; // e.g., "Quarter-Final", "Semi-Final", "Final"
-  topicId: string;
-  topicTitle: string;
-  affirmativeTeamId: string;
-  affirmativeTeamName: string;
-  negativeTeamId: string;
-  negativeTeamName: string;
-  winnerTeamId?: string;
-  status: MatchStatus;
-  scheduledAt: string;
-}
-
-export interface Competition {
-  id: string;
+export interface CompetitionListItem {
+  competitionId: number;
   title: string;
-  description: string;
-  status: CompetitionStatus;
+  competitionType: CompetitionType;
+  registrationStart: string;
+  registrationEnd: string;
   startDate: string;
-  endDate: string;
-  registrationDeadline: string;
-  organizerId: string;
-  organizerName: string;
-  maxTeams: number;
-  registeredTeamsCount: number;
-  entryFee: number;
-  prizePool?: string;
-  rules?: string;
+  status: CompetitionLifecycleStatus | string;
+  isPublic: boolean;
+}
+
+export interface CompetitionDetail {
+  competitionId: number;
+  title: string;
+  description?: string | null;
+  createdBy: number;
+  createdByName?: string;
+  competitionType: CompetitionType;
+  formatId?: number | null;
+  formatName?: string | null;
+  maxParticipants?: number | null;
+  registrationStart: string;
+  registrationEnd: string;
+  startDate: string;
+  endDate?: string | null;
+  status: CompetitionLifecycleStatus | string;
+  isPublic: boolean;
   createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface CreateCompetitionDto {
   title: string;
-  description: string;
+  description?: string;
+  competitionType: CompetitionType;
+  formatId?: number | null;
+  maxParticipants?: number | null;
+  registrationStart: string;
+  registrationEnd: string;
   startDate: string;
-  endDate: string;
-  registrationDeadline: string;
-  maxTeams: number;
-  entryFee: number;
-  prizePool?: string;
-  rules?: string;
+  endDate?: string | null;
+  isPublic?: boolean;
 }
 
-export interface CompetitionFilterParams extends PaginationParams {
-  status?: CompetitionStatus;
+export interface PatchCompetitionDto {
+  title?: string;
+  description?: string;
+  formatId?: number | null;
+  maxParticipants?: number | null;
+  registrationStart?: string;
+  registrationEnd?: string;
+  startDate?: string;
+  endDate?: string | null;
+  isPublic?: boolean;
 }
+
+export interface CompetitionQueryFilter {
+  status?: string;
+  competitionType?: string;
+  isPublic?: boolean;
+  keyword?: string;
+}
+
+export interface CompetitionRegistration {
+  registrationId: number;
+  competitionId: number;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  status: RegistrationStatus | string;
+  note?: string | null;
+  registeredAt: string;
+  reviewedBy?: number | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
+}
+
+export interface CompetitionTeam {
+  teamId: number;
+  competitionId: number;
+  teamName: string;
+  captainUserId: number;
+  status: TeamStatus | string;
+  createdAt: string;
+}
+
+export interface CompetitionTeamMember {
+  teamMemberId: number;
+  userId: number;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+  joinedAt: string;
+}
+
+export interface CompetitionTeamDetail extends CompetitionTeam {
+  captainName: string;
+  members: CompetitionTeamMember[];
+}
+
+export interface CompetitionTeamRequest {
+  requestId: number;
+  teamId: number;
+  teamName: string;
+  userId: number;
+  userName: string;
+  createdByUserId: number;
+  createdByName: string;
+  requestType: TeamRequestType | string;
+  status: TeamRequestStatus | string;
+  note?: string | null;
+  createdAt: string;
+  respondedAt?: string | null;
+  respondedByUserId?: number | null;
+  respondedByName?: string | null;
+}
+
+export interface CompetitionJudge {
+  competitionJudgeId: number;
+  competitionId: number;
+  userId: number;
+  fullName: string;
+  email: string;
+  assignedAt: string;
+}
+
+// Backward compatibility alias
+export type Competition = CompetitionDetail;

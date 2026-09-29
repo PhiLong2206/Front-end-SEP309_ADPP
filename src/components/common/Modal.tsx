@@ -38,18 +38,18 @@ const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in"
       onClick={onClose}
     >
       <div
-        className={`w-full ${maxWidth} bg-[#0e1626] border border-slate-700/80 rounded-3xl shadow-2xl shadow-black/80 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-white`}
+        className={`w-full ${maxWidth} bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-900`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white tracking-tight">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-4.5 border-b border-slate-100">
+          <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
           <button
             type="button"
-            className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
             onClick={onClose}
           >
             <X size={18} />
@@ -57,7 +57,7 @@ const Modal: React.FC<ModalProps> = ({
         </div>
         <div className="p-6 max-h-[75vh] overflow-y-auto">{children}</div>
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-900/80 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50/80 border-t border-slate-100">
             {footer}
           </div>
         )}

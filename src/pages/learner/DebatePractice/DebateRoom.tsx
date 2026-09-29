@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Mic, Send, Lightbulb, User as UserIcon, Bot } from "lucide-react";
 import DebateStepper from "../../../components/debate/DebateStepper";
 import RebuttalSuggestion from "../../../components/debate/RebuttalSuggestion";
+import AICoachingPanel from "../../../components/debate/AICoachingPanel";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
-import Button from "../../../components/common/Button";
 import { MOCK_DEBATE_TRANSCRIPT, MockDebateMessage } from "../../../mocks/debate";
 
 const DebateRoom: React.FC = () => {
@@ -77,35 +77,35 @@ const DebateRoom: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto pb-6">
-      {/* 1. TOP BAR: Thoát | Topic Title | 02:15 Timer */}
-      <div className="bg-white px-5 py-3 rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between gap-4">
+    <div className="space-y-4.5 max-w-6xl mx-auto pb-6">
+      {/* 1. TOP BAR: Thoát | Topic Title | 02:15 Timer (Spec #1, #3) */}
+      <div className="bg-white debate-panel-main px-6 py-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-4">
         {/* Left: Thoát button */}
         <button
           type="button"
           onClick={() => setShowExitConfirm(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 px-3.5 py-2 text-[15px] font-semibold text-slate-700 dark:text-[#CBD5E1] bg-slate-100 hover:bg-slate-200 dark:bg-[#10231C] dark:hover:bg-[#123326] rounded-xl transition-colors"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={16} />
           <span>Thoát</span>
         </button>
 
-        {/* Center: Topic Title */}
-        <div className="text-center font-bold text-xs sm:text-sm text-slate-900 truncate max-w-md">
+        {/* Center: Topic Title (17-18px font-weight: 700) */}
+        <div className="text-center font-bold text-[17px] sm:text-[18px] text-slate-900 dark:text-[#F8FAFC] truncate max-w-md">
           Mạng xã hội có gây hại nhiều hơn lợi ích?
         </div>
 
         {/* Right: Timer & Finish */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-md font-mono text-xs font-bold text-blue-600">
-            <Clock size={13} />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.12)] border border-[#008A64]/20 dark:border-[rgba(16,185,129,0.30)] rounded-xl font-mono text-[15px] font-bold text-[#008A64] dark:text-[#34D399]">
+            <Clock size={15} />
             <span>{formatTimer(secondsRemaining)}</span>
           </div>
 
           <button
             type="button"
             onClick={() => navigate(`/learner/debate/${sessionId}/result`)}
-            className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 transition-colors shadow-2xs"
+            className="px-4 py-2 bg-[#008A64] text-white rounded-xl text-[15px] font-semibold hover:bg-[#007457] transition-all shadow-sm shadow-[#008A64]/20"
           >
             Nộp bài
           </button>
@@ -115,157 +115,180 @@ const DebateRoom: React.FC = () => {
       {/* 2. ROUND PROGRESS STEPPER: Mở đầu | Phản biện | Kết luận */}
       <DebateStepper currentRound={currentRound} />
 
-      {/* 3. MAIN WORKSPACE (3 Columns: LEFT transcript, CENTER Diễn biến, RIGHT Gợi ý) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* LEFT COLUMN: Transcript / Conversation Stream (~45%) */}
-        <div className="lg:col-span-5 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs h-[480px] overflow-y-auto space-y-3">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-100">
-            Nội dung tranh biện
+      {/* 3. MAIN WORKSPACE (3 Columns: Conversation 42%, Diễn biến 24%, AI Assistant 34%) */}
+      <div className="debate-room-grid grid grid-cols-1 lg:grid-cols-[42fr_24fr_34fr] gap-4.5 items-start">
+        {/* LEFT COLUMN: Transcript / Conversation Stream (~42%) */}
+        <div className="bg-white debate-panel-main p-5 rounded-2xl border border-slate-200 shadow-xs h-[540px] xl:h-[580px] overflow-y-auto space-y-4">
+          <div className="text-[17px] font-bold text-slate-900 dark:text-[#F8FAFC] pb-3 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
+            <span>Nội dung tranh biện</span>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-[#10231C] text-slate-600 dark:text-[#94A3B8]">
+              {messages.length} lượt tranh luận
+            </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`p-3 rounded-lg border text-xs space-y-1.5 ${
+                className={`p-4 sm:p-5 rounded-2xl border space-y-2.5 ${
                   msg.speaker === "Learner"
-                    ? "bg-blue-50/50 border-blue-200/70"
-                    : "bg-slate-50 border-slate-200"
+                    ? "debate-msg-user bg-[#ECFDF5]/60 border-[#008A64]/30"
+                    : "debate-msg-ai bg-slate-50 border-slate-200/80"
                 }`}
               >
-                <div className="flex items-center justify-between font-semibold text-[11px]">
-                  <span className={msg.speaker === "Learner" ? "text-blue-700" : "text-slate-800"}>
+                <div className="flex items-center justify-between">
+                  <span
+                    className={
+                      msg.speaker === "Learner"
+                        ? "debate-user-author text-[16px] font-semibold text-[#008A64] dark:text-[#34D399]"
+                        : "debate-ai-author text-[16px] font-semibold text-slate-900 dark:text-[#F8FAFC]"
+                    }
+                  >
                     {msg.speakerName} ({msg.side})
                   </span>
-                  <span className="text-slate-400">{msg.timestamp}</span>
+                  <span className="debate-meta-time text-[14px] text-slate-400 dark:text-[#94A3B8]">
+                    {msg.timestamp}
+                  </span>
                 </div>
-                <p className="text-slate-700 leading-relaxed whitespace-pre-line">
+                <p
+                  className={
+                    msg.speaker === "Learner"
+                      ? "debate-user-body text-[16px] leading-[1.7] whitespace-pre-line text-slate-700 dark:text-[#E2E8F0]"
+                      : "debate-ai-body text-[16px] leading-[1.7] whitespace-pre-line text-slate-700 dark:text-[#DCE7E3]"
+                  }
+                >
                   {msg.content}
                 </p>
               </div>
             ))}
 
             {isAiGenerating && (
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-500 animate-pulse flex items-center gap-2">
-                <Bot size={14} className="text-blue-600" />
+              <div className="p-4 bg-[#ECFDF5]/30 dark:bg-[rgba(16,185,129,0.08)] rounded-2xl border border-[#008A64]/20 dark:border-[rgba(16,185,129,0.25)] text-[15px] text-slate-700 dark:text-[#DCE7E3] animate-pulse flex items-center gap-2.5">
+                <Bot size={16} className="text-[#008A64] dark:text-[#34D399]" />
                 <span>Đối thủ AI đang lập luận phản hồi...</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* CENTER COLUMN: Diễn biến (~35%) */}
-        <div className="lg:col-span-3 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs h-[480px] overflow-y-auto space-y-3.5">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-100">
+        {/* CENTER COLUMN: Diễn biến (~24%) */}
+        <div className="bg-white debate-panel-secondary p-5 rounded-2xl border border-slate-200 shadow-xs h-[540px] xl:h-[580px] overflow-y-auto space-y-4">
+          <div className="text-[17px] font-bold text-slate-900 dark:text-[#F8FAFC] pb-3 border-b border-slate-100 dark:border-slate-800/60">
             Diễn biến
           </div>
 
           {/* Vòng 1 */}
-          <div className="p-2.5 bg-slate-50/70 rounded-lg border border-slate-200/70 space-y-2">
-            <span className="text-xs font-bold text-slate-800 block">Vòng 1 - Mở đầu</span>
-            <div className="space-y-1 text-[11px] text-slate-600">
-              <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
-                <UserIcon size={12} />
+          <div className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.16)] space-y-2.5">
+            <span className="text-[15px] font-semibold text-slate-900 dark:text-[#F8FAFC] block">
+              Vòng 1 - Mở đầu
+            </span>
+            <div className="space-y-1.5 text-[14px]">
+              <div className="flex items-center gap-2 text-[#008A64] dark:text-[#34D399] font-semibold">
+                <UserIcon size={14} />
                 <span>Bạn: Đã hoàn thành (80/100)</span>
               </div>
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Bot size={12} />
+              <div className="flex items-center gap-2 text-slate-600 dark:text-[#CBD5E1]">
+                <Bot size={14} />
                 <span>Đối thủ AI: Đã hoàn thành</span>
               </div>
             </div>
           </div>
 
           {/* Vòng 2 */}
-          <div className="p-2.5 bg-blue-50/60 rounded-lg border border-blue-200 space-y-2">
-            <span className="text-xs font-bold text-blue-900 block flex items-center justify-between">
+          <div className="p-3.5 bg-[#ECFDF5]/70 dark:bg-[#123326] rounded-xl border border-[#008A64]/40 dark:border-[rgba(16,185,129,0.35)] space-y-2.5 debate-surface-elevated">
+            <span className="text-[15px] font-semibold text-[#008A64] dark:text-[#34D399] flex items-center justify-between">
               <span>Vòng 2 - Phản biện</span>
-              <span className="text-[10px] px-1.5 py-0.5 bg-blue-600 text-white rounded">Đang diễn ra</span>
+              <span className="text-xs px-2 py-0.5 bg-[#008A64] text-white rounded font-bold">
+                Đang diễn ra
+              </span>
             </span>
-            <div className="space-y-1 text-[11px]">
-              <div className="flex items-center gap-1.5 text-blue-700 font-bold">
-                <UserIcon size={12} />
+            <div className="space-y-1.5 text-[14px]">
+              <div className="flex items-center gap-2 text-[#008A64] dark:text-[#34D399] font-semibold">
+                <UserIcon size={14} />
                 <span>Bạn (đang đến lượt)</span>
               </div>
-              <div className="flex items-center gap-1.5 text-slate-500">
-                <Bot size={12} />
+              <div className="flex items-center gap-2 text-slate-500 dark:text-[#94A3B8]">
+                <Bot size={14} />
                 <span>Đối thủ AI: Chờ lượt</span>
               </div>
             </div>
           </div>
 
           {/* Vòng 3 */}
-          <div className="p-2.5 bg-slate-50/50 rounded-lg border border-slate-100 opacity-60 space-y-2">
-            <span className="text-xs font-bold text-slate-600 block">Vòng 3 - Kết luận</span>
-            <div className="text-[11px] text-slate-400">
+          <div className="p-3.5 bg-slate-50/50 dark:bg-[#091713]/60 rounded-xl border border-slate-100 dark:border-[rgba(148,163,184,0.10)] opacity-70 space-y-2">
+            <span className="text-[15px] font-semibold text-slate-600 dark:text-[#94A3B8] block">
+              Vòng 3 - Kết luận
+            </span>
+            <div className="text-[14px] text-slate-400 dark:text-[#94A3B8]">
               Chưa bắt đầu
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Gợi ý phản biện (~40%) */}
-        <div className="lg:col-span-4 h-[480px]">
+        {/* RIGHT COLUMN: Gợi ý phản biện + AI Coaching (~34%) */}
+        <div className="space-y-4 h-[540px] xl:h-[580px] overflow-y-auto">
           <RebuttalSuggestion />
+          <AICoachingPanel costPerUse={2000} />
         </div>
       </div>
 
       {/* 4. FIXED BOTTOM COMPOSER: Lập luận của bạn | Textarea | 0/2000 | Mic | Gợi ý | Gửi */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5">
+      <div className="bg-white debate-panel-main p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
-          <label htmlFor="debate-argument-textarea" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+          <label htmlFor="debate-argument-textarea" className="text-[15px] font-bold text-slate-900 dark:text-[#F8FAFC]">
             Lập luận của bạn
           </label>
-          <span className="text-xs text-slate-400">
+          <span className="text-[14px] text-slate-400 dark:text-[#94A3B8]">
             {argumentText.length} / 2000
           </span>
         </div>
 
-        <form onSubmit={handleSendArgument} className="space-y-2.5">
+        <form onSubmit={handleSendArgument} className="space-y-3">
           <textarea
             id="debate-argument-textarea"
             rows={3}
             value={argumentText}
             onChange={(e) => setArgumentText(e.target.value.slice(0, 2000))}
             placeholder="Nhập nội dung phản biện của bạn..."
-            className="w-full p-3 text-xs bg-slate-50/50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none text-slate-800 placeholder:text-slate-400"
+            className="w-full p-3.5 text-[15px] sm:text-[16px] leading-[1.65] bg-slate-50 dark:bg-[#091713] border border-slate-200 dark:border-[rgba(148,163,184,0.20)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64] resize-none text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] transition-all"
           />
 
           <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {/* Microphone */}
               <button
                 type="button"
                 onClick={() => setIsRecording(!isRecording)}
-                className={`p-2 rounded-lg border transition-colors ${
-                  isRecording ? "bg-red-50 border-red-200 text-red-600" : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                className={`p-2.5 rounded-xl border transition-colors ${
+                  isRecording
+                    ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/40 text-red-600 dark:text-red-400"
+                    : "bg-slate-100 dark:bg-[#10231C] border-slate-200 dark:border-[rgba(148,163,184,0.20)] text-slate-600 dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#123326]"
                 }`}
                 title="Ghi âm giọng nói"
               >
-                <Mic size={15} />
+                <Mic size={17} />
               </button>
 
               {/* Gợi ý button */}
               <button
                 type="button"
                 onClick={() => setShowTipsModal(true)}
-                className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 hover:bg-amber-100 transition-colors"
+                className="px-4 py-2 bg-[#ECFDF5] text-[#008A64] dark:bg-[rgba(16,185,129,0.12)] dark:text-[#34D399] border border-[#008A64]/30 dark:border-[rgba(16,185,129,0.30)] rounded-xl text-[15px] font-semibold inline-flex items-center gap-2 hover:bg-emerald-100 dark:hover:bg-[rgba(16,185,129,0.20)] transition-colors"
               >
-                <Lightbulb size={13} />
+                <Lightbulb size={16} />
                 <span>Gợi ý phản biện</span>
               </button>
             </div>
 
             {/* Gửi lập luận */}
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              size="sm"
               disabled={!argumentText.trim() || isAiGenerating}
-              loading={isAiGenerating}
-              className="px-5 font-bold inline-flex items-center gap-1.5"
+              className="px-6 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white rounded-xl text-[15px] sm:text-[16px] font-semibold inline-flex items-center gap-2 transition-all shadow-sm shadow-[#008A64]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>Gửi lập luận</span>
-              <Send size={13} />
-            </Button>
+              <span>{isAiGenerating ? "Đang gửi..." : "Gửi lập luận"}</span>
+              <Send size={15} />
+            </button>
           </div>
         </form>
       </div>

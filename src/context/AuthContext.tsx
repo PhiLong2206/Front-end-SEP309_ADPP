@@ -2,6 +2,16 @@ import { createContext, useState, useEffect, useCallback, ReactNode } from "reac
 import { User, LoginRequest, AuthContextType, RoleType } from "../types";
 import { getToken, setToken, getUserData, setUserData, clearAuthStorage } from "../utils/token";
 import authApi from "../api/authApi";
+import userApi from "../api/userApi";
+
+const mapRoleFromRoles = (roles: string[] = []): RoleType => {
+  if (roles.includes("Admin") || roles.includes("Administrator")) {
+    return "Administrator";
+  } else if (roles.includes("Educator") || roles.includes("Lecturer")) {
+    return "Educator";
+  }
+  return "Learner";
+};
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -14,30 +24,84 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = Boolean(tokenState && user);
 
   useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        const currentToken = getToken();
-        const currentUser = getUserData();
+    let isMounted = true;
 
-        if (currentToken && currentUser && currentUser.role && currentUser.email) {
+    const initializeAuth = async () => {
+      const currentToken = getToken();
+      const currentUser = getUserData();
+
+      if (!currentToken) {
+        clearAuthStorage();
+        if (isMounted) {
+          setTokenState(null);
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Optimistically restore cached session for fast UI rendering
+      if (currentUser && currentUser.email) {
+        if (isMounted) {
           setTokenState(currentToken);
           setUser(currentUser);
+        }
+      }
+
+      try {
+        // Source of truth: fetch latest profile & roles directly from backend database
+        const profileRes = await userApi.getMyProfile();
+        if (!isMounted) return;
+
+        if (profileRes && profileRes.success && profileRes.data) {
+          const profile = profileRes.data;
+          const freshRoles = profile.roles || [];
+          const mappedRole = mapRoleFromRoles(freshRoles);
+
+          const syncedUser: User = {
+            id: String(profile.userId),
+            userId: profile.userId,
+            email: profile.email,
+            fullName: profile.fullName,
+            role: mappedRole,
+            roles: freshRoles,
+            avatarUrl: profile.avatarUrl,
+            phoneNumber: profile.phoneNumber,
+            isActive: profile.isActive,
+            createdAt: profile.createdAt || new Date().toISOString(),
+          };
+
+          setTokenState(currentToken);
+          setUser(syncedUser);
+          setUserData(syncedUser);
         } else {
           clearAuthStorage();
           setTokenState(null);
           setUser(null);
         }
       } catch (error) {
-        console.error("Failed to restore auth session:", error);
-        clearAuthStorage();
-        setTokenState(null);
-        setUser(null);
+        console.warn("Auth sync error:", error);
+        const errObj = error as { status?: number; response?: { status?: number } };
+        const statusCode = errObj?.status || errObj?.response?.status;
+        if (statusCode === 401) {
+          clearAuthStorage();
+          if (isMounted) {
+            setTokenState(null);
+            setUser(null);
+          }
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = useCallback(async (credentials: LoginRequest) => {
@@ -51,14 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (res && res.success && res.data?.accessToken) {
         const roles = res.data.user?.roles || [];
-        let mappedRole: RoleType = "Learner";
-        if (roles.includes("Admin") || roles.includes("Administrator")) {
-          mappedRole = "Administrator";
-        } else if (roles.includes("Educator")) {
-          mappedRole = "Educator";
-        } else {
-          mappedRole = "Learner";
-        }
+        const mappedRole = mapRoleFromRoles(roles);
 
         const authenticatedUser: User = {
           id: String(res.data.user.userId),
@@ -105,14 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (res && res.success && res.data?.accessToken) {
         const roles = res.data.user?.roles || [];
-        let mappedRole: RoleType = "Learner";
-        if (roles.includes("Admin") || roles.includes("Administrator")) {
-          mappedRole = "Administrator";
-        } else if (roles.includes("Educator")) {
-          mappedRole = "Educator";
-        } else {
-          mappedRole = "Learner";
-        }
+        const mappedRole = mapRoleFromRoles(roles);
 
         const authenticatedUser: User = {
           id: String(res.data.user.userId),

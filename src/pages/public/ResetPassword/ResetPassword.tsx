@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import Input from "../../../components/common/Input";
-import Button from "../../../components/common/Button";
+import AuthLayout from "../../../components/auth/AuthLayout";
+import PasswordInput from "../../../components/auth/PasswordInput";
+import PasswordStrength from "../../../components/auth/PasswordStrength";
+import PasswordRequirements from "../../../components/auth/PasswordRequirements";
+import ConfirmPasswordInput from "../../../components/auth/ConfirmPasswordInput";
 import authApi from "../../../api/authApi";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, LockKeyhole, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Mail,
+  LockKeyhole,
+} from "lucide-react";
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -13,7 +23,6 @@ const ResetPassword: React.FC = () => {
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -21,9 +30,12 @@ const ResetPassword: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
-    const passedEmail = (location.state as { email?: string })?.email;
-    if (passedEmail) {
-      setEmail(passedEmail);
+    const passedState = location.state as { email?: string; otpCode?: string };
+    if (passedState?.email) {
+      setEmail(passedState.email);
+    }
+    if (passedState?.otpCode) {
+      setOtpCode(passedState.otpCode);
     }
   }, [location.state]);
 
@@ -45,7 +57,7 @@ const ResetPassword: React.FC = () => {
     }
 
     if (!otpCode.trim()) {
-      setError("Vui lòng nhập mã OTP xác thực.");
+      setError("Vui lòng nhập mã OTP 6 chữ số.");
       return;
     }
 
@@ -74,7 +86,7 @@ const ResetPassword: React.FC = () => {
         );
         setTimeout(() => {
           navigate("/login");
-        }, 2000);
+        }, 1800);
       } else {
         setError(res?.message || "Mã OTP không chính xác hoặc đã hết hạn.");
       }
@@ -112,134 +124,161 @@ const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4 sm:p-8 bg-linear-to-br from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
-      {/* Decorative ambient background glows */}
-      <div className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+    <AuthLayout
+      title="Đặt lại mật khẩu"
+      subtitle="Nhập mã OTP xác thực và mật khẩu mới để khôi phục quyền truy cập tài khoản."
+      badge="Bước 2: Thiết lập mật khẩu mới"
+      showVisualSidebar={false}
+    >
+      {/* Step Indicator */}
+      <div className="flex items-center justify-center gap-3 mb-6 pb-2">
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] text-emerald-700 dark:text-[#34D399] border border-emerald-200 dark:border-[rgba(16,185,129,0.25)]">
+          <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-[#10B981]/30 text-emerald-800 dark:text-[#34D399] flex items-center justify-center text-[11px]">
+            ✓
+          </span>
+          <span>Gửi yêu cầu OTP</span>
+        </div>
 
-      <div className="max-w-lg w-full relative z-10">
-        <div className="bg-white/95 backdrop-blur-xl p-8 sm:p-12 rounded-3xl border border-white/20 shadow-2xl shadow-indigo-950/40">
-          {/* Header icon and title */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
-              <LockKeyhole size={30} />
+        <div className="w-6 h-0.5 bg-slate-200 dark:bg-slate-700" />
+
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#008A64] dark:bg-[#10B981] text-white shadow-xs">
+          <span className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center text-[11px]">
+            2
+          </span>
+          <span>Đặt lại mật khẩu</span>
+        </div>
+      </div>
+
+      {/* Alert Messages */}
+      {error && (
+        <div className="p-3.5 mb-4 text-xs sm:text-sm rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 font-medium animate-fade-in flex items-start gap-2.5">
+          <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="p-3.5 mb-4 text-xs sm:text-sm rounded-xl bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] border border-emerald-200 dark:border-[rgba(16,185,129,0.25)] text-emerald-700 dark:text-[#34D399] font-medium animate-fade-in flex items-center gap-2.5">
+          <CheckCircle2 size={18} className="text-emerald-600 dark:text-[#34D399] shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleResetSubmit} className="space-y-4">
+        {/* Email Address */}
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="reset-email" className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-[#F8FAFC]">
+            Địa chỉ Email <span className="text-rose-500">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <Mail size={16} />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-              Đặt lại mật khẩu
-            </h1>
-            <p className="text-sm sm:text-base text-slate-500 mt-2 max-w-sm mx-auto leading-relaxed">
-              Nhập mã OTP 6 số từ email và mật khẩu mới để thiết lập lại quyền truy cập.
-            </p>
-          </div>
-
-          {/* Alert Messages */}
-          {error && (
-            <div className="p-4 mb-6 text-sm rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-medium animate-fade-in flex items-start gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-rose-500 mt-2 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="p-4 mb-6 text-sm rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium animate-fade-in flex items-center gap-3">
-              <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleResetSubmit} className="space-y-4">
-            <Input
-              label="Địa chỉ Email"
-              name="email"
+            <input
+              id="reset-email"
               type="email"
               placeholder="your.email@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-            />
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-semibold text-slate-800">Mã xác thực OTP (6 chữ số)</label>
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={countdown > 0 || resending}
-                  className={`text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors ${
-                    countdown > 0 || resending
-                      ? "text-slate-400 cursor-not-allowed"
-                      : "text-blue-600 hover:text-blue-700 hover:underline"
-                  }`}
-                >
-                  <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
-                  <span>{countdown > 0 ? `Gửi lại sau (${countdown}s)` : "Gửi lại mã OTP"}</span>
-                </button>
-              </div>
-              <Input
-                name="otpCode"
-                placeholder="Ví dụ: 123456"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <Input
-                label="Mật khẩu mới (Tối thiểu 8 ký tự)"
-                name="newPassword"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-9.5 text-slate-400 hover:text-slate-600 p-1 transition-colors"
-                title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            <Input
-              label="Xác nhận mật khẩu mới"
-              name="confirmPassword"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full py-3.5 text-base font-bold shadow-lg shadow-blue-600/25 mt-3"
-              loading={loading}
               disabled={loading}
-            >
-              Lưu mật khẩu mới & Đăng nhập
-            </Button>
-          </form>
-
-          <div className="mt-8 pt-6 border-t border-slate-100 text-center text-sm text-slate-600">
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 font-semibold text-slate-600 hover:text-blue-600 transition-colors"
-            >
-              <ArrowLeft size={16} />
-              <span>Quay lại Đăng nhập</span>
-            </Link>
+              className="w-full py-2.5 sm:py-3 pl-10 pr-4 text-sm sm:text-base bg-white dark:bg-[#12231C] border border-slate-200 hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-200 outline-none focus:border-[#008A64] dark:focus:border-[#10B981] focus:ring-2 focus:ring-[#008A64]/15 dark:focus:ring-[#10B981]/20 disabled:bg-slate-50 dark:disabled:bg-[#091511]"
+            />
           </div>
         </div>
+
+        {/* OTP Code with Resend */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="reset-otp" className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-[#F8FAFC]">
+              Mã xác thực OTP (6 chữ số) <span className="text-rose-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={countdown > 0 || resending}
+              className={`text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                countdown > 0 || resending
+                  ? "text-slate-400 cursor-not-allowed"
+                  : "text-[#008A64] dark:text-[#34D399] hover:text-[#007457] dark:hover:text-emerald-300 hover:underline"
+              }`}
+            >
+              <RefreshCw size={13} className={resending ? "animate-spin" : ""} />
+              <span>{countdown > 0 ? `Gửi lại sau (${countdown}s)` : "Gửi lại mã OTP"}</span>
+            </button>
+          </div>
+
+          <input
+            id="reset-otp"
+            type="text"
+            placeholder="123456"
+            maxLength={6}
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value)}
+            required
+            disabled={loading}
+            className="w-full py-2.5 sm:py-3 px-4 text-center tracking-[0.25em] font-mono text-lg bg-white dark:bg-[#12231C] border border-slate-200 hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-300 dark:placeholder-slate-600 focus:border-[#008A64] dark:focus:border-[#10B981] focus:ring-2 focus:ring-[#008A64]/15 dark:focus:ring-[#10B981]/20 outline-none transition-all"
+          />
+        </div>
+
+        {/* New Password */}
+        <div>
+          <PasswordInput
+            id="reset-new-password"
+            label="Mật khẩu mới"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="••••••••••••"
+            required
+            disabled={loading}
+          />
+
+          <PasswordStrength password={newPassword} />
+          <PasswordRequirements password={newPassword} />
+        </div>
+
+        {/* Confirm New Password */}
+        <ConfirmPasswordInput
+          id="reset-confirm-password"
+          label="Xác nhận mật khẩu mới"
+          value={confirmPassword}
+          originalPassword={newPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          disabled={loading}
+        />
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 sm:py-3.5 px-4 rounded-xl text-sm sm:text-base font-bold text-white bg-[#008A64] dark:bg-[#10B981] hover:bg-[#007457] dark:hover:bg-[#34D399] active:bg-[#005e45] transition-all duration-200 shadow-md shadow-[#008A64]/25 flex items-center justify-center gap-2 mt-3 cursor-pointer disabled:opacity-60"
+        >
+          {loading ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Đang lưu mật khẩu mới...</span>
+            </>
+          ) : (
+            <>
+              <LockKeyhole size={17} />
+              <span>Lưu mật khẩu mới & Đăng nhập</span>
+            </>
+          )}
+        </button>
+      </form>
+
+      <div className="mt-6 pt-5 border-t border-slate-100 dark:border-[rgba(148,163,184,0.18)] text-center">
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 dark:text-[#94A3B8] hover:text-[#008A64] dark:hover:text-[#34D399] transition-colors"
+        >
+          <ArrowLeft size={15} />
+          <span>Quay lại Đăng nhập</span>
+        </Link>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 
 export default ResetPassword;
-

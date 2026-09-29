@@ -1,72 +1,82 @@
-import React, { useState } from "react";
-import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import React from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import Footer from "./Footer";
 import { useAuth } from "../../hooks/useAuth";
-import { ROLES } from "../../utils/constants";
-import { LogOut, Moon, LayoutDashboard, ArrowRight } from "lucide-react";
+import { useTheme } from "../../hooks/useTheme";
+import { Moon, Sun } from "lucide-react";
+import UserAvatarDropdown from "./UserAvatarDropdown";
 
 const PublicLayout: React.FC = () => {
-  const { isAuthenticated, role, logout } = useAuth();
-  const navigate = useNavigate();
-
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const [isDarkMode, setIsDarkMode] = useState(true);
-
-  const getDashboardPath = () => {
-    const userRole = String(role);
-    if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) return "/admin/dashboard";
-    if (userRole === "Educator" || userRole === ROLES.EDUCATOR) return "/educator/dashboard";
-    return "/learner/dashboard";
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/");
-  };
+  const navigate = useNavigate();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   const navLinks = [
     { label: "Trang chủ", path: "/" },
-    { label: "Phương pháp", path: "/#methods" },
-    { label: "Chủ đề nổi bật", path: "/#featured-topics" },
+    { label: "Phương pháp", path: "/#methods", hash: "methods" },
+    { label: "Chủ đề nổi bật", path: "/#featured-topics", hash: "featured-topics" },
     { label: "Kho đề tài", path: "/learner/topics" },
-    { label: "Bảng xếp hạng", path: "/#leaderboard" },
+    { label: "Bảng xếp hạng", path: "/#leaderboard", hash: "leaderboard" },
   ];
 
+  const handleNavClick = (e: React.MouseEvent, item: typeof navLinks[0]) => {
+    if (item.hash) {
+      if (location.pathname === "/") {
+        e.preventDefault();
+        const targetEl = document.getElementById(item.hash);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth" });
+        } else {
+          window.scrollTo({ top: 600, behavior: "smooth" });
+        }
+      } else {
+        navigate(`/#${item.hash}`);
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#070b14] text-slate-100 font-sans selection:bg-blue-600 selection:text-white">
-      {/* Exact Reference Top Navigation Bar */}
-      <header className="h-20 bg-[#070b14]/90 backdrop-blur-xl border-b border-slate-800/60 px-6 sm:px-12 sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto h-full flex items-center justify-between">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-[#00966F] selection:text-white bg-[#FAF9F4] dark:bg-[#07110E] text-[#101828] dark:text-[#F8FAFC] transition-colors duration-200">
+      {/* Top Navigation Bar */}
+      <header className="h-20 bg-white/94 dark:bg-[rgba(8,18,15,0.95)] backdrop-blur-md border-b border-[#E5E7EB] dark:border-[rgba(148,163,184,0.15)] px-6 sm:px-12 sticky top-0 z-50 shadow-xs transition-colors duration-200">
+        <div className="max-w-[1440px] mx-auto h-full flex items-center justify-between">
           {/* Left Brand Area */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-2xl bg-[#00966F] dark:bg-[#10B981] flex items-center justify-center text-white font-black text-lg shadow-md shadow-[#00966F]/20 group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
               A
             </div>
             <div className="flex flex-col">
-              <span className="tracking-tight font-extrabold text-lg text-white leading-tight">
+              <span className="tracking-tight font-extrabold text-lg text-[#101828] dark:text-[#F8FAFC] leading-tight group-hover:text-[#00966F] dark:group-hover:text-[#34D399] transition-colors">
                 ADPP
               </span>
-              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest leading-none">
+              <span className="text-[10px] font-bold text-[#00966F] dark:text-[#34D399] uppercase tracking-wider leading-none">
                 NỀN TẢNG TRANH BIỆN AI
               </span>
             </div>
           </Link>
 
           {/* Center Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-300">
+          <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold">
             {navLinks.map((item) => {
-              const isActive = location.pathname === item.path && !item.path.includes("#");
+              const isDirectActive = location.pathname === item.path;
+              const isHashMatch = Boolean(item.hash && location.hash === `#${item.hash}`);
+              const isActive = isDirectActive || isHashMatch;
+
               return (
                 <Link
                   key={item.label}
                   to={item.path}
-                  className={`relative py-1.5 transition-colors hover:text-white ${
-                    isActive ? "text-cyan-400 font-semibold" : "text-slate-300 hover:text-white"
+                  onClick={(e) => handleNavClick(e, item)}
+                  className={`relative py-2 transition-all duration-200 group flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? "text-[#00966F] dark:text-[#34D399] font-bold"
+                      : "text-[#475467] dark:text-[#94A3B8] hover:text-[#00966F] dark:hover:text-[#34D399]"
                   }`}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
                   {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400 rounded-full shadow-sm shadow-cyan-400/50" />
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00966F] dark:bg-[#34D399] rounded-full" />
                   )}
                 </Link>
               );
@@ -74,50 +84,39 @@ const PublicLayout: React.FC = () => {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-3.5">
-            {/* Dark Mode Icon Toggle */}
+          <div className="flex items-center gap-3">
+            {/* Sun / Moon Theme Toggle Button */}
             <button
               type="button"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-10 h-10 rounded-full bg-slate-900/90 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 transition-colors shadow-inner"
-              title="Giao diện tối"
+              onClick={toggleTheme}
+              className="w-10 h-10 rounded-full bg-white dark:bg-[#101F1A] hover:bg-slate-50 dark:hover:bg-[#172C23] border border-[#E5E7EB] dark:border-[rgba(148,163,184,0.18)] flex items-center justify-center text-slate-700 dark:text-amber-400 hover:text-slate-900 transition-all duration-200 shadow-xs cursor-pointer active:scale-95 group"
+              title={resolvedTheme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
+              aria-label={resolvedTheme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
             >
-              <Moon size={17} />
+              {resolvedTheme === "dark" ? (
+                <Sun size={18} className="text-amber-400 transition-transform duration-200 group-hover:rotate-45" />
+              ) : (
+                <Moon size={18} className="text-[#475467] transition-transform duration-200 group-hover:-rotate-12" />
+              )}
             </button>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <Link
-                  to={getDashboardPath()}
-                  className="px-5 py-2.5 text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2"
-                >
-                  <LayoutDashboard size={16} />
-                  <span>Bảng điều khiển</span>
-                </Link>
-
-                <button
-                  onClick={handleLogout}
-                  className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-full transition-colors"
-                  title="Đăng xuất"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
+              <UserAvatarDropdown />
             ) : (
               <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="px-5 py-2.5 text-sm font-semibold text-slate-200 hover:text-white bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-full transition-all shadow-sm"
+                  className="px-5 py-2 text-sm font-semibold text-[#101828] dark:text-[#F8FAFC] hover:text-[#00966F] dark:hover:text-[#34D399] bg-white dark:bg-[#101F1A] hover:bg-slate-50 dark:hover:bg-[#172C23] border border-[#E5E7EB] dark:border-[rgba(148,163,184,0.20)] rounded-full transition-all shadow-xs active:scale-98"
                 >
                   Đăng nhập
                 </Link>
 
                 <Link
                   to="/register"
-                  className="px-6 py-2.5 text-sm font-bold bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white rounded-full transition-all shadow-lg shadow-blue-600/30 hover:scale-102 flex items-center gap-1.5"
+                  className="px-5 py-2 text-sm font-bold bg-[#00966F] hover:bg-[#007F5F] dark:bg-[#10B981] dark:hover:bg-[#34D399] active:bg-[#006e52] text-white rounded-full transition-all shadow-md shadow-[#00966F]/20 hover:scale-102 flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>Bắt đầu ngay</span>
-                  <ArrowRight size={16} />
+                  <span className="text-base font-bold leading-none">+</span>
                 </Link>
               </div>
             )}
@@ -136,5 +135,6 @@ const PublicLayout: React.FC = () => {
 };
 
 export default PublicLayout;
+
 
 

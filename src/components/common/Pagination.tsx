@@ -26,7 +26,7 @@ const Pagination: React.FC<PaginationProps> = ({
         type="button"
         disabled={currentPage === 1}
         onClick={() => onPageChange(currentPage - 1)}
-        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
       >
         Trước
       </button>
@@ -38,8 +38,8 @@ const Pagination: React.FC<PaginationProps> = ({
           onClick={() => onPageChange(page)}
           className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
             page === currentPage
-              ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30"
-              : "bg-slate-900 border border-slate-700/80 text-slate-300 hover:bg-slate-800"
+              ? "bg-[#008A64] text-white shadow-sm shadow-[#008A64]/20"
+              : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
           }`}
         >
           {page}
@@ -50,7 +50,7 @@ const Pagination: React.FC<PaginationProps> = ({
         type="button"
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(currentPage + 1)}
-        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-900 border border-slate-700/80 text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
       >
         Sau
       </button>

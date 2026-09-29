@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import Input from "../common/Input";
+import PasswordInput from "../auth/PasswordInput";
+import PasswordStrength from "../auth/PasswordStrength";
+import PasswordRequirements from "../auth/PasswordRequirements";
+import ConfirmPasswordInput from "../auth/ConfirmPasswordInput";
 import userApi from "../../api/userApi";
 import authApi from "../../api/authApi";
 import { useAuth } from "../../hooks/useAuth";
 import {
   Camera,
   CheckCircle2,
-  Eye,
-  EyeOff,
-  ImagePlus,
   KeyRound,
   Loader2,
   Lock,
@@ -63,8 +64,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
     newPassword: "",
     confirmPassword: "",
   });
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // Alerts
   const [infoError, setInfoError] = useState("");
@@ -173,13 +172,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
     setSaving(true);
 
     try {
-      // Determine safe avatarUrl for backend (DB column is nvarchar(500))
       let backendAvatarUrl: string | undefined = undefined;
       if (profileData.avatarUrl && profileData.avatarUrl !== "string") {
         if (profileData.avatarUrl.startsWith("http") && profileData.avatarUrl.length <= 500) {
           backendAvatarUrl = profileData.avatarUrl;
         } else {
-          // If local Base64 / blob (which is >500 chars), provide a clean short placeholder to backend
           backendAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileData.fullName.trim())}&background=2563eb&color=fff`;
         }
       }
@@ -205,7 +202,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
       if (res && res.success) {
         setInfoSuccess(res.message || "Cập nhật hồ sơ thành công!");
 
-        // Persist full-quality chosen photo in localStorage for crisp UI display across the application
         if (profileData.avatarUrl && profileData.avatarUrl !== "string") {
           localStorage.setItem(`adpp_user_avatar_${profileData.email}`, profileData.avatarUrl);
         } else {
@@ -280,27 +276,26 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#0e1626]/90 backdrop-blur-xl border border-slate-800 p-6 sm:p-8 text-white shadow-xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 text-slate-900 shadow-xs">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
           <div className="flex items-center gap-5">
             {profileData.avatarUrl && profileData.avatarUrl !== "string" ? (
               <img
                 src={profileData.avatarUrl}
                 alt={profileData.fullName}
-                className="w-18 h-18 rounded-2xl object-cover border-2 border-blue-500/40 shadow-lg shadow-blue-900/30 shrink-0"
+                className="w-18 h-18 rounded-2xl object-cover border-2 border-[#008A64]/40 shadow-sm shrink-0"
               />
             ) : (
-              <div className="w-18 h-18 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 border border-blue-400/40 flex items-center justify-center font-black text-2xl text-white shadow-lg shrink-0">
+              <div className="w-18 h-18 rounded-2xl bg-[#ECFDF5] border border-[#008A64]/30 flex items-center justify-center font-black text-2xl text-[#008A64] shadow-xs shrink-0">
                 {profileData.fullName ? profileData.fullName.charAt(0).toUpperCase() : "U"}
               </div>
             )}
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
                   {profileData.fullName || authUser?.fullName || "Người dùng"}
                 </h1>
-                <span className="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-full bg-[#ECFDF5] border border-[#008A64]/30 text-[#008A64] text-xs font-bold uppercase tracking-wider">
                   {profileData.roles?.length
                     ? profileData.roles.map((r) => (r === "Admin" || r === "Administrator" ? "Quản trị viên" : r === "Educator" ? "Giảng viên" : "Học viên")).join(", ")
                     : authUser?.role === "Administrator" || authUser?.role === "Admin"
@@ -310,8 +305,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                     : "Học viên"}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1.5 flex items-center gap-2">
-                <Mail size={16} className="text-cyan-400" />
+              <p className="text-xs sm:text-sm text-slate-500 mt-1.5 flex items-center gap-2">
+                <Mail size={16} className="text-[#008A64]" />
                 <span>{profileData.email || authUser?.email}</span>
                 {profileData.createdAt && (
                   <span className="ml-2 text-slate-400 font-mono">• Tham gia từ {profileData.createdAt}</span>
@@ -320,22 +315,22 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-900/90 border border-emerald-500/30 px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold text-emerald-300 shadow-sm">
-            <Shield size={16} className="text-emerald-400" />
+          <div className="flex items-center gap-2 bg-[#ECFDF5] border border-[#008A64]/30 px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold text-emerald-800 shadow-xs">
+            <Shield size={16} className="text-[#008A64]" />
             <span>Tài khoản đã xác thực OTP</span>
           </div>
         </div>
       </div>
 
       {/* Tabs Selector */}
-      <div className="flex items-center gap-4 border-b border-slate-800">
+      <div className="flex items-center gap-4 border-b border-slate-200">
         <button
           type="button"
           onClick={() => setActiveTab("info")}
           className={`pb-3.5 px-4 text-xs sm:text-sm font-bold transition-all border-b-2 flex items-center gap-2 ${
             activeTab === "info"
-              ? "border-blue-500 text-cyan-400"
-              : "border-transparent text-slate-400 hover:text-white"
+              ? "border-[#008A64] text-[#008A64]"
+              : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
           <UserIcon size={16} />
@@ -347,8 +342,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
           onClick={() => setActiveTab("security")}
           className={`pb-3.5 px-4 text-xs sm:text-sm font-bold transition-all border-b-2 flex items-center gap-2 ${
             activeTab === "security"
-              ? "border-blue-500 text-cyan-400"
-              : "border-transparent text-slate-400 hover:text-white"
+              ? "border-[#008A64] text-[#008A64]"
+              : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
           <KeyRound size={16} />
@@ -358,24 +353,24 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
 
       {/* TAB 1: Profile Information Form */}
       {activeTab === "info" && (
-        <div className="bg-[#0e1626]/90 backdrop-blur-xl rounded-3xl border border-slate-800 p-6 sm:p-9 shadow-xl">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-9 shadow-xs">
           <div className="mb-7">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Chi tiết hồ sơ cá nhân</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Chi tiết hồ sơ cá nhân</h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
               Cập nhật thông tin nhận diện và liên hệ của bạn trên hệ thống.
             </p>
           </div>
 
           {infoError && (
-            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-medium animate-fade-in flex items-start gap-2.5">
+            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-medium animate-fade-in flex items-start gap-2.5">
               <span className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
               <span>{infoError}</span>
             </div>
           )}
 
           {infoSuccess && (
-            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium animate-fade-in flex items-center gap-3">
-              <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium animate-fade-in flex items-center gap-3">
+              <CheckCircle2 size={18} className="text-[#008A64] shrink-0" />
               <span>{infoSuccess}</span>
             </div>
           )}
@@ -408,12 +403,12 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
               />
 
               <div className="flex flex-col gap-1.5 mb-4">
-                <label className="text-xs sm:text-sm font-semibold text-slate-300">Giới tính</label>
+                <label className="text-xs sm:text-sm font-semibold text-slate-700">Giới tính</label>
                 <select
                   name="gender"
                   value={profileData.gender}
                   onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
-                  className="w-full px-4 py-2.5 text-sm sm:text-base bg-slate-900 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full px-4 py-2.5 text-sm sm:text-base bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
                 >
                   <option value="Male">Nam</option>
                   <option value="Female">Nữ</option>
@@ -432,12 +427,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
 
             {/* Avatar Upload Section */}
             <div className="pt-2 pb-1">
-              <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-3">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-3">
                 Ảnh đại diện (Tải lên từ máy tính hoặc điện thoại)
               </label>
 
-              <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-slate-900/70 border border-slate-800">
-                {/* Avatar Preview with hover upload overlay */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-slate-50 border border-slate-200">
                 <div
                   className="relative group cursor-pointer shrink-0"
                   onClick={() => fileInputRef.current?.click()}
@@ -447,28 +441,27 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                     <img
                       src={profileData.avatarUrl}
                       alt="Avatar Preview"
-                      className="w-24 h-24 rounded-2xl object-cover border-2 border-blue-500/50 shadow-md transition-all group-hover:opacity-80"
+                      className="w-24 h-24 rounded-2xl object-cover border-2 border-[#008A64]/40 shadow-xs transition-all group-hover:opacity-80"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 border border-blue-400/40 flex items-center justify-center font-black text-3xl text-white shadow-md group-hover:opacity-80 transition-all">
+                    <div className="w-24 h-24 rounded-2xl bg-[#ECFDF5] border border-[#008A64]/30 flex items-center justify-center font-black text-3xl text-[#008A64] shadow-xs group-hover:opacity-80 transition-all">
                       {profileData.fullName ? profileData.fullName.charAt(0).toUpperCase() : "U"}
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-slate-950/60 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-slate-900/60 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Camera size={22} className="text-white mb-1" />
                     <span className="text-[10px] text-white font-medium">Đổi ảnh</span>
                   </div>
 
                   {uploadingAvatar && (
-                    <div className="absolute inset-0 bg-slate-950/80 rounded-2xl flex flex-col items-center justify-center">
-                      <Loader2 size={24} className="text-blue-400 animate-spin" />
-                      <span className="text-[10px] text-blue-300 mt-1">Đang tải...</span>
+                    <div className="absolute inset-0 bg-slate-900/80 rounded-2xl flex flex-col items-center justify-center">
+                      <Loader2 size={24} className="text-[#008A64] animate-spin" />
+                      <span className="text-[10px] text-white mt-1">Đang tải...</span>
                     </div>
                   )}
                 </div>
 
-                {/* Upload Buttons & Details */}
                 <div className="flex-1 space-y-2 text-center sm:text-left">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                     <input
@@ -484,7 +477,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                       type="button"
                       disabled={uploadingAvatar}
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/40 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 hover:scale-102 cursor-pointer disabled:opacity-50"
+                      className="px-4 py-2.5 bg-[#ECFDF5] hover:bg-emerald-100 text-[#008A64] border border-[#008A64]/30 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-2 hover:scale-102 cursor-pointer disabled:opacity-50"
                     >
                       {uploadingAvatar ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
                       <span>{uploadingAvatar ? "Đang xử lý ảnh..." : "Chọn ảnh từ thiết bị"}</span>
@@ -494,7 +487,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                       <button
                         type="button"
                         onClick={handleRemoveAvatar}
-                        className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs sm:text-sm font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer"
                         title="Xóa ảnh đại diện"
                       >
                         <Trash2 size={15} />
@@ -503,7 +496,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Hỗ trợ định dạng JPG, PNG, WEBP, GIF (Tối đa 5MB). Tương thích mọi trình duyệt và camera điện thoại.
                   </p>
                 </div>
@@ -514,7 +507,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
               <button
                 type="submit"
                 disabled={saving || uploadingAvatar}
-                className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm sm:text-base font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition-all inline-flex items-center gap-2 disabled:opacity-50 hover:scale-102 cursor-pointer"
+                className="px-8 py-3.5 bg-[#008A64] hover:bg-[#007457] text-white text-sm sm:text-base font-bold rounded-2xl shadow-md shadow-[#008A64]/20 transition-all inline-flex items-center gap-2 disabled:opacity-50 hover:scale-102 cursor-pointer"
               >
                 <Save size={18} />
                 <span>{saving ? "Đang lưu..." : "Lưu thay đổi"}</span>
@@ -526,84 +519,69 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
 
       {/* TAB 2: Change Password Form */}
       {activeTab === "security" && (
-        <div className="bg-[#0e1626]/90 backdrop-blur-xl rounded-3xl border border-slate-800 p-6 sm:p-9 shadow-xl">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-9 shadow-xs">
           <div className="mb-7">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Thay đổi mật khẩu</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Thay đổi mật khẩu</h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
               Đảm bảo an toàn tài khoản bằng cách đặt mật khẩu phức tạp có tối thiểu 8 ký tự.
             </p>
           </div>
 
           {secError && (
-            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-medium animate-fade-in flex items-start gap-2.5">
+            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-medium animate-fade-in flex items-start gap-2.5">
               <span className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
               <span>{secError}</span>
             </div>
           )}
 
           {secSuccess && (
-            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium animate-fade-in flex items-center gap-3">
-              <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+            <div className="p-4 mb-6 text-xs sm:text-sm rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium animate-fade-in flex items-center gap-3">
+              <CheckCircle2 size={18} className="text-[#008A64] shrink-0" />
               <span>{secSuccess}</span>
             </div>
           )}
 
-          <form onSubmit={handleChangePassword} className="space-y-5 max-w-xl">
-            <div className="relative">
-              <Input
-                label="Mật khẩu hiện tại"
-                name="currentPassword"
-                type={showCurrentPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={passwords.currentPassword}
-                onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-3.5 top-9 text-slate-400 hover:text-white p-1 transition-colors"
-                title={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-              >
-                {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-xl">
+            <PasswordInput
+              label="Mật khẩu hiện tại"
+              name="currentPassword"
+              placeholder="••••••••••••"
+              value={passwords.currentPassword}
+              onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+              required
+              disabled={changingPassword}
+            />
 
-            <div className="relative">
-              <Input
-                label="Mật khẩu mới (≥ 8 ký tự)"
+            <div>
+              <PasswordInput
+                label="Mật khẩu mới"
                 name="newPassword"
-                type={showNewPassword ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="••••••••••••"
                 value={passwords.newPassword}
                 onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
                 required
+                disabled={changingPassword}
               />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-3.5 top-9 text-slate-400 hover:text-white p-1 transition-colors"
-                title={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-              >
-                {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              <PasswordStrength password={passwords.newPassword} />
+              <PasswordRequirements password={passwords.newPassword} />
             </div>
 
-            <Input
+            <ConfirmPasswordInput
               label="Xác nhận mật khẩu mới"
               name="confirmPassword"
-              type={showNewPassword ? "text" : "password"}
-              placeholder="••••••••"
+              placeholder="••••••••••••"
               value={passwords.confirmPassword}
+              originalPassword={passwords.newPassword}
               onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
               required
+              disabled={changingPassword}
             />
 
-            <div className="pt-4">
+            <div className="pt-3">
               <button
                 type="submit"
                 disabled={changingPassword}
-                className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm sm:text-base font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition-all inline-flex items-center gap-2 disabled:opacity-50 hover:scale-102"
+                className="px-8 py-3.5 bg-[#008A64] hover:bg-[#007457] text-white text-sm sm:text-base font-bold rounded-2xl shadow-md shadow-[#008A64]/20 transition-all inline-flex items-center gap-2 disabled:opacity-50 hover:scale-102 cursor-pointer"
               >
                 <Lock size={18} />
                 <span>{changingPassword ? "Đang cập nhật..." : "Cập nhật mật khẩu"}</span>
@@ -617,4 +595,5 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
 };
 
 export default ProfileSettings;
+
 

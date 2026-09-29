@@ -5,24 +5,24 @@ import {
   Brain,
   BarChart2,
   Globe,
-  Users,
-  Layers,
-  Trophy,
-  Star,
   Play,
   Mail,
-  Lock,
-  Eye,
-  EyeOff,
   LogIn,
   UserPlus,
   Sparkles,
   CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
 import { ROLES } from "../../../utils/constants";
 import GoogleLoginButton from "../../../components/auth/GoogleLoginButton";
+import PasswordInput from "../../../components/auth/PasswordInput";
+import PasswordStrength from "../../../components/auth/PasswordStrength";
+import PasswordRequirements from "../../../components/auth/PasswordRequirements";
+import ConfirmPasswordInput from "../../../components/auth/ConfirmPasswordInput";
 import authApi from "../../../api/authApi";
+
+import natureBg from "../../../assets/images/nature-bg.jpg";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -30,12 +30,11 @@ const Home: React.FC = () => {
 
   // Auth Card State
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [email, setEmail] = useState("nguyenphilong226@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -140,35 +139,56 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#070b14] text-slate-100 min-h-[calc(100vh-80px)] relative overflow-hidden flex flex-col justify-between">
-      {/* Background Ambient Glows */}
-      <div className="absolute top-10 left-1/4 w-[600px] h-[600px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-32 right-1/4 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 left-1/3 w-[700px] h-[400px] bg-purple-600/10 rounded-full blur-[160px] pointer-events-none" />
+    <div className="min-h-[calc(100vh-80px)] relative overflow-hidden flex flex-col justify-center bg-[#FAF9F4] dark:bg-[#07110E] text-[#101828] dark:text-[#F8FAFC]">
+      {/* Background Nature Image - bright, clear, full sunlight */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+        style={{
+          backgroundImage: `url(${natureBg})`,
+        }}
+      />
+      {/* Local light warm gradient behind text on the left (matches HÌNH 1) */}
+      <div
+        className="absolute inset-0 pointer-events-none dark:hidden"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(250,249,244,0.88) 0%, rgba(250,249,244,0.60) 35%, rgba(250,249,244,0.15) 60%, rgba(250,249,244,0) 75%)",
+        }}
+      />
+      {/* Extremely subtle overall white veil for maximum readability while keeping sunlight and greenery */}
+      <div className="absolute inset-0 bg-white/[0.08] dark:hidden pointer-events-none" />
 
-      {/* Main Section */}
-      <section className="max-w-[1400px] mx-auto px-6 sm:px-12 py-8 sm:py-12 w-full relative z-10 flex-1 flex flex-col justify-center">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+      {/* Dark Forest Overlay ONLY in Dark Mode */}
+      <div
+        className="absolute inset-0 hidden dark:block pointer-events-none"
+        style={{
+          background: "linear-gradient(rgba(4, 15, 11, 0.65), rgba(4, 15, 11, 0.65))",
+        }}
+      />
+
+      {/* Main Container */}
+      <section className="max-w-[1440px] mx-auto px-6 sm:px-12 py-10 sm:py-16 w-full relative z-10 flex-1 flex flex-col justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* ================= LEFT HERO COLUMN (col-span-7) ================= */}
           <div className="lg:col-span-7 space-y-6">
             {/* 1. Sparkle Pill Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-blue-500/40 backdrop-blur-md shadow-lg shadow-blue-500/10">
-              <Sparkles size={14} className="text-cyan-400" />
-              <span className="text-xs sm:text-sm font-semibold text-slate-200">
-                Nền tảng tranh biện AI thế hệ mới • Chuẩn Quốc tế
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 dark:bg-[#12231C]/90 backdrop-blur-md border border-[#D8EADF] dark:border-slate-800 shadow-xs text-[#101828] dark:text-[#F8FAFC]">
+              <Sparkles size={14} className="text-[#00966F] dark:text-[#34D399]" />
+              <span className="text-xs sm:text-sm font-semibold text-[#475467] dark:text-[#CBD5E1]">
+                Nền tảng tranh biện AI thế hệ mới • <span className="text-[#00966F] dark:text-[#34D399] font-bold">Chuẩn Quốc tế</span>
               </span>
             </div>
 
             {/* 2. Main Title */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black tracking-tight leading-[1.12] text-white">
+            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black tracking-tight leading-[1.12] text-[#101828] dark:text-[#F8FAFC]">
               Lập luận sắc bén. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-400">
+              <span className="text-[#00966F] dark:text-[#34D399] font-black">
                 Tranh biện đỉnh cao.
               </span>
             </h1>
 
             {/* 3. Description Subtitle */}
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal max-w-2xl">
+            <p className="text-sm sm:text-base text-[#475467] dark:text-[#CBD5E1] leading-relaxed font-normal max-w-xl">
               Nâng tầm tư duy phản biện với trợ lý AI đối kháng thông minh, mô phỏng luật tranh biện WSDC & BP, cùng hệ thống phân tích logic và chấm điểm Rubric đa tiêu chí theo thời gian thực.
             </p>
 
@@ -176,7 +196,7 @@ const Home: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 pt-1">
               <Link
                 to={isAuthenticated ? "/learner/dashboard" : "/learner/topics"}
-                className="px-7 py-3.5 text-sm sm:text-base font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-full shadow-xl shadow-blue-600/30 transition-all duration-300 hover:scale-102 inline-flex items-center gap-2 group"
+                className="px-8 py-3.5 text-sm sm:text-base font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] rounded-full shadow-lg shadow-[#00966F]/25 transition-all duration-300 hover:scale-102 inline-flex items-center gap-2.5 group cursor-pointer"
               >
                 <span>Bắt đầu luyện tập ngay</span>
                 <ArrowRight size={17} className="group-hover:translate-x-1 transition-transform" />
@@ -184,100 +204,62 @@ const Home: React.FC = () => {
 
               <a
                 href="#demo-video"
-                className="px-6 py-3.5 text-sm sm:text-base font-semibold text-slate-200 bg-slate-900/80 hover:bg-slate-800 hover:text-white rounded-full border border-slate-700/80 shadow-md backdrop-blur-md transition-all inline-flex items-center gap-2"
+                className="px-7 py-3.5 text-sm sm:text-base font-bold text-[#101828] dark:text-[#F8FAFC] bg-white/90 dark:bg-[#101F1A] hover:bg-white dark:hover:bg-[#172C23] rounded-full border border-[#E5E7EB] dark:border-[rgba(148,163,184,0.20)] shadow-xs transition-all inline-flex items-center gap-2.5"
               >
-                <Play size={15} className="text-slate-300 fill-slate-300" />
+                <div className="w-6 h-6 rounded-full bg-[#101828] dark:bg-[#12231C] flex items-center justify-center text-white">
+                  <Play size={10} className="fill-white ml-0.5" />
+                </div>
                 <span>Xem video giới thiệu</span>
               </a>
             </div>
 
-            {/* 5. Three Key Feature Columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-4">
+            {/* 5. Three Key Feature Cards (matching HÌNH 1) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4">
               {/* Feature 1: AI Đối kháng */}
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-400 flex items-center justify-center shrink-0 shadow-inner">
+              <div className="p-4 rounded-2xl bg-[#FFFDF8]/95 dark:bg-[#12231C]/90 backdrop-blur-md border border-[#E5E7EB] dark:border-[rgba(148,163,184,0.18)] shadow-sm flex items-start gap-3 hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-full bg-[#00966F] dark:bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-xs">
                   <Brain size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm sm:text-base leading-snug">
+                  <h3 className="font-bold text-[#101828] dark:text-[#F8FAFC] text-xs sm:text-sm leading-snug">
                     AI đối kháng thông minh
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 mt-0.5 leading-snug">
-                    Phản biện đa chiều, logic chặt chẽ
+                  <p className="text-[11px] sm:text-xs text-[#667085] dark:text-[#94A3B8] mt-1 leading-snug flex items-center gap-1">
+                    <span>Phản biện đa chiều, logic chặt chẽ</span>
+                    <ArrowRight size={12} className="inline shrink-0 text-[#00966F] dark:text-[#34D399]" />
                   </p>
                 </div>
               </div>
 
               {/* Feature 2: Rubric */}
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-cyan-600/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center shrink-0 shadow-inner">
+              <div className="p-4 rounded-2xl bg-[#FFFDF8]/95 dark:bg-[#12231C]/90 backdrop-blur-md border border-[#E5E7EB] dark:border-[rgba(148,163,184,0.18)] shadow-sm flex items-start gap-3 hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-full bg-[#00966F] dark:bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-xs">
                   <BarChart2 size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm sm:text-base leading-snug">
+                  <h3 className="font-bold text-[#101828] dark:text-[#F8FAFC] text-xs sm:text-sm leading-snug">
                     Chấm điểm Rubric tự động
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 mt-0.5 leading-snug">
-                    Đánh giá khách quan theo chuẩn quốc tế
+                  <p className="text-[11px] sm:text-xs text-[#667085] dark:text-[#94A3B8] mt-1 leading-snug flex items-center gap-1">
+                    <span>Đánh giá khách quan theo chuẩn quốc tế</span>
+                    <ArrowRight size={12} className="inline shrink-0 text-[#00966F] dark:text-[#34D399]" />
                   </p>
                 </div>
               </div>
 
               {/* Feature 3: Đa dạng chủ đề */}
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-400 flex items-center justify-center shrink-0 shadow-inner">
+              <div className="p-4 rounded-2xl bg-[#FFFDF8]/95 dark:bg-[#12231C]/90 backdrop-blur-md border border-[#E5E7EB] dark:border-[rgba(148,163,184,0.18)] shadow-sm flex items-start gap-3 hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-full bg-[#00966F] dark:bg-[#10B981] text-white flex items-center justify-center shrink-0 shadow-xs">
                   <Globe size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm sm:text-base leading-snug">
+                  <h3 className="font-bold text-[#101828] dark:text-[#F8FAFC] text-xs sm:text-sm leading-snug">
                     Đa dạng chủ đề thực tế
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 mt-0.5 leading-snug">
-                    Từ giáo dục, công nghệ đến các vấn đề xã hội
+                  <p className="text-[11px] sm:text-xs text-[#667085] dark:text-[#94A3B8] mt-1 leading-snug flex items-center gap-1">
+                    <span>Từ giáo dục, công nghệ đến xã hội</span>
+                    <ArrowRight size={12} className="inline shrink-0 text-[#00966F] dark:text-[#34D399]" />
                   </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 6. Four Metrics Stats Card */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-xl shadow-lg grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
-              <div className="flex items-center gap-3">
-                <div className="text-blue-400">
-                  <Users size={22} />
-                </div>
-                <div>
-                  <div className="text-lg sm:text-xl font-black text-white leading-tight">50K+</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">Người dùng đã tham gia</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-cyan-400">
-                  <Layers size={22} />
-                </div>
-                <div>
-                  <div className="text-lg sm:text-xl font-black text-white leading-tight">1,000+</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">Chủ đề tranh biện đa lĩnh vực</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-amber-400">
-                  <Trophy size={22} />
-                </div>
-                <div>
-                  <div className="text-lg sm:text-xl font-black text-white leading-tight">3</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">Chế độ tranh biện (WSDC, BP, Tự do)</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-rose-400">
-                  <Star size={22} />
-                </div>
-                <div>
-                  <div className="text-lg sm:text-xl font-black text-white leading-tight">95%</div>
-                  <div className="text-[11px] text-slate-400 leading-tight">Người dùng hài lòng về trải nghiệm</div>
                 </div>
               </div>
             </div>
@@ -285,35 +267,30 @@ const Home: React.FC = () => {
 
           {/* ================= RIGHT AUTH CARD (col-span-5) ================= */}
           <div className="lg:col-span-5 relative w-full">
-            {/* Ambient Backlight behind the Auth Card */}
-            <div className="absolute -inset-4 bg-gradient-to-tr from-blue-600/30 via-indigo-600/20 to-purple-600/30 rounded-3xl blur-2xl -z-10" />
-
-            <div className="bg-[#0e1626]/90 backdrop-blur-2xl rounded-3xl border border-slate-700/70 p-7 sm:p-9 shadow-2xl shadow-blue-950/80 text-white relative z-10 w-full max-w-lg mx-auto">
-
-
+            <div className="bg-[#FFFDF8]/97 dark:bg-[#0F1C17]/98 backdrop-blur-md rounded-3xl border border-white/80 dark:border-[rgba(148,163,184,0.20)] p-6 sm:p-8 shadow-xl shadow-slate-900/5 dark:shadow-black/60 text-[#101828] dark:text-[#F8FAFC] relative z-10 w-full max-w-[430px] mx-auto transition-colors duration-200">
               {/* Card Header with Logo */}
-              <div className="flex flex-col items-center text-center space-y-2 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-600/40 mb-1">
+              <div className="flex flex-col items-center text-center space-y-1.5 mb-5">
+                <div className="w-11 h-11 rounded-2xl bg-[#00966F] dark:bg-[#10B981] flex items-center justify-center font-black text-xl text-white shadow-md shadow-[#00966F]/25 mb-0.5">
                   A
                 </div>
                 <div className="flex items-center gap-1.5 justify-center">
-                  <span className="font-extrabold text-base tracking-tight text-white">ADPP</span>
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-                    NỀN TẢNG TRANH BIỆN AI
+                  <span className="font-black text-xs tracking-tight text-[#101828] dark:text-[#F8FAFC]">ADPP</span>
+                  <span className="text-[10px] font-bold text-[#00966F] dark:text-[#34D399] uppercase tracking-wider">
+                    • NỀN TẢNG TRANH BIỆN AI
                   </span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white pt-1">
+                <h2 className="text-2xl font-black tracking-tight text-[#101828] dark:text-[#F8FAFC] pt-0.5">
                   {authMode === "login" ? "Chào mừng trở lại!" : "Tạo tài khoản mới"}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-400 max-w-xs mx-auto">
+                <p className="text-[11px] sm:text-xs text-[#667085] dark:text-[#94A3B8] max-w-[280px] mx-auto leading-relaxed">
                   {authMode === "login"
                     ? "Đăng nhập để tiếp tục hành trình rèn luyện kỹ năng tranh biện cùng AI."
-                    : "Khám phá đấu trường tranh biện học thuật hàng đầu."}
+                    : "Khám phá đấu trường tranh biện học thuật hàng đầu cùng AI."}
                 </p>
               </div>
 
               {/* Segmented Tab Pill Selector */}
-              <div className="grid grid-cols-2 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 mb-6">
+              <div className="grid grid-cols-2 p-1 bg-[#F2F4F7] dark:bg-[#101F1A] rounded-full border border-[#E5E7EB] dark:border-[rgba(148,163,184,0.18)] mb-5">
                 <button
                   type="button"
                   onClick={() => {
@@ -321,13 +298,13 @@ const Home: React.FC = () => {
                     setError("");
                     setSuccessMsg("");
                   }}
-                  className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`py-2 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     authMode === "login"
-                      ? "bg-slate-800 text-white shadow-md border border-slate-700"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-[#00966F] text-white shadow-xs"
+                      : "text-[#667085] dark:text-[#94A3B8] hover:text-[#101828] dark:hover:text-[#F8FAFC]"
                   }`}
                 >
-                  <LogIn size={15} />
+                  <LogIn size={14} />
                   <span>Đăng nhập</span>
                 </button>
 
@@ -338,49 +315,49 @@ const Home: React.FC = () => {
                     setError("");
                     setSuccessMsg("");
                   }}
-                  className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`py-2 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     authMode === "register"
-                      ? "bg-slate-800 text-white shadow-md border border-slate-700"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-[#00966F] text-white shadow-xs"
+                      : "text-[#667085] dark:text-[#94A3B8] hover:text-[#101828] dark:hover:text-[#F8FAFC]"
                   }`}
                 >
-                  <UserPlus size={15} />
+                  <UserPlus size={14} />
                   <span>Tạo tài khoản</span>
                 </button>
               </div>
 
               {/* Alert Messages */}
               {error && (
-                <div className="p-3.5 mb-4 text-xs sm:text-sm rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-medium animate-fade-in flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                <div className="p-3 mb-3.5 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 font-medium animate-fade-in flex items-start gap-2">
+                  <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
               )}
 
               {successMsg && (
-                <div className="p-3.5 mb-4 text-xs sm:text-sm rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium animate-fade-in flex items-center gap-2.5">
-                  <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+                <div className="p-3 mb-3.5 text-xs rounded-xl bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] border border-emerald-200 dark:border-[rgba(16,185,129,0.25)] text-emerald-700 dark:text-[#34D399] font-medium animate-fade-in flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-600 dark:text-[#34D399] shrink-0" />
                   <span>{successMsg}</span>
                 </div>
               )}
 
               {/* Google Button */}
-              <div className="mb-4">
+              <div className="mb-3.5">
                 <GoogleLoginButton
                   onSuccess={handleGoogleSuccess}
                   onError={(msg) => setError(msg)}
                   disabled={loading}
-                  text="Tiếp tục với Google"
+                  text="Đăng nhập bằng Google"
                 />
               </div>
 
               {/* Divider */}
-              <div className="relative my-4">
+              <div className="relative my-3.5">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-800" />
+                  <div className="w-full border-t border-[#E5E7EB] dark:border-[rgba(148,163,184,0.20)]" />
                 </div>
-                <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
-                  <span className="bg-[#0e1626] px-3 text-slate-400 font-bold tracking-wider">
+                <div className="relative flex justify-center text-[10px] uppercase">
+                  <span className="bg-[#FFFDF8] dark:bg-[#0F1C17] px-2.5 text-[#98A2B3] dark:text-[#94A3B8] font-bold tracking-wider">
                     HOẶC {authMode === "login" ? "ĐĂNG NHẬP" : "ĐĂNG KÝ"} BẰNG EMAIL
                   </span>
                 </div>
@@ -388,67 +365,49 @@ const Home: React.FC = () => {
 
               {/* TAB 1: LOGIN FORM */}
               {authMode === "login" ? (
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-1.5">
-                      Địa chỉ Email <span className="text-rose-400">*</span>
+                <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-[#101828] dark:text-[#F8FAFC]">
+                      Địa chỉ Email <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                        <Mail size={16} />
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <Mail size={15} />
                       </div>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="nguyenphilong226@gmail.com"
+                        placeholder="name@example.com"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-1.5">
-                      Mật khẩu <span className="text-rose-400">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                        <Lock size={16} />
-                      </div>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="w-full pl-10 pr-10 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
-                        title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
+                  <PasswordInput
+                    label="Mật khẩu"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    required
+                    disabled={loading}
+                  />
 
-                  <div className="flex items-center justify-between text-xs sm:text-sm pt-0.5">
-                    <label className="flex items-center gap-2 cursor-pointer text-slate-400 select-none">
+                  <div className="flex items-center justify-between text-xs pt-0.5">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[#667085] dark:text-[#94A3B8] select-none">
                       <input
                         type="checkbox"
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                        className="w-3.5 h-3.5 rounded border-[#E5E7EB] text-[#00966F] focus:ring-[#00966F]"
                       />
                       <span>Ghi nhớ đăng nhập</span>
                     </label>
 
                     <Link
                       to="/forgot-password"
-                      className="text-cyan-400 hover:text-cyan-300 font-semibold hover:underline"
+                      className="text-[#00966F] dark:text-[#34D399] hover:text-[#007F5F] dark:hover:text-emerald-300 font-semibold hover:underline"
                     >
                       Quên mật khẩu?
                     </Link>
@@ -457,35 +416,24 @@ const Home: React.FC = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 px-4 rounded-xl text-sm sm:text-base font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-lg shadow-blue-600/30 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] shadow-md shadow-[#00966F]/20 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <LogIn size={18} />
-                        <span>Đăng nhập hệ thống</span>
+                        <span>Đăng nhập</span>
+                        <ArrowRight size={15} />
                       </>
                     )}
                   </button>
-
-                  <div className="text-center text-xs sm:text-sm text-slate-400 pt-2 font-medium">
-                    Chưa có tài khoản?{" "}
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode("register")}
-                      className="text-cyan-400 hover:text-cyan-300 font-bold hover:underline"
-                    >
-                      Đăng ký ngay
-                    </button>
-                  </div>
                 </form>
               ) : (
                 /* TAB 2: REGISTER FORM */
-                <form onSubmit={handleRegisterSubmit} className="space-y-4 animate-fade-in">
+                <form onSubmit={handleRegisterSubmit} className="space-y-3 animate-fade-in">
                   <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-1.5">
-                      Họ và tên <span className="text-rose-400">*</span>
+                    <label className="block text-xs font-semibold text-[#101828] dark:text-[#F8FAFC] mb-1">
+                      Họ và tên <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -493,17 +441,17 @@ const Home: React.FC = () => {
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Ví dụ: Nguyễn Văn A"
                       required
-                      className="w-full px-4 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      className="w-full px-3.5 py-2 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-1.5">
-                      Địa chỉ Email <span className="text-rose-400">*</span>
+                    <label className="block text-xs font-semibold text-[#101828] dark:text-[#F8FAFC] mb-1">
+                      Địa chỉ Email <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                        <Mail size={16} />
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <Mail size={15} />
                       </div>
                       <input
                         type="email"
@@ -511,66 +459,47 @@ const Home: React.FC = () => {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="your.email@example.com"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        className="w-full pl-9 pr-3.5 py-2 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-1.5">
-                        Mật khẩu (≥ 8 ký tự) <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-1.5">
-                        Xác nhận mật khẩu <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                      />
-                    </div>
+                  <div>
+                    <PasswordInput
+                      label="Mật khẩu"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      required
+                      disabled={loading}
+                    />
+                    <PasswordStrength password={password} />
+                    <PasswordRequirements password={password} />
                   </div>
+
+                  <ConfirmPasswordInput
+                    label="Xác nhận mật khẩu"
+                    value={confirmPassword}
+                    originalPassword={password}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3.5 px-4 rounded-xl text-sm sm:text-base font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 shadow-lg shadow-blue-600/30 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] shadow-md shadow-[#00966F]/20 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
-                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <UserPlus size={18} />
+                        <UserPlus size={15} />
                         <span>Tạo tài khoản & Nhận OTP</span>
                       </>
                     )}
                   </button>
-
-                  <div className="text-center text-xs sm:text-sm text-slate-400 pt-2 font-medium">
-                    Đã có tài khoản?{" "}
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode("login")}
-                      className="text-cyan-400 hover:text-cyan-300 font-bold hover:underline"
-                    >
-                      Đăng nhập ngay
-                    </button>
-                  </div>
                 </form>
               )}
             </div>
@@ -582,5 +511,6 @@ const Home: React.FC = () => {
 };
 
 export default Home;
+
 
 

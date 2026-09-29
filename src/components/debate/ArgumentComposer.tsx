@@ -32,7 +32,7 @@ const ArgumentComposer: React.FC<ArgumentComposerProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
       <div className="flex items-center justify-between mb-2">
         <label htmlFor="argument-composer-input" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
           Lập luận của bạn
@@ -41,9 +41,9 @@ const ArgumentComposer: React.FC<ArgumentComposerProps> = ({
           <button
             type="button"
             onClick={onOpenTips}
-            className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200/60 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-[#ECFDF5] px-2.5 py-1 rounded-lg border border-[#008A64]/30 transition-colors"
           >
-            <Lightbulb size={13} />
+            <Lightbulb size={13} className="text-[#008A64]" />
             <span>Gợi ý phản biện</span>
           </button>
           <span
@@ -64,14 +64,14 @@ const ArgumentComposer: React.FC<ArgumentComposerProps> = ({
           placeholder="Nhập nội dung lập luận hoặc phản biện của bạn..."
           disabled={disabled || isAiGenerating}
           rows={4}
-          className="w-full p-3 text-sm bg-slate-50/50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-600 resize-none text-slate-800 placeholder:text-slate-400 transition-colors"
+          className="w-full p-3 text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64] resize-none text-slate-800 placeholder:text-slate-400 transition-all"
         />
 
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
           <button
             type="button"
             onClick={toggleRecording}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border transition-colors ${
               isRecording
                 ? "bg-red-50 border-red-200 text-red-600 animate-pulse"
                 : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"

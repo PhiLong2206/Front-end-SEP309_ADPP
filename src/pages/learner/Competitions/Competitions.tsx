@@ -1,20 +1,983 @@
-import React from "react";
-import { Trophy } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Crown,
+  Trophy,
+  Calendar,
+  ChevronRight,
+  Search,
+  Filter,
+  RefreshCw,
+  Clock,
+  Plus,
+  Edit,
+  Eye,
+  Settings,
+  DoorOpen,
+  DoorClosed,
+  Play,
+  CheckCheck,
+  Ban,
+  CheckCircle2,
+  AlertCircle,
+  Swords,
+} from "lucide-react";
+import { useAuth } from "../../../hooks/useAuth";
+import competitionApi from "../../../api/competitionApi";
+import { CompetitionDetail, CompetitionListItem } from "../../../types";
+import CompetitionStatusBadge from "../../../components/competition/CompetitionStatusBadge";
+import CompetitionTypeBadge from "../../../components/competition/CompetitionTypeBadge";
+import CompetitionDetailModal from "../../../components/competition/CompetitionDetailModal";
+import CompetitionAdminDetailModal from "../../../components/competition/CompetitionAdminDetailModal";
+import CompetitionFormModal from "../../../components/competition/CompetitionFormModal";
+import Button from "../../../components/common/Button";
+import { formatDate } from "../../../utils/formatDate";
+
+// ── Leaderboard data ──────────────────────────────────────────
+interface LeaderboardUser {
+  rank: number;
+  name: string;
+  avatarColor: string;
+  avatarLetter: string;
+  avgScore: number;
+  sessionsCount: number;
+  wins: number;
+  badge: "gold" | "silver" | "bronze" | "top10" | "top30";
+  isCurrentUser?: boolean;
+}
+
+const LEADERBOARD_DATA: Record<"week" | "month" | "all", LeaderboardUser[]> = {
+  week: [
+    { rank: 1, name: "Minh Anh", avatarColor: "bg-amber-500", avatarLetter: "M", avgScore: 92, sessionsCount: 48, wins: 38, badge: "gold" },
+    { rank: 2, name: "Hoàng Nam", avatarColor: "bg-blue-600", avatarLetter: "H", avgScore: 88, sessionsCount: 36, wins: 28, badge: "silver" },
+    { rank: 3, name: "Thu Trang", avatarColor: "bg-rose-500", avatarLetter: "T", avgScore: 85, sessionsCount: 32, wins: 22, badge: "bronze" },
+    { rank: 4, name: "Bạn", avatarColor: "bg-[#008A64]", avatarLetter: "B", avgScore: 76, sessionsCount: 12, wins: 8, badge: "top10", isCurrentUser: true },
+    { rank: 5, name: "Đức Anh", avatarColor: "bg-indigo-600", avatarLetter: "D", avgScore: 74, sessionsCount: 19, wins: 11, badge: "top30" },
+    { rank: 6, name: "Bảo Ngọc", avatarColor: "bg-purple-600", avatarLetter: "B", avgScore: 72, sessionsCount: 15, wins: 9, badge: "top30" },
+  ],
+  month: [
+    { rank: 1, name: "Hoàng Nam", avatarColor: "bg-blue-600", avatarLetter: "H", avgScore: 94, sessionsCount: 120, wins: 95, badge: "gold" },
+    { rank: 2, name: "Minh Anh", avatarColor: "bg-amber-500", avatarLetter: "M", avgScore: 91, sessionsCount: 110, wins: 85, badge: "silver" },
+    { rank: 3, name: "Khánh Linh", avatarColor: "bg-emerald-600", avatarLetter: "K", avgScore: 87, sessionsCount: 95, wins: 70, badge: "bronze" },
+    { rank: 4, name: "Bạn", avatarColor: "bg-[#008A64]", avatarLetter: "B", avgScore: 80, sessionsCount: 42, wins: 30, badge: "top10", isCurrentUser: true },
+    { rank: 5, name: "Thu Trang", avatarColor: "bg-rose-500", avatarLetter: "T", avgScore: 78, sessionsCount: 68, wins: 45, badge: "top30" },
+  ],
+  all: [
+    { rank: 1, name: "Minh Anh", avatarColor: "bg-amber-500", avatarLetter: "M", avgScore: 95, sessionsCount: 480, wins: 400, badge: "gold" },
+    { rank: 2, name: "Hoàng Nam", avatarColor: "bg-blue-600", avatarLetter: "H", avgScore: 93, sessionsCount: 410, wins: 340, badge: "silver" },
+    { rank: 3, name: "Trọng Hiếu", avatarColor: "bg-teal-600", avatarLetter: "H", avgScore: 89, sessionsCount: 380, wins: 295, badge: "bronze" },
+    { rank: 4, name: "Thu Trang", avatarColor: "bg-rose-500", avatarLetter: "T", avgScore: 86, sessionsCount: 340, wins: 260, badge: "top10" },
+    { rank: 5, name: "Bạn", avatarColor: "bg-[#008A64]", avatarLetter: "B", avgScore: 79, sessionsCount: 150, wins: 105, badge: "top10", isCurrentUser: true },
+  ],
+};
 
 const Competitions: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const currentUserId = user?.userId ? Number(user.userId) : null;
+
+  const [mainTab, setMainTab] = useState<"competitions" | "my-competitions" | "leaderboard">("competitions");
+  const [rankTab, setRankTab] = useState<"week" | "month" | "all">("week");
+
+  // Real backend competitions state
+  const [competitions, setCompetitions] = useState<CompetitionListItem[]>([]);
+  const [detailedCompMap, setDetailedCompMap] = useState<Record<number, CompetitionDetail>>({});
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Filters
+  const [keyword, setKeyword] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Modals
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [competitionToEdit, setCompetitionToEdit] = useState<CompetitionDetail | null>(null);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<number | null>(null);
+  const [selectedAdminCompId, setSelectedAdminCompId] = useState<number | null>(null);
+
+  const showNotification = (msg: string, isError = false) => {
+    if (isError) {
+      setErrorMsg(msg);
+      setSuccessMsg(null);
+    } else {
+      setSuccessMsg(msg);
+      setErrorMsg(null);
+      setTimeout(() => setSuccessMsg(null), 4000);
+    }
+  };
+
+  const fetchCompetitions = useCallback(async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await competitionApi.getCompetitions({
+        keyword: keyword.trim() || undefined,
+        competitionType: typeFilter !== "all" ? typeFilter : undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      });
+      if (res.success && res.data) {
+        setCompetitions(res.data);
+
+        // Fetch details in background to identify creator (CreatedBy) for "Cuộc thi của tôi"
+        const entries = await Promise.all(
+          res.data.map(async (item) => {
+            try {
+              const d = await competitionApi.getCompetitionById(item.competitionId);
+              return d.data ? [item.competitionId, d.data] as const : null;
+            } catch {
+              return null;
+            }
+          })
+        );
+        const map: Record<number, CompetitionDetail> = {};
+        for (const entry of entries) {
+          if (entry) {
+            map[entry[0]] = entry[1];
+          }
+        }
+        setDetailedCompMap(map);
+      } else {
+        setCompetitions([]);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setErrorMsg(e.message || "Không thể tải danh sách giải đấu.");
+    } finally {
+      setLoading(false);
+    }
+  }, [keyword, typeFilter, statusFilter]);
+
+  useEffect(() => {
+    fetchCompetitions();
+  }, [fetchCompetitions]);
+
+  // Lifecycle actions
+  const handleOpenRegistration = async (id: number) => {
+    setActionLoading(true);
+    try {
+      const res = await competitionApi.openRegistration(id);
+      if (res.success) {
+        showNotification("Đã mở đăng ký cho cuộc thi!");
+        await fetchCompetitions();
+      } else {
+        showNotification(res.message || "Mở đăng ký thất bại.", true);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showNotification(e.message || "Mở đăng ký thất bại.", true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCloseRegistration = async (id: number) => {
+    setActionLoading(true);
+    try {
+      const res = await competitionApi.closeRegistration(id);
+      if (res.success) {
+        showNotification("Đã đóng đăng ký cuộc thi.");
+        await fetchCompetitions();
+      } else {
+        showNotification(res.message || "Đóng đăng ký thất bại.", true);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showNotification(e.message || "Đóng đăng ký thất bại.", true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStartCompetition = async (id: number) => {
+    try {
+      const detail = detailedCompMap[id];
+      if (detail) {
+        if (detail.competitionType === "INDIVIDUAL") {
+          const regRes = await competitionApi.getRegistrations(id);
+          const approvedCount = regRes.data?.filter((r) => r.status === "Approved")?.length ?? 0;
+          if (approvedCount === 0) {
+            const confirmStart = window.confirm(
+              "Cảnh báo: Hiện chưa có thí sinh nào được Ban tổ chức phê duyệt (Approved) trong danh sách!\n\nBạn có chắc chắn muốn chuyển cuộc thi sang trạng thái Đang diễn ra không?"
+            );
+            if (!confirmStart) return;
+          }
+        } else {
+          const teamRes = await competitionApi.getTeams(id);
+          const approvedCount = teamRes.data?.length ?? 0;
+          if (approvedCount === 0) {
+            const confirmStart = window.confirm(
+              "Cảnh báo: Hiện chưa có đội thi nào trong danh sách!\n\nBạn có chắc chắn muốn chuyển cuộc thi sang trạng thái Đang diễn ra không?"
+            );
+            if (!confirmStart) return;
+          }
+        }
+      }
+    } catch {
+      // Ignore validation pre-check errors
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await competitionApi.startCompetition(id);
+      if (res.success) {
+        showNotification("Cuộc thi đã bắt đầu diễn ra!");
+        await fetchCompetitions();
+      } else {
+        showNotification(res.message || "Bắt đầu cuộc thi thất bại.", true);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showNotification(e.message || "Bắt đầu cuộc thi thất bại.", true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCompleteCompetition = async (id: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn hoàn thành giải đấu này?")) return;
+    setActionLoading(true);
+    try {
+      const res = await competitionApi.completeCompetition(id);
+      if (res.success) {
+        showNotification("Cuộc thi đã kết thúc thành công.");
+        await fetchCompetitions();
+      } else {
+        showNotification(res.message || "Hoàn thành cuộc thi thất bại.", true);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showNotification(e.message || "Hoàn thành cuộc thi thất bại.", true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelCompetition = async (id: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn HỦY cuộc thi này?")) return;
+    setActionLoading(true);
+    try {
+      const res = await competitionApi.cancelCompetition(id);
+      if (res.success) {
+        showNotification("Cuộc thi đã bị hủy.");
+        await fetchCompetitions();
+      } else {
+        showNotification(res.message || "Hủy cuộc thi thất bại.", true);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showNotification(e.message || "Hủy cuộc thi thất bại.", true);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenEdit = async (id: number) => {
+    try {
+      const res = await competitionApi.getCompetitionById(id);
+      if (res.success && res.data) {
+        setCompetitionToEdit(res.data);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showNotification(e.message || "Không thể tải chi tiết để sửa.", true);
+    }
+  };
+
+  const currentList = LEADERBOARD_DATA[rankTab].map((item) => {
+    if (item.isCurrentUser) {
+      const name = user?.fullName || user?.email?.split("@")[0] || "Bạn";
+      return { ...item, name, avatarLetter: name.charAt(0).toUpperCase() };
+    }
+    return item;
+  });
+
+  const myRankItem = currentList.find((u) => u.isCurrentUser);
+
+  // My competitions: where user is the creator
+  const myCompetitions = competitions.filter((comp) => {
+    const detail = detailedCompMap[comp.competitionId];
+    return detail && currentUserId && detail.createdBy === currentUserId;
+  });
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Cuộc thi & Giải đấu tranh biện</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Đăng ký đội thi, theo dõi nhánh đấu, lịch thi đấu giải và bảng xếp hạng thành tích.
-        </p>
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">
+            Giải đấu & Xếp hạng
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Tham gia các cuộc thi tranh biện cá nhân & đồng đội, tích lũy điểm và thăng hạng.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+          {/* My rank badge */}
+          {myRankItem && (
+            <div className="flex items-center gap-3 px-3.5 py-2 bg-[#ECFDF5] border border-[#008A64]/30 rounded-2xl shadow-xs">
+              <div className="w-7 h-7 rounded-xl bg-[#008A64] text-white font-black text-xs flex items-center justify-center">
+                {myRankItem.avatarLetter}
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 leading-none">Xếp hạng của bạn</p>
+                <p className="text-xs font-black text-[#008A64] mt-0.5">
+                  #{myRankItem.rank} • {myRankItem.avgScore} pts
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Button: + Tạo cuộc thi */}
+          {/* Business Rule: Bất kỳ Authenticated user nào cũng có thể tạo cuộc thi (Creator tự động thành Judge). Khi Backend bổ sung Credit Cost API sau này sẽ integrate tiếp. */}
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs inline-flex items-center gap-1.5 transition-all hover:shadow-md cursor-pointer shrink-0"
+            title="Khởi tạo cuộc thi mới"
+          >
+            <Plus size={16} />
+            <span>Tạo cuộc thi</span>
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500">
-        <Trophy className="mx-auto mb-2 text-amber-500" size={32} />
-        <p className="text-sm">Danh sách giải đấu, phân nhánh thi đấu và bảng điểm xếp hạng sẽ hiển thị tại đây.</p>
+      {/* Notifications */}
+      {errorMsg && (
+        <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl animate-fade-in">
+          <AlertCircle size={16} className="shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+      {successMsg && (
+        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl animate-fade-in">
+          <CheckCircle2 size={16} className="shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {/* Main tabs */}
+      <div className="flex items-center gap-1 border-b border-slate-200">
+        {[
+          { id: "competitions" as const, label: "⚔️ Cuộc thi & Giải đấu" },
+          { id: "my-competitions" as const, label: `📋 Cuộc thi của tôi (${myCompetitions.length})` },
+          { id: "leaderboard" as const, label: "🏆 Bảng xếp hạng" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setMainTab(tab.id)}
+            className={`pb-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+              mainTab === tab.id
+                ? "border-[#008A64] text-[#008A64]"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      {/* ── Tab 1: All Competitions ── */}
+      {mainTab === "competitions" && (
+        <div className="space-y-4">
+          {/* Filters Bar */}
+          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm cuộc thi theo tên..."
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#008A64] focus:outline-hidden"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                />
+              </div>
+
+              {/* Type filter */}
+              <div className="flex items-center gap-2">
+                <Filter size={14} className="text-slate-400 shrink-0" />
+                <select
+                  className="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[#008A64] focus:outline-hidden"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="all">Tất cả hình thức</option>
+                  <option value="INDIVIDUAL">Cá nhân</option>
+                  <option value="TEAM">Đồng đội</option>
+                </select>
+
+                {/* Status filter */}
+                <select
+                  className="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-[#008A64] focus:outline-hidden"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="OpenRegistration">Đang mở đăng ký</option>
+                  <option value="RegistrationClosed">Đã đóng đăng ký</option>
+                  <option value="Ongoing">Đang diễn ra</option>
+                  <option value="Completed">Đã hoàn thành</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={fetchCompetitions}
+                  className="p-2 text-slate-500 hover:text-[#008A64] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  title="Tải lại danh sách"
+                >
+                  <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* List of competitions */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3 bg-white border border-slate-200 rounded-2xl">
+              <RefreshCw className="animate-spin text-[#008A64]" size={28} />
+              <p className="text-xs text-slate-500 font-medium">Đang tải danh sách giải đấu...</p>
+            </div>
+          ) : errorMsg ? (
+            <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-2">
+              <p className="text-xs font-bold text-rose-700">{errorMsg}</p>
+              <button
+                type="button"
+                onClick={fetchCompetitions}
+                className="text-xs font-bold text-[#008A64] hover:underline cursor-pointer"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : competitions.length === 0 ? (
+            <div className="p-12 bg-white border border-slate-200 rounded-2xl text-center space-y-3">
+              <Trophy size={40} className="mx-auto text-slate-300" />
+              <h3 className="font-bold text-slate-800 text-sm">Chưa có giải đấu nào phù hợp</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Hiện tại chưa có cuộc thi nào được công khai hoặc phù hợp với bộ lọc tìm kiếm của bạn.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {competitions.map((comp) => {
+                const isOpenReg = comp.status === "OpenRegistration";
+
+                return (
+                  <div
+                    key={comp.competitionId}
+                    onClick={() => setSelectedCompetitionId(comp.competitionId)}
+                    className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 hover:shadow-md hover:border-[#008A64]/50 transition-all cursor-pointer group"
+                  >
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {/* Left: icon */}
+                      <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+                        <Trophy size={24} className="text-amber-500 fill-amber-200" />
+                      </div>
+
+                      {/* Center: info */}
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div className="flex items-start gap-2 flex-wrap">
+                          <h3 className="font-black text-slate-900 text-base group-hover:text-[#008A64] transition-colors">
+                            {comp.title}
+                          </h3>
+                          <CompetitionStatusBadge status={comp.status} />
+                          <CompetitionTypeBadge type={comp.competitionType} />
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-1">
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-slate-400" />
+                            Đăng ký: {formatDate(comp.registrationStart)} – {formatDate(comp.registrationEnd)}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Calendar size={12} className="text-slate-400" />
+                            Thi đấu: {formatDate(comp.startDate)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right: CTA */}
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 shrink-0">
+                        {comp.status === "Ongoing" ? (
+                          <span className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-[#008A64] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                            </span>
+                            Đang diễn ra • Xem phòng <ChevronRight size={13} />
+                          </span>
+                        ) : isOpenReg ? (
+                          <span className="px-3.5 py-2 rounded-xl bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm">
+                            Xem & Đăng ký <ChevronRight size={13} />
+                          </span>
+                        ) : (
+                          <span className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold inline-flex items-center gap-1.5 transition-all">
+                            Xem chi tiết <ChevronRight size={13} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab 2: My Competitions (Organizer / Manager View) ── */}
+      {mainTab === "my-competitions" && (
+        <div className="space-y-4">
+          <div className="p-4 bg-emerald-50/60 border border-[#008A64]/20 rounded-2xl flex items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Cuộc thi do bạn khởi tạo & quản lý</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Quản lý vòng đời giải đấu, xét duyệt đơn đăng ký của thí sinh/đội thi và phân công giám khảo.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="px-3 py-1.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-1 transition-all cursor-pointer shrink-0"
+            >
+              <Plus size={14} />
+              <span>Tạo thêm cuộc thi</span>
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3 bg-white border border-slate-200 rounded-2xl">
+              <RefreshCw className="animate-spin text-[#008A64]" size={28} />
+              <p className="text-xs text-slate-500 font-medium">Đang tải cuộc thi của bạn...</p>
+            </div>
+          ) : myCompetitions.length === 0 ? (
+            <div className="p-12 bg-white border border-slate-200 rounded-2xl text-center space-y-3">
+              <Trophy size={40} className="mx-auto text-slate-300" />
+              <h3 className="font-bold text-slate-800 text-sm">Bạn chưa tạo cuộc thi nào</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Nhấn nút &ldquo;Tạo cuộc thi&rdquo; để khởi tạo và tổ chức giải đấu đầu tiên của bạn trên nền tảng.
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowCreateModal(true)}
+                className="mt-2"
+              >
+                <Plus size={14} className="mr-1" />
+                Tạo cuộc thi ngay
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myCompetitions.map((comp) => {
+                const detail = detailedCompMap[comp.competitionId];
+
+                return (
+                  <div
+                    key={comp.competitionId}
+                    className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3 hover:border-slate-300 transition-all"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-mono font-bold text-slate-400">
+                            #{comp.competitionId}
+                          </span>
+                          <h4 className="font-black text-slate-900 text-base">{comp.title}</h4>
+                          <CompetitionStatusBadge status={comp.status} />
+                          <CompetitionTypeBadge type={comp.competitionType} />
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-1.5">
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} className="text-slate-400" />
+                            Đăng ký: {formatDate(comp.registrationStart)} – {formatDate(comp.registrationEnd)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar size={12} className="text-slate-400" />
+                            Thi đấu: {formatDate(comp.startDate)}
+                          </span>
+                          {detail?.maxParticipants && (
+                            <span className="text-slate-600 font-medium">
+                              Tối đa: {detail.maxParticipants} {comp.competitionType === "TEAM" ? "đội" : "thí sinh"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Operation Actions */}
+                      <div className="flex items-center gap-1.5 flex-wrap sm:justify-end">
+                        {/* Detail */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCompetitionId(comp.competitionId)}
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Xem chi tiết giải đấu"
+                        >
+                          <Eye size={13} />
+                          <span>Xem</span>
+                        </button>
+
+                        {/* Edit */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(comp.competitionId)}
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Chỉnh sửa thông tin"
+                        >
+                          <Edit size={13} />
+                          <span>Sửa</span>
+                        </button>
+
+                        {/* Manage Modal */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAdminCompId(comp.competitionId)}
+                          className="px-2.5 py-1.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          title="Quản lý thí sinh, đội thi & giám khảo"
+                        >
+                          <Settings size={13} />
+                          <span>Quản lý</span>
+                        </button>
+
+                        {/* Lifecycle quick buttons */}
+                        {comp.status === "Draft" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenRegistration(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer border border-emerald-200"
+                              title="Mở đăng ký"
+                            >
+                              <DoorOpen size={13} />
+                              <span>Mở ĐK</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelCompetition(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                              title="Hủy cuộc thi"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </>
+                        )}
+
+                        {comp.status === "OpenRegistration" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleCloseRegistration(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer border border-amber-200"
+                              title="Đóng đăng ký"
+                            >
+                              <DoorClosed size={13} />
+                              <span>Đóng ĐK</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelCompetition(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                              title="Hủy cuộc thi"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </>
+                        )}
+
+                        {comp.status === "RegistrationClosed" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleStartCompetition(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer border border-blue-200"
+                              title="Bắt đầu thi đấu"
+                            >
+                              <Play size={13} />
+                              <span>Bắt đầu</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelCompetition(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                              title="Hủy cuộc thi"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </>
+                        )}
+
+                        {comp.status === "Ongoing" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/learner/debate/session-comp-${comp.competitionId}`)}
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#008A64] text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer border border-emerald-200"
+                              title="Vào phòng tranh biện (Giám sát / Chấm thi)"
+                            >
+                              <Swords size={13} />
+                              <span>Vào phòng</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCompleteCompetition(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-bold rounded-xl inline-flex items-center gap-1 transition-colors cursor-pointer border border-purple-200"
+                              title="Hoàn thành giải đấu"
+                            >
+                              <CheckCheck size={13} />
+                              <span>Hoàn thành</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelCompetition(comp.competitionId)}
+                              disabled={actionLoading}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                              title="Hủy cuộc thi"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab 3: Leaderboard ── */}
+      {mainTab === "leaderboard" && (
+        <div className="space-y-4">
+          {/* Period filter */}
+          <div className="flex justify-between items-center">
+            <div className="inline-flex p-1 bg-slate-100 rounded-full border border-slate-200/80 shadow-xs">
+              {(["week", "month", "all"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setRankTab(p)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                    rankTab === p
+                      ? "bg-[#008A64] text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  {p === "week" ? "Tuần" : p === "month" ? "Tháng" : "Tất cả"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Top 3 podium */}
+          {currentList.length >= 3 && (
+            <div className="grid grid-cols-3 gap-3">
+              {/* 2nd */}
+              <div className="flex flex-col items-center gap-2 pt-4">
+                <div
+                  className={`w-14 h-14 rounded-2xl ${currentList[1].avatarColor} text-white font-black text-lg flex items-center justify-center shadow-sm`}
+                >
+                  {currentList[1].avatarLetter}
+                </div>
+                <Crown size={20} className="text-slate-400 fill-slate-400" />
+                <div className="text-center">
+                  <p className="text-sm font-black text-slate-900">{currentList[1].name}</p>
+                  <p className="text-xs text-slate-500 font-mono">{currentList[1].avgScore}pts</p>
+                </div>
+                <div className="w-full h-16 bg-slate-200 rounded-t-xl flex items-center justify-center">
+                  <span className="text-2xl font-black text-slate-600">2</span>
+                </div>
+              </div>
+
+              {/* 1st */}
+              <div className="flex flex-col items-center gap-2">
+                <Crown size={28} className="text-amber-500 fill-amber-300" />
+                <div
+                  className={`w-16 h-16 rounded-2xl ${currentList[0].avatarColor} text-white font-black text-xl flex items-center justify-center shadow-md ring-2 ring-amber-400`}
+                >
+                  {currentList[0].avatarLetter}
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-black text-slate-900">{currentList[0].name}</p>
+                  <p className="text-xs text-slate-500 font-mono">{currentList[0].avgScore}pts</p>
+                </div>
+                <div className="w-full h-24 bg-gradient-to-t from-amber-400 to-amber-300 rounded-t-xl flex items-center justify-center shadow-sm">
+                  <span className="text-3xl font-black text-white">1</span>
+                </div>
+              </div>
+
+              {/* 3rd */}
+              <div className="flex flex-col items-center gap-2 pt-6">
+                <div
+                  className={`w-12 h-12 rounded-2xl ${currentList[2].avatarColor} text-white font-black flex items-center justify-center shadow-sm`}
+                >
+                  {currentList[2].avatarLetter}
+                </div>
+                <Crown size={18} className="text-amber-700 fill-amber-600" />
+                <div className="text-center">
+                  <p className="text-sm font-black text-slate-900">{currentList[2].name}</p>
+                  <p className="text-xs text-slate-500 font-mono">{currentList[2].avgScore}pts</p>
+                </div>
+                <div className="w-full h-10 bg-amber-700/20 rounded-t-xl flex items-center justify-center">
+                  <span className="text-xl font-black text-amber-800">3</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Full table */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <th className="py-3.5 px-5 w-16">#</th>
+                    <th className="py-3.5 px-5">Người dùng</th>
+                    <th className="py-3.5 px-5 text-center">Điểm TB</th>
+                    <th className="py-3.5 px-5 text-center">Số phiên</th>
+                    <th className="py-3.5 px-5 text-center">Thắng</th>
+                    <th className="py-3.5 px-5 text-center">Thành tích</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
+                  {currentList.map((item) => (
+                    <tr
+                      key={item.rank}
+                      className={`transition-colors ${
+                        item.isCurrentUser ? "bg-emerald-50/60 font-semibold" : "hover:bg-slate-50/60"
+                      }`}
+                    >
+                      <td className="py-4 px-5">
+                        {item.rank <= 3 ? (
+                          <span
+                            className={`w-6 h-6 rounded-full font-black text-xs flex items-center justify-center shadow-xs ${
+                              item.rank === 1
+                                ? "bg-amber-100 text-amber-600"
+                                : item.rank === 2
+                                ? "bg-slate-200 text-slate-600"
+                                : "bg-amber-700/15 text-amber-700"
+                            }`}
+                          >
+                            {item.rank}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 font-bold pl-2">{item.rank}</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-5">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-xl ${item.avatarColor} text-white font-bold text-xs flex items-center justify-center shadow-xs`}
+                          >
+                            {item.avatarLetter}
+                          </div>
+                          <div>
+                            <span className="font-bold text-[#0F172A] block leading-tight">
+                              {item.name}
+                            </span>
+                            {item.isCurrentUser && (
+                              <span className="text-[10px] text-[#008A64] font-bold">(Bạn)</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-5 text-center font-black text-[#0F172A]">
+                        {item.avgScore}
+                      </td>
+                      <td className="py-4 px-5 text-center font-medium text-slate-500">
+                        {item.sessionsCount}
+                      </td>
+                      <td className="py-4 px-5 text-center font-bold text-[#008A64]">
+                        {item.wins}
+                      </td>
+                      <td className="py-4 px-5 text-center">
+                        {item.badge === "gold" ? (
+                          <Crown size={18} className="text-amber-500 mx-auto fill-amber-500" />
+                        ) : item.badge === "silver" ? (
+                          <Crown size={18} className="text-slate-400 mx-auto fill-slate-400" />
+                        ) : item.badge === "bronze" ? (
+                          <Crown size={18} className="text-amber-700 mx-auto fill-amber-700" />
+                        ) : (
+                          <span className="text-xs font-bold text-slate-400">
+                            Top {item.rank <= 4 ? "10" : "30"}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create Competition */}
+      {showCreateModal && (
+        <CompetitionFormModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(createdComp) => {
+            showNotification("Đã tạo cuộc thi mới thành công (trạng thái: Bản nháp)!");
+            fetchCompetitions();
+            if (createdComp?.competitionId) {
+              setSelectedCompetitionId(createdComp.competitionId);
+            }
+          }}
+        />
+      )}
+
+      {/* Modal: Edit Competition */}
+      {competitionToEdit && (
+        <CompetitionFormModal
+          isOpen={Boolean(competitionToEdit)}
+          onClose={() => setCompetitionToEdit(null)}
+          competitionToEdit={competitionToEdit}
+          onSuccess={() => {
+            showNotification("Đã cập nhật thông tin cuộc thi thành công!");
+            fetchCompetitions();
+          }}
+        />
+      )}
+
+      {/* Modal: Interactive Competition Detail for Learner */}
+      {selectedCompetitionId && (
+        <CompetitionDetailModal
+          competitionId={selectedCompetitionId}
+          isOpen={Boolean(selectedCompetitionId)}
+          onClose={() => setSelectedCompetitionId(null)}
+          currentUser={user}
+          onStatusChanged={fetchCompetitions}
+          onOpenManage={(compId) => setSelectedAdminCompId(compId)}
+        />
+      )}
+
+      {/* Modal: Organizer / Admin Management (Registrations review, Teams, Judges) */}
+      {selectedAdminCompId && (
+        <CompetitionAdminDetailModal
+          competitionId={selectedAdminCompId}
+          isOpen={Boolean(selectedAdminCompId)}
+          onClose={() => setSelectedAdminCompId(null)}
+          onEdit={(comp) => {
+            setSelectedAdminCompId(null);
+            setCompetitionToEdit(comp);
+          }}
+          onUpdated={fetchCompetitions}
+        />
+      )}
     </div>
   );
 };

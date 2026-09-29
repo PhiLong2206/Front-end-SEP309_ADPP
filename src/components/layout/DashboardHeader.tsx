@@ -1,7 +1,7 @@
 import React from "react";
-import { useAuth } from "../../hooks/useAuth";
-import { Bell, LogOut, Sparkles, Menu } from "lucide-react";
-import Button from "../common/Button";
+import { Bell, Sparkles, Menu, Sun, Moon } from "lucide-react";
+import UserAvatarDropdown from "./UserAvatarDropdown";
+import { useTheme } from "../../hooks/useTheme";
 
 export interface DashboardHeaderProps {
   title?: string;
@@ -16,16 +16,16 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   action,
   onMenuClick,
 }) => {
-  const { user, logout } = useAuth();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   return (
-    <header className="h-16 bg-[#0a0f1d]/85 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-lg shadow-black/20">
+    <header className="h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs transition-colors duration-200">
       <div className="flex items-center gap-3">
         {onMenuClick && (
           <button
             type="button"
             onClick={onMenuClick}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition-colors lg:hidden"
+            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors lg:hidden cursor-pointer"
             title="Mở menu"
           >
             <Menu size={20} />
@@ -34,67 +34,50 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
         {title ? (
           <div>
-            <h1 className="text-base sm:text-lg font-extrabold text-white leading-tight">{title}</h1>
-            {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+            <h1 className="text-base sm:text-lg font-black text-[#0F172A] dark:text-slate-100 leading-tight">{title}</h1>
+            {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>}
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-400">
-              <Sparkles size={13} className="text-cyan-400" />
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/40 text-xs font-bold text-[#008A64] dark:text-emerald-400">
+              <Sparkles size={13} className="text-[#008A64] dark:text-emerald-400" />
               <span>Nền tảng Luyện tập Tranh biện AI</span>
             </span>
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {action && <div>{action}</div>}
+
+        {/* Theme Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-[#101F1A] hover:bg-slate-100 dark:hover:bg-[#172C23] border border-slate-200 dark:border-[rgba(148,163,184,0.18)] flex items-center justify-center text-slate-700 dark:text-amber-400 hover:text-slate-900 transition-all duration-200 shadow-xs cursor-pointer active:scale-95 group"
+          title={resolvedTheme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
+          aria-label={resolvedTheme === "dark" ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
+        >
+          {resolvedTheme === "dark" ? (
+            <Sun size={17} className="text-amber-400 transition-transform duration-200 group-hover:rotate-45" />
+          ) : (
+            <Moon size={17} className="text-slate-600 transition-transform duration-200 group-hover:-rotate-12" />
+          )}
+        </button>
 
         {/* Notifications */}
         <button
           type="button"
-          className="relative p-2 text-slate-400 hover:text-cyan-400 rounded-xl hover:bg-slate-800/80 transition-colors"
+          className="relative p-2 text-slate-500 hover:text-[#008A64] dark:text-slate-400 dark:hover:text-emerald-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           title="Thông báo"
         >
           <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-400 ring-2 ring-[#0a0f1d]" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#008A64] ring-2 ring-white dark:ring-slate-900" />
         </button>
 
-        {/* User avatar & logout */}
-        <div className="flex items-center gap-3 pl-4 border-l border-slate-800/80">
-          <div className="relative">
-            {user?.avatarUrl && user.avatarUrl !== "string" ? (
-              <img
-                src={user.avatarUrl}
-                alt={user?.fullName || "Avatar"}
-                className="w-8 h-8 rounded-full object-cover border border-blue-500/40 shadow-xs"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs border border-blue-400/30">
-                {(user?.fullName || user?.email || "U").charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#0a0f1d]" />
-          </div>
-
-          <div className="hidden sm:block text-left">
-            <div className="text-xs font-bold text-slate-200 leading-tight">
-              {user?.fullName || user?.email?.split("@")[0] || "Người dùng"}
-            </div>
-            <div className="text-[11px] text-slate-400 font-mono">
-              {user?.email || "Học viên"}
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={logout}
-            title="Đăng xuất"
-            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl"
-          >
-            <LogOut size={16} />
-          </Button>
+        {/* User avatar & logout dropdown */}
+        <div className="pl-2 border-l border-slate-200 dark:border-slate-800">
+          <UserAvatarDropdown />
         </div>
       </div>
     </header>
@@ -102,5 +85,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 };
 
 export default DashboardHeader;
+
 
 

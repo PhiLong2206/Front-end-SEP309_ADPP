@@ -3,9 +3,11 @@ import { Route, Routes, Navigate } from "react-router-dom";
 import LearnerDashboard from "../pages/learner/Dashboard/Dashboard";
 import Topics from "../pages/learner/Topics/Topics";
 import TopicDetail from "../pages/learner/Topics/TopicDetail";
+import DebatePractice from "../pages/learner/DebatePractice/DebatePractice";
 import DebateRoom from "../pages/learner/DebatePractice/DebateRoom";
 import DebateResult from "../pages/learner/DebatePractice/DebateResult";
 import Debate1v1 from "../pages/learner/Debate1v1/Debate1v1";
+import Debate1v1Result from "../pages/learner/Debate1v1/Debate1v1Result";
 import DebateHistory from "../pages/learner/DebateHistory/DebateHistory";
 import Feedback from "../pages/learner/Feedback/Feedback";
 import Progress from "../pages/learner/Progress/Progress";
@@ -21,9 +23,11 @@ const LearnerRoutes: React.FC = () => {
       <Route path="dashboard" element={<LearnerDashboard />} />
       <Route path="topics" element={<Topics />} />
       <Route path="topics/:id" element={<TopicDetail />} />
+      <Route path="debate" element={<DebatePractice />} />
       <Route path="debate/:sessionId" element={<DebateRoom />} />
       <Route path="debate/:sessionId/result" element={<DebateResult />} />
       <Route path="debate-1v1" element={<Debate1v1 />} />
+      <Route path="debate-1v1/:matchId/result" element={<Debate1v1Result />} />
       <Route path="history" element={<DebateHistory />} />
       <Route path="feedback" element={<Feedback />} />
       <Route path="progress" element={<Progress />} />

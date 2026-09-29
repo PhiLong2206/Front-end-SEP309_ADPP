@@ -41,7 +41,7 @@ const UserManagement: React.FC = () => {
             Quản lý danh sách tài khoản, vai trò hệ thống và trạng thái kích hoạt của học viên và giáo viên.
           </p>
         </div>
-        <Button variant="primary" className="text-xs font-bold shadow-md shadow-indigo-600/20 self-start sm:self-auto">
+        <Button variant="primary" className="text-xs font-bold shadow-sm shadow-[#008A64]/20 self-start sm:self-auto">
           <Plus size={14} className="mr-1.5" />
           <span>Thêm người dùng</span>
         </Button>
@@ -56,7 +56,7 @@ const UserManagement: React.FC = () => {
             placeholder="Tìm theo tên hoặc email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
           />
         </div>
 
@@ -65,7 +65,7 @@ const UserManagement: React.FC = () => {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 font-medium text-slate-700"
+            className="w-full sm:w-auto px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64] font-medium text-slate-700"
           >
             <option value="ALL">Tất cả vai trò</option>
             <option value="Learner">Học viên</option>
@@ -100,7 +100,7 @@ const UserManagement: React.FC = () => {
                   <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                        <div className="w-8 h-8 rounded-full bg-[#ECFDF5] text-[#008A64] font-bold flex items-center justify-center text-xs">
                           {u.fullName.charAt(0)}
                         </div>
                         <div>
@@ -113,10 +113,10 @@ const UserManagement: React.FC = () => {
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           u.role === "Administrator"
-                            ? "bg-purple-100 text-purple-700"
+                            ? "bg-slate-100 text-slate-700 border border-slate-200"
                             : u.role === "Educator"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-emerald-100 text-emerald-700"
+                            ? "bg-[#ECFDF5] text-[#008A64] border border-[#008A64]/30"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                         }`}
                       >
                         {u.role === "Administrator" ? "Quản trị viên" : u.role === "Educator" ? "Giảng viên" : "Học viên"}
@@ -132,7 +132,7 @@ const UserManagement: React.FC = () => {
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            u.status === "Active" ? "bg-emerald-500" : "bg-slate-400"
+                            u.status === "Active" ? "bg-[#008A64]" : "bg-slate-400"
                           }`}
                         />
                         <span>{u.status === "Active" ? "Hoạt động" : "Bị khóa"}</span>

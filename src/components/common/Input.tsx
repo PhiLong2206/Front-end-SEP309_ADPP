@@ -26,8 +26,8 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className={`flex flex-col gap-1.5 mb-4 ${className}`}>
       {label && (
-        <label htmlFor={inputId} className="text-xs sm:text-sm font-semibold text-slate-300 tracking-wide">
-          {label} {required && <span className="text-rose-400">*</span>}
+        <label htmlFor={inputId} className="text-xs sm:text-sm font-semibold text-slate-700 tracking-tight">
+          {label} {required && <span className="text-rose-500">*</span>}
         </label>
       )}
       <input
@@ -39,15 +39,15 @@ const Input: React.FC<InputProps> = ({
         onChange={onChange}
         disabled={disabled}
         required={required}
-        className={`w-full px-4 py-2.5 text-sm sm:text-base bg-slate-900/90 border rounded-xl text-white placeholder:text-slate-500 transition-all duration-150 focus:outline-none focus:ring-2 disabled:bg-slate-950 disabled:text-slate-500 disabled:cursor-not-allowed ${
+        className={`w-full px-4 py-2.5 text-sm sm:text-base bg-white border rounded-xl text-slate-900 placeholder:text-slate-400 transition-all duration-150 focus:outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${
           error
-            ? "border-rose-500/80 focus:border-rose-500 focus:ring-rose-500/20"
-            : "border-slate-700/80 focus:border-blue-500 focus:ring-blue-500/30 hover:border-slate-600"
+            ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20"
+            : "border-slate-200 focus:border-[#008A64] focus:ring-[#008A64]/20 hover:border-slate-300"
         }`}
         {...props}
       />
-      {error && <span className="text-xs text-rose-400 font-medium">{error}</span>}
-      {!error && helperText && <span className="text-xs text-slate-400">{helperText}</span>}
+      {error && <span className="text-xs text-rose-500 font-medium">{error}</span>}
+      {!error && helperText && <span className="text-xs text-slate-500">{helperText}</span>}
     </div>
   );
 };
