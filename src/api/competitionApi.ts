@@ -74,15 +74,8 @@ const competitionApi = {
     competitionId: number | string,
     userId?: number
   ): Promise<ApiResponse<CompetitionRegistration | null>> => {
+    if (!userId) return { success: true, message: "", data: null };
     try {
-      // First try /registrations/me if BE supports it
-      const res = await axiosClient.get<ApiResponse<CompetitionRegistration>>(
-        `/competitions/${competitionId}/registrations/me`
-      );
-      return res as unknown as ApiResponse<CompetitionRegistration>;
-    } catch {
-      // Fallback: fetch list and find by current user's id
-      if (!userId) return { success: true, message: "", data: null };
       const listRes = await axiosClient.get<ApiResponse<CompetitionRegistration[]>>(
         `/competitions/${competitionId}/registrations`
       );
@@ -92,6 +85,13 @@ const competitionApi = {
         success: true,
         message: "",
         data: found || null,
+      };
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      return {
+        success: false,
+        message: e.message || "Không thể tải trạng thái đăng ký",
+        data: null,
       };
     }
   },

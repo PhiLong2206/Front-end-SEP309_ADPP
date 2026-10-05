@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Crown,
   Trophy,
   Calendar,
   ChevronRight,
@@ -33,43 +32,7 @@ import CompetitionFormModal from "../../../components/competition/CompetitionFor
 import Button from "../../../components/common/Button";
 import { formatDate } from "../../../utils/formatDate";
 
-// ── Leaderboard data ──────────────────────────────────────────
-interface LeaderboardUser {
-  rank: number;
-  name: string;
-  avatarColor: string;
-  avatarLetter: string;
-  avgScore: number;
-  sessionsCount: number;
-  wins: number;
-  badge: "gold" | "silver" | "bronze" | "top10" | "top30";
-  isCurrentUser?: boolean;
-}
-
-const LEADERBOARD_DATA: Record<"week" | "month" | "all", LeaderboardUser[]> = {
-  week: [
-    { rank: 1, name: "Minh Anh", avatarColor: "bg-amber-500", avatarLetter: "M", avgScore: 92, sessionsCount: 48, wins: 38, badge: "gold" },
-    { rank: 2, name: "Hoàng Nam", avatarColor: "bg-blue-600", avatarLetter: "H", avgScore: 88, sessionsCount: 36, wins: 28, badge: "silver" },
-    { rank: 3, name: "Thu Trang", avatarColor: "bg-rose-500", avatarLetter: "T", avgScore: 85, sessionsCount: 32, wins: 22, badge: "bronze" },
-    { rank: 4, name: "Bạn", avatarColor: "bg-[#008A64]", avatarLetter: "B", avgScore: 76, sessionsCount: 12, wins: 8, badge: "top10", isCurrentUser: true },
-    { rank: 5, name: "Đức Anh", avatarColor: "bg-indigo-600", avatarLetter: "D", avgScore: 74, sessionsCount: 19, wins: 11, badge: "top30" },
-    { rank: 6, name: "Bảo Ngọc", avatarColor: "bg-purple-600", avatarLetter: "B", avgScore: 72, sessionsCount: 15, wins: 9, badge: "top30" },
-  ],
-  month: [
-    { rank: 1, name: "Hoàng Nam", avatarColor: "bg-blue-600", avatarLetter: "H", avgScore: 94, sessionsCount: 120, wins: 95, badge: "gold" },
-    { rank: 2, name: "Minh Anh", avatarColor: "bg-amber-500", avatarLetter: "M", avgScore: 91, sessionsCount: 110, wins: 85, badge: "silver" },
-    { rank: 3, name: "Khánh Linh", avatarColor: "bg-emerald-600", avatarLetter: "K", avgScore: 87, sessionsCount: 95, wins: 70, badge: "bronze" },
-    { rank: 4, name: "Bạn", avatarColor: "bg-[#008A64]", avatarLetter: "B", avgScore: 80, sessionsCount: 42, wins: 30, badge: "top10", isCurrentUser: true },
-    { rank: 5, name: "Thu Trang", avatarColor: "bg-rose-500", avatarLetter: "T", avgScore: 78, sessionsCount: 68, wins: 45, badge: "top30" },
-  ],
-  all: [
-    { rank: 1, name: "Minh Anh", avatarColor: "bg-amber-500", avatarLetter: "M", avgScore: 95, sessionsCount: 480, wins: 400, badge: "gold" },
-    { rank: 2, name: "Hoàng Nam", avatarColor: "bg-blue-600", avatarLetter: "H", avgScore: 93, sessionsCount: 410, wins: 340, badge: "silver" },
-    { rank: 3, name: "Trọng Hiếu", avatarColor: "bg-teal-600", avatarLetter: "H", avgScore: 89, sessionsCount: 380, wins: 295, badge: "bronze" },
-    { rank: 4, name: "Thu Trang", avatarColor: "bg-rose-500", avatarLetter: "T", avgScore: 86, sessionsCount: 340, wins: 260, badge: "top10" },
-    { rank: 5, name: "Bạn", avatarColor: "bg-[#008A64]", avatarLetter: "B", avgScore: 79, sessionsCount: 150, wins: 105, badge: "top10", isCurrentUser: true },
-  ],
-};
+// ── Leaderboard empty state ──────────────────────────────────────────
 
 const Competitions: React.FC = () => {
   const { user } = useAuth();
@@ -77,7 +40,6 @@ const Competitions: React.FC = () => {
   const currentUserId = user?.userId ? Number(user.userId) : null;
 
   const [mainTab, setMainTab] = useState<"competitions" | "my-competitions" | "leaderboard">("competitions");
-  const [rankTab, setRankTab] = useState<"week" | "month" | "all">("week");
 
   // Real backend competitions state
   const [competitions, setCompetitions] = useState<CompetitionListItem[]>([]);
@@ -286,16 +248,6 @@ const Competitions: React.FC = () => {
     }
   };
 
-  const currentList = LEADERBOARD_DATA[rankTab].map((item) => {
-    if (item.isCurrentUser) {
-      const name = user?.fullName || user?.email?.split("@")[0] || "Bạn";
-      return { ...item, name, avatarLetter: name.charAt(0).toUpperCase() };
-    }
-    return item;
-  });
-
-  const myRankItem = currentList.find((u) => u.isCurrentUser);
-
   // My competitions: where user is the creator
   const myCompetitions = competitions.filter((comp) => {
     const detail = detailedCompMap[comp.competitionId];
@@ -316,20 +268,6 @@ const Competitions: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
-          {/* My rank badge */}
-          {myRankItem && (
-            <div className="flex items-center gap-3 px-3.5 py-2 bg-[#ECFDF5] border border-[#008A64]/30 rounded-2xl shadow-xs">
-              <div className="w-7 h-7 rounded-xl bg-[#008A64] text-white font-black text-xs flex items-center justify-center">
-                {myRankItem.avatarLetter}
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-500 leading-none">Xếp hạng của bạn</p>
-                <p className="text-xs font-black text-[#008A64] mt-0.5">
-                  #{myRankItem.rank} • {myRankItem.avgScore} pts
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Button: + Tạo cuộc thi */}
           {/* Business Rule: Bất kỳ Authenticated user nào cũng có thể tạo cuộc thi (Creator tự động thành Judge). Khi Backend bổ sung Credit Cost API sau này sẽ integrate tiếp. */}
@@ -761,167 +699,16 @@ const Competitions: React.FC = () => {
 
       {/* ── Tab 3: Leaderboard ── */}
       {mainTab === "leaderboard" && (
-        <div className="space-y-4">
-          {/* Period filter */}
-          <div className="flex justify-between items-center">
-            <div className="inline-flex p-1 bg-slate-100 rounded-full border border-slate-200/80 shadow-xs">
-              {(["week", "month", "all"] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setRankTab(p)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                    rankTab === p
-                      ? "bg-[#008A64] text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {p === "week" ? "Tuần" : p === "month" ? "Tháng" : "Tất cả"}
-                </button>
-              ))}
-            </div>
+        <div className="bg-white dark:bg-[#12231C] rounded-3xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.18)] p-12 text-center shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-500/15 border border-amber-100 dark:border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto mb-4 shadow-xs">
+            <Trophy size={32} />
           </div>
-
-          {/* Top 3 podium */}
-          {currentList.length >= 3 && (
-            <div className="grid grid-cols-3 gap-3">
-              {/* 2nd */}
-              <div className="flex flex-col items-center gap-2 pt-4">
-                <div
-                  className={`w-14 h-14 rounded-2xl ${currentList[1].avatarColor} text-white font-black text-lg flex items-center justify-center shadow-sm`}
-                >
-                  {currentList[1].avatarLetter}
-                </div>
-                <Crown size={20} className="text-slate-400 fill-slate-400" />
-                <div className="text-center">
-                  <p className="text-sm font-black text-slate-900">{currentList[1].name}</p>
-                  <p className="text-xs text-slate-500 font-mono">{currentList[1].avgScore}pts</p>
-                </div>
-                <div className="w-full h-16 bg-slate-200 rounded-t-xl flex items-center justify-center">
-                  <span className="text-2xl font-black text-slate-600">2</span>
-                </div>
-              </div>
-
-              {/* 1st */}
-              <div className="flex flex-col items-center gap-2">
-                <Crown size={28} className="text-amber-500 fill-amber-300" />
-                <div
-                  className={`w-16 h-16 rounded-2xl ${currentList[0].avatarColor} text-white font-black text-xl flex items-center justify-center shadow-md ring-2 ring-amber-400`}
-                >
-                  {currentList[0].avatarLetter}
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-black text-slate-900">{currentList[0].name}</p>
-                  <p className="text-xs text-slate-500 font-mono">{currentList[0].avgScore}pts</p>
-                </div>
-                <div className="w-full h-24 bg-gradient-to-t from-amber-400 to-amber-300 rounded-t-xl flex items-center justify-center shadow-sm">
-                  <span className="text-3xl font-black text-white">1</span>
-                </div>
-              </div>
-
-              {/* 3rd */}
-              <div className="flex flex-col items-center gap-2 pt-6">
-                <div
-                  className={`w-12 h-12 rounded-2xl ${currentList[2].avatarColor} text-white font-black flex items-center justify-center shadow-sm`}
-                >
-                  {currentList[2].avatarLetter}
-                </div>
-                <Crown size={18} className="text-amber-700 fill-amber-600" />
-                <div className="text-center">
-                  <p className="text-sm font-black text-slate-900">{currentList[2].name}</p>
-                  <p className="text-xs text-slate-500 font-mono">{currentList[2].avgScore}pts</p>
-                </div>
-                <div className="w-full h-10 bg-amber-700/20 rounded-t-xl flex items-center justify-center">
-                  <span className="text-xl font-black text-amber-800">3</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Full table */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="py-3.5 px-5 w-16">#</th>
-                    <th className="py-3.5 px-5">Người dùng</th>
-                    <th className="py-3.5 px-5 text-center">Điểm TB</th>
-                    <th className="py-3.5 px-5 text-center">Số phiên</th>
-                    <th className="py-3.5 px-5 text-center">Thắng</th>
-                    <th className="py-3.5 px-5 text-center">Thành tích</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-                  {currentList.map((item) => (
-                    <tr
-                      key={item.rank}
-                      className={`transition-colors ${
-                        item.isCurrentUser ? "bg-emerald-50/60 font-semibold" : "hover:bg-slate-50/60"
-                      }`}
-                    >
-                      <td className="py-4 px-5">
-                        {item.rank <= 3 ? (
-                          <span
-                            className={`w-6 h-6 rounded-full font-black text-xs flex items-center justify-center shadow-xs ${
-                              item.rank === 1
-                                ? "bg-amber-100 text-amber-600"
-                                : item.rank === 2
-                                ? "bg-slate-200 text-slate-600"
-                                : "bg-amber-700/15 text-amber-700"
-                            }`}
-                          >
-                            {item.rank}
-                          </span>
-                        ) : (
-                          <span className="text-slate-500 font-bold pl-2">{item.rank}</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-5">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-xl ${item.avatarColor} text-white font-bold text-xs flex items-center justify-center shadow-xs`}
-                          >
-                            {item.avatarLetter}
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#0F172A] block leading-tight">
-                              {item.name}
-                            </span>
-                            {item.isCurrentUser && (
-                              <span className="text-[10px] text-[#008A64] font-bold">(Bạn)</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-5 text-center font-black text-[#0F172A]">
-                        {item.avgScore}
-                      </td>
-                      <td className="py-4 px-5 text-center font-medium text-slate-500">
-                        {item.sessionsCount}
-                      </td>
-                      <td className="py-4 px-5 text-center font-bold text-[#008A64]">
-                        {item.wins}
-                      </td>
-                      <td className="py-4 px-5 text-center">
-                        {item.badge === "gold" ? (
-                          <Crown size={18} className="text-amber-500 mx-auto fill-amber-500" />
-                        ) : item.badge === "silver" ? (
-                          <Crown size={18} className="text-slate-400 mx-auto fill-slate-400" />
-                        ) : item.badge === "bronze" ? (
-                          <Crown size={18} className="text-amber-700 mx-auto fill-amber-700" />
-                        ) : (
-                          <span className="text-xs font-bold text-slate-400">
-                            Top {item.rank <= 4 ? "10" : "30"}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <h3 className="text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] mb-2">
+            Bảng xếp hạng giải đấu
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            Hệ thống bảng xếp hạng đang được đồng bộ và tổng hợp dựa trên kết quả các giải đấu đã hoàn thành. Hiện chưa có xếp hạng chính thức từ hệ thống.
+          </p>
         </div>
       )}
 

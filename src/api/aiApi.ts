@@ -8,9 +8,17 @@ import {
   AIRebuttalResponse,
   AIJudgeResult,
   ApiResponse,
+  CreateOpponentSessionRequest,
+  CreateOpponentSessionResponse,
+  CreateTurnRequest,
+  TurnResponse,
+  CaseFileResponse,
+  ArgumentEvaluationPayload,
+  ArgumentEvaluationResult,
 } from "../types";
 
 const aiApi = {
+  // ── Existing Debate Practice AI ──────────────────────────────
   // Generate opponent argument
   generateOpponentArgument: (
     data: AIOpponentRequest
@@ -36,6 +44,36 @@ const aiApi = {
   // In-depth score explanation
   getScoreExplanation: (data: { criteria: string; score: number; argumentText: string }): Promise<ApiResponse<{ explanation: string }>> =>
     axiosClient.post("/ai/debate/score-explanation", data),
+
+  // ── AI Opponent Microservice (/api/opponent/*) ───────────────
+  createOpponentSession: (
+    data: CreateOpponentSessionRequest
+  ): Promise<CreateOpponentSessionResponse> =>
+    axiosClient.post("/opponent/sessions", data),
+
+  getOpponentSession: (externalSessionId: string): Promise<object> =>
+    axiosClient.get(`/opponent/sessions/${externalSessionId}`),
+
+  getOpponentCasePlan: (externalSessionId: string): Promise<CaseFileResponse> =>
+    axiosClient.get(`/opponent/sessions/${externalSessionId}/case-plan`),
+
+  generateOpponentTurn: (
+    externalSessionId: string,
+    data: CreateTurnRequest
+  ): Promise<TurnResponse> =>
+    axiosClient.post(`/opponent/sessions/${externalSessionId}/turns`, data),
+
+  // ── AI Evaluator Microservice (/api/evaluate/*) ──────────────
+  evaluateSpeechArgument: (
+    data: ArgumentEvaluationPayload
+  ): Promise<ArgumentEvaluationResult> =>
+    axiosClient.post("/evaluate", data),
+
+  evaluateDebateRound: (data: object): Promise<object> =>
+    axiosClient.post("/evaluate/round", data),
+
+  evaluateDebateSession: (data: object): Promise<object> =>
+    axiosClient.post("/evaluate/session", data),
 };
 
 export default aiApi;

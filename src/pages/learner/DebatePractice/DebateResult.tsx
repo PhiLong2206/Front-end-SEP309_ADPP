@@ -1,12 +1,47 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import ScoreBreakdown from "../../../components/debate/ScoreBreakdown";
-import { MOCK_DEBATE_RESULT } from "../../../mocks/debate";
 import { CheckCircle2, AlertCircle, RotateCcw, ArrowRight, FileText } from "lucide-react";
+
+export interface DebateResultData {
+  sessionId: string;
+  topicTitle: string;
+  overallScore: number;
+  ratingText: string;
+  scores: {
+    logic: number;
+    evidence: number;
+    relevance: number;
+    structure: number;
+    persuasiveness: number;
+  };
+  strengths: string[];
+  improvements: string[];
+}
 
 const DebateResult: React.FC = () => {
   const navigate = useNavigate();
-  const result = MOCK_DEBATE_RESULT;
+  const location = useLocation();
+  const result: DebateResultData | null = (location.state as { result?: DebateResultData })?.result || null;
+
+  if (!result) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto py-16 text-center">
+        <FileText size={40} className="mx-auto text-slate-300" />
+        <h2 className="text-lg font-black text-slate-900">Không tìm thấy kết quả đánh giá</h2>
+        <p className="text-xs text-slate-500 mt-1">
+          Phiên tranh biện này chưa có dữ liệu chấm điểm từ AI hoặc phiên chưa kết thúc.
+        </p>
+        <Link
+          to="/learner/debate"
+          className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold rounded-2xl shadow-xs transition-colors"
+        >
+          <span>Luyện tập phiên mới</span>
+          <ArrowRight size={14} />
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
@@ -43,76 +78,84 @@ const DebateResult: React.FC = () => {
 
         {/* CENTER COLUMN: Điểm theo tiêu chí (~35%) */}
         <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
             Điểm theo tiêu chí
-          </h3>
-
-          <ScoreBreakdown scores={result.scores} />
+          </h2>
+          <div className="pt-2">
+            <ScoreBreakdown scores={result.scores} />
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: Nhận xét (Điểm mạnh & Điểm cần cải thiện) (~35%) */}
-        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Nhận xét chi tiết
-          </h3>
+        {/* RIGHT COLUMN: Nhận xét chi tiết (~35%) */}
+        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="space-y-4">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+              Nhận xét chi tiết
+            </h2>
 
-          {/* Điểm mạnh */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700">
-              <CheckCircle2 size={15} className="text-[#008A64]" />
-              <span>Điểm mạnh</span>
+            {/* Điểm mạnh */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <CheckCircle2 size={14} className="text-[#008A64]" />
+                Điểm mạnh
+              </span>
+              <ul className="space-y-1.5 pl-1">
+                {result.strengths.map((str, idx) => (
+                  <li key={idx} className="text-xs text-slate-600 leading-relaxed flex items-start gap-1.5">
+                    <span className="text-[#008A64] font-bold mt-0.5">•</span>
+                    <span>{str}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-1.5 text-xs text-slate-700 pl-4 list-disc leading-relaxed">
-              {result.strengths.map((st, i) => (
-                <li key={i}>{st}</li>
-              ))}
-            </ul>
-          </div>
 
-          {/* Điểm cần cải thiện */}
-          <div className="space-y-2 pt-3 border-t border-slate-100">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
-              <AlertCircle size={15} className="text-amber-600" />
-              <span>Điểm cần cải thiện</span>
+            {/* Cần cải thiện */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <span className="text-xs font-bold text-amber-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <AlertCircle size={14} className="text-amber-500" />
+                Cần cải thiện
+              </span>
+              <ul className="space-y-1.5 pl-1">
+                {result.improvements.map((imp, idx) => (
+                  <li key={idx} className="text-xs text-slate-600 leading-relaxed flex items-start gap-1.5">
+                    <span className="text-amber-500 font-bold mt-0.5">•</span>
+                    <span>{imp}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-1.5 text-xs text-slate-700 pl-4 list-disc leading-relaxed">
-              {result.improvements.map((imp, i) => (
-                <li key={i}>{imp}</li>
-              ))}
-            </ul>
           </div>
         </div>
       </div>
 
-      {/* Bottom CTA Bar */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/learner/history"
-            className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs sm:text-sm font-semibold rounded-xl transition-all inline-flex items-center gap-2 shadow-xs"
-          >
-            <FileText size={15} />
-            <span>Xem biên bản tranh luận</span>
-          </Link>
+      {/* BOTTOM ACTIONS BAR */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+        <Link
+          to={`/learner/debate/${result.sessionId}`}
+          className="text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors self-start sm:self-auto"
+        >
+          <FileText size={15} />
+          <span>Xem lại toàn bộ transcript</span>
+        </Link>
 
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
           <button
             type="button"
-            onClick={() => navigate("/learner/topics/topic-social-media")}
-            className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs sm:text-sm font-semibold rounded-xl transition-all inline-flex items-center gap-2 shadow-xs"
+            onClick={() => navigate("/learner/debate")}
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-all inline-flex items-center justify-center gap-1.5 shadow-xs"
           >
-            <RotateCcw size={15} />
-            <span>Luyện tập lại</span>
+            <RotateCcw size={14} />
+            <span>Luyện lại chủ đề này</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/learner/topics")}
+            className="flex-1 sm:flex-none px-5 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs sm:text-sm font-bold rounded-xl transition-all inline-flex items-center justify-center gap-1.5 shadow-sm shadow-[#008A64]/20 hover:scale-102"
+          >
+            <span>Chọn chủ đề mới</span>
+            <ArrowRight size={14} />
           </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => navigate("/learner/dashboard")}
-          className="px-6 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-[#008A64]/20 transition-all inline-flex items-center gap-2 hover:scale-102"
-        >
-          <span>Quay về Dashboard</span>
-          <ArrowRight size={15} />
-        </button>
       </div>
     </div>
   );

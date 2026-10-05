@@ -82,6 +82,20 @@ const authApi = {
    */
   changePassword: (data: ChangePasswordRequest): Promise<ApiResponse<object>> =>
     axiosClient.put("/auth/change-password", data),
+
+  /**
+   * POST /api/auth/refresh-token
+   * Refreshes access token and rotates refresh token.
+   */
+  refreshToken: (data: { refreshToken: string }): Promise<ApiResponse<LoginResponse>> =>
+    axiosClient.post("/auth/refresh-token", data),
+
+  /**
+   * POST /api/auth/revoke-token [Authorized]
+   * Revokes the active refresh token.
+   */
+  revokeToken: (data: { refreshToken: string }): Promise<ApiResponse<object>> =>
+    axiosClient.post("/auth/revoke-token", data),
 };
 
 export default authApi;

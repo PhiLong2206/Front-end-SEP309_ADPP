@@ -1,19 +1,35 @@
 import React, { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { MOCK_TOPICS } from "../../../mocks/topics";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import { Topic } from "../../../types";
 import Badge from "../../../components/common/Badge";
 import DifficultyBadge from "../../../components/topic/DifficultyBadge";
 import { ArrowLeft, BookOpen, FileText, Play } from "lucide-react";
 
 const TopicDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: _id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const topic = MOCK_TOPICS.find((t) => t.id === id) || MOCK_TOPICS[1]; // default social media topic
+  const topic: Topic | null = (location.state as { topic?: Topic })?.topic || null;
 
   const [activeTab, setActiveTab] = useState<"overview" | "materials">("overview");
   const [selectedSide, setSelectedSide] = useState<"Ủng hộ" | "Phản đối">("Ủng hộ");
   const [selectedDifficulty, setSelectedDifficulty] = useState<"Dễ" | "Trung bình" | "Khó">("Trung bình");
+
+  if (!topic) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto py-16 text-center">
+        <p className="text-base font-bold text-slate-800">Không tìm thấy chủ đề tranh biện</p>
+        <p className="text-xs text-slate-500 mt-1">Chủ đề này không tồn tại hoặc chưa được tạo trên máy chủ.</p>
+        <Link
+          to="/learner/topics"
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+        >
+          <ArrowLeft size={14} /> Quay lại danh sách chủ đề
+        </Link>
+      </div>
+    );
+  }
 
   const handleStartDebate = () => {
     navigate(`/learner/debate/session-${topic.id}`);

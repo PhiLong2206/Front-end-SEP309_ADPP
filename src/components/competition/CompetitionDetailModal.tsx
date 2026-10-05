@@ -1143,33 +1143,35 @@ const CompetitionDetailModal: React.FC<Props> = ({
                         </div>
                       )}
                     </div>
-                  ) : isOrganizerOrJudge ? (
-                    <div className="p-5 bg-emerald-50/70 border border-[#008A64]/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900">
-                          Bạn là {isCreator ? "Ban tổ chức (Người tạo)" : "Giám khảo"} của giải đấu này
-                        </h4>
-                        <p className="text-xs text-slate-600 mt-0.5">
-                          Danh sách các đội thi tham gia giải đấu hiển thị bên dưới. Ban tổ chức và giám khảo không tham gia thi đấu.
-                        </p>
-                      </div>
-                      {onOpenManage && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => {
-                            onClose();
-                            onOpenManage(competition.competitionId);
-                          }}
-                        >
-                          <Settings size={14} className="mr-1.5" />
-                          Quản lý các đội thi
-                        </Button>
-                      )}
-                    </div>
                   ) : (
                     /* User has NO active team */
                     <div className="space-y-4">
+                      {isOrganizerOrJudge && (
+                        <div className="p-4 bg-emerald-50/70 border border-[#008A64]/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-900">
+                              Bạn là {isCreator ? "Ban tổ chức (Người tạo)" : "Giám khảo"} của giải đấu này
+                            </h4>
+                            <p className="text-xs text-slate-600 mt-0.5">
+                              Bạn có thể tạo đội thi để tham gia hoặc chuyển sang Bảng Quản trị để điều phối và xét duyệt giải đấu.
+                            </p>
+                          </div>
+                          {onOpenManage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                onClose();
+                                onOpenManage(competition.competitionId);
+                              }}
+                              className="shrink-0"
+                            >
+                              <Settings size={14} className="mr-1.5" />
+                              Quản lý các đội thi
+                            </Button>
+                          )}
+                        </div>
+                      )}
                       <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
                           <h4 className="text-sm font-bold text-slate-900">

@@ -1,180 +1,88 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-} from "recharts";
-import { MOCK_PROGRESS_DATA } from "../../../mocks/progress";
-import { AlertCircle, ArrowRight } from "lucide-react";
-import Button from "../../../components/common/Button";
+import { Award, ArrowRight, Swords } from "lucide-react";
 
 const Progress: React.FC = () => {
-  const data = MOCK_PROGRESS_DATA;
+  // Real state: when debate session records API is available, fetch real stats
+  const totalDebates = 0;
+  const avgScore = 0;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-8">
       {/* Title */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
           Tiến độ học tập
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Theo dõi sự tiến bộ và phân tích kỹ năng tranh biện của bạn theo thời gian.
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          Theo dõi sự tiến bộ và phân tích kỹ năng tranh biện của bạn theo thời gian từ dữ liệu hệ thống.
         </p>
       </div>
 
-      {/* TOP 3 CARDS: Điểm trung bình | Điểm số theo thời gian | Phân bố kỹ năng */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-        {/* Top Left: Điểm trung bình (~30%) */}
-        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="bg-white dark:bg-[#12231C] p-6 rounded-3xl border border-slate-200 dark:border-[rgba(148,163,184,0.18)] shadow-xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Điểm trung bình
           </span>
-
           <div className="my-4">
-            <div className="text-4xl sm:text-5xl font-black text-[#008A64]">
-              76.4
+            <div className="text-4xl font-black text-[#008A64] dark:text-emerald-400">
+              {avgScore > 0 ? avgScore.toFixed(1) : "--"}
             </div>
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md mt-1 inline-block">
-              +5.2 so với tháng trước
+            <span className="text-xs text-slate-400 mt-1 inline-block">
+              Chưa có dữ liệu chấm điểm
             </span>
           </div>
+        </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-between text-xs text-slate-500">
-            <span>Tổng số trận đã đấu:</span>
-            <span className="font-bold text-slate-900 font-mono">12 trận</span>
+        <div className="bg-white dark:bg-[#12231C] p-6 rounded-3xl border border-slate-200 dark:border-[rgba(148,163,184,0.18)] shadow-xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Tổng số phiên tranh biện
+          </span>
+          <div className="my-4">
+            <div className="text-4xl font-black text-slate-900 dark:text-[#F8FAFC]">
+              {totalDebates}
+            </div>
+            <span className="text-xs text-slate-400 mt-1 inline-block">
+              0 trận hoàn thành
+            </span>
           </div>
         </div>
 
-        {/* Top Center: Điểm số theo thời gian (~45%) */}
-        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Điểm số theo thời gian
-            </h3>
-          </div>
-
-          <div className="h-40 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.scoreTimeline}>
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#64748b" }} stroke="#e2e8f0" />
-                <YAxis domain={[60, 90]} tick={{ fontSize: 10, fill: "#64748b" }} stroke="#e2e8f0" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "12px",
-                    border: "1px solid #e2e8f0",
-                    fontSize: "12px",
-                    color: "#0f172a",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#008A64"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: "#008A64" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Top Right: Phân bố kỹ năng (~25%) */}
-        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Phân bố kỹ năng
-            </h3>
-          </div>
-
-          <div className="h-40 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={data.skills} outerRadius="70%">
-                <PolarGrid stroke="#e2e8f0" />
-                <PolarAngleAxis dataKey="skill" tick={{ fontSize: 10, fill: "#64748b" }} />
-                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar
-                  dataKey="score"
-                  stroke="#008A64"
-                  fill="#008A64"
-                  fillOpacity={0.25}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
+        <div className="bg-white dark:bg-[#12231C] p-6 rounded-3xl border border-slate-200 dark:border-[rgba(148,163,184,0.18)] shadow-xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Kỹ năng nổi bật
+          </span>
+          <div className="my-4">
+            <div className="text-xl font-bold text-slate-700 dark:text-slate-300">
+              Đang phân tích
+            </div>
+            <span className="text-xs text-slate-400 mt-1 inline-block">
+              Cần tối thiểu 3 phiên để đánh giá
+            </span>
           </div>
         </div>
       </div>
 
-      {/* BOTTOM 2 CARDS: Kỹ năng cần cải thiện | Thống kê theo hình thức */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-        {/* Bottom Left: Kỹ năng cần cải thiện (~50%) */}
-        <div className="md:col-span-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-700">
-              <AlertCircle size={16} className="text-amber-600" />
-              <span>Kỹ năng cần cải thiện</span>
-            </div>
-
-            <div className="font-extrabold text-base text-slate-900">
-              Dẫn chứng (64/100)
-            </div>
-
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Bạn thường lập luận logic tốt nhưng thiếu các số liệu, ví dụ thực tế hoặc nghiên cứu uy tín để củng cố độ tin cậy của luận điểm.
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <Link to="/learner/topics/topic-social-media">
-              <Button variant="primary" size="sm" className="font-bold text-xs inline-flex items-center gap-1.5 shadow-sm shadow-[#008A64]/20">
-                <span>Luyện tập kỹ năng này</span>
-                <ArrowRight size={13} />
-              </Button>
-            </Link>
-          </div>
+      {/* Empty State Banner */}
+      <div className="bg-white dark:bg-[#12231C] rounded-3xl border border-slate-200 dark:border-[rgba(148,163,184,0.18)] p-12 text-center shadow-xs">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/30 text-[#008A64] dark:text-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-xs">
+          <Award size={32} />
         </div>
-
-        {/* Bottom Right: Thống kê theo hình thức (~50%) */}
-        <div className="md:col-span-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Thống kê theo hình thức
-          </h3>
-
-          <div className="space-y-4">
-            {/* Với AI */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-slate-700">Với AI</span>
-                <span className="text-slate-900 font-mono">9 trận (75%) • Điểm TB: 77.2</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                <div className="h-full bg-[#008A64] rounded-full shadow-xs" style={{ width: "75%" }} />
-              </div>
-            </div>
-
-            {/* 1 vs 1 */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-slate-700">1 vs 1</span>
-                <span className="text-slate-900 font-mono">3 trận (25%) • Điểm TB: 74.0</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                <div className="h-full bg-emerald-400 rounded-full shadow-xs" style={{ width: "25%" }} />
-              </div>
-            </div>
-          </div>
-        </div>
+        <h3 className="text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] mb-2">
+          Chưa có phiên tranh biện nào được ghi nhận
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+          Dữ liệu tiến độ, biểu đồ radar 5 tiêu chí kỹ năng và lịch sử điểm số sẽ được cập nhật tự động khi bạn hoàn thành các trận thi đấu hoặc luyện tập thực tế trên hệ thống.
+        </p>
+        <Link
+          to="/learner/competitions"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#008A64] hover:bg-[#007457] text-white text-sm font-bold rounded-xl shadow-sm shadow-[#008A64]/20 transition-all cursor-pointer"
+        >
+          <Swords size={16} />
+          <span>Tham gia giải đấu ngay</span>
+          <ArrowRight size={14} />
+        </Link>
       </div>
     </div>
   );

@@ -1,0 +1,154 @@
+[
+  {
+    "stepName": "1. Account A Login via UI",
+    "uiAction": "Navigate to /login -> Input email 'nguyenphilong226@gmail.com', password '12345678' -> Click 'Đăng nhập'",
+    "networkRequest": "POST http://localhost:5173/api/auth/login",
+    "httpStatus": 200,
+    "uiResult": "Redirected to http://localhost:5173/learner/dashboard, learner dashboard visible",
+    "pass": true
+  },
+  {
+    "stepName": "2. A Navigates to Competitions Page via Sidebar Click",
+    "uiAction": "Click sidebar item 'Giải đấu & Cuộc thi'",
+    "networkRequest": "GET /api/Competitions",
+    "httpStatus": 200,
+    "uiResult": "Competitions UI loaded successfully",
+    "pass": true
+  },
+  {
+    "stepName": "3. A Creates TEAM Competition via UI Form",
+    "uiAction": "Click 'Tạo cuộc thi' -> Fill title 'E2E TEAM Championship 1790917919968' -> Select Type 'TEAM' -> Click 'Tạo cuộc thi' submit",
+    "networkRequest": "GET http://localhost:5173/api/competitions/38/judges",
+    "httpStatus": 200,
+    "uiResult": "TEAM competition created and visible on UI",
+    "pass": true
+  },
+  {
+    "stepName": "4. F5 Check Persistence of Created Competition",
+    "uiAction": "Reload page (F5)",
+    "networkRequest": "GET /api/Competitions",
+    "httpStatus": 200,
+    "uiResult": "Competition 'E2E TEAM Championship 1790917919968' persisted on UI after F5",
+    "pass": true
+  },
+  {
+    "stepName": "5. A Opens Registration via UI",
+    "uiAction": "Switch to 'Cuộc thi của tôi' -> Click 'Mở ĐK' on competition card",
+    "networkRequest": "POST http://localhost:5173/api/competitions/38/open-registration",
+    "httpStatus": 200,
+    "uiResult": "Competition status updated to 'Đang mở đăng ký' on UI",
+    "pass": true
+  },
+  {
+    "stepName": "6. A Creates Team via UI",
+    "uiAction": "Open competition modal -> Click 'Đội thi đấu' tab -> Click 'Tạo đội mới' -> Type 'Team Alpha E2E' -> Click 'Tạo đội'",
+    "networkRequest": "GET http://localhost:5173/api/competitions/38/teams/invitations/me",
+    "httpStatus": 200,
+    "uiResult": "Team Alpha E2E displayed with Captain: Nguyễn Phi Long (A)",
+    "pass": true
+  },
+  {
+    "stepName": "7. A Invites B via UI",
+    "uiAction": "Click 'Mời' button on team card -> Input User ID '4' -> Click 'Gửi lời mời'",
+    "networkRequest": "GET http://localhost:5173/api/competitions/38/teams/invitations/me",
+    "httpStatus": 200,
+    "uiResult": "Invitation sent successfully via UI toast",
+    "pass": true
+  },
+  {
+    "stepName": "8. Account B Login via UI (Separate Session)",
+    "uiAction": "Open new session -> Navigate to /login -> Input email 'longnpse180044@fpt.edu.vn', password '12345678' -> Click 'Đăng nhập'",
+    "networkRequest": "POST http://localhost:5173/api/auth/login",
+    "httpStatus": 200,
+    "uiResult": "Redirected to http://localhost:5173/learner/dashboard, Account B logged in",
+    "pass": true
+  },
+  {
+    "stepName": "9-10. B Views Invitation & Accepts via UI",
+    "uiAction": "Open competition modal -> Click 'Đội thi đấu' tab -> Find invitation -> Click 'Chấp nhận'",
+    "networkRequest": "POST http://localhost:5173/api/competitions/38/teams/invitations/11/accept",
+    "httpStatus": 200,
+    "uiResult": "Invitation found on UI and 'Chấp nhận' clicked successfully",
+    "pass": true
+  },
+  {
+    "stepName": "11. Check Team has A + B on UI",
+    "uiAction": "Inspect Team card in Competition Detail Modal",
+    "networkRequest": "GET /api/Competitions/{id}/teams/{teamId}",
+    "httpStatus": 200,
+    "uiResult": "Team Alpha E2E displays both Captain (A) and Member (B)",
+    "pass": true
+  },
+  {
+    "stepName": "12. F5 Check Persistence of Team Membership",
+    "uiAction": "Reload page (F5) -> Reopen competition modal -> Go to 'Đội thi đấu' tab",
+    "networkRequest": "GET /api/Competitions/{id}",
+    "httpStatus": 200,
+    "uiResult": "Team membership persisted across F5",
+    "pass": true
+  },
+  {
+    "stepName": "13. B Leaves Team via UI",
+    "uiAction": "Click 'Rời đội' button (Dialog automatically accepted)",
+    "networkRequest": "DELETE http://localhost:5173/api/competitions/38/teams/11/members/me",
+    "httpStatus": 200,
+    "uiResult": "B successfully left team, UI shows 'Bạn chưa tham gia đội thi nào'",
+    "pass": true
+  },
+  {
+    "stepName": "14. F5 Check Persistence After Leaving Team",
+    "uiAction": "Reload page (F5) -> Reopen competition modal -> Go to 'Đội thi đấu' tab",
+    "networkRequest": "GET /api/Competitions/{id}",
+    "httpStatus": 200,
+    "uiResult": "Non-member status persisted, Team Alpha E2E shows 1/2 members",
+    "pass": true
+  },
+  {
+    "stepName": "15. B Requests to Join Team via UI",
+    "uiAction": "In Team Alpha E2E card -> Click 'Gửi yêu cầu xin gia nhập'",
+    "networkRequest": "POST http://localhost:5173/api/competitions/38/teams/11/join-requests",
+    "httpStatus": 200,
+    "uiResult": "Join request sent successfully via UI toast",
+    "pass": true
+  },
+  {
+    "stepName": "16-17. A Views Join Request & Approves via UI",
+    "uiAction": "Page A -> 'Đội thi đấu' tab -> View 'Yêu cầu xin gia nhập' -> Click 'Duyệt'",
+    "networkRequest": "POST http://localhost:5173/api/competitions/38/teams/11/join-requests/12/approve",
+    "httpStatus": 200,
+    "uiResult": "Join request approved on UI successfully",
+    "pass": true
+  },
+  {
+    "stepName": "18. Check Team has A + B on UI after Approval",
+    "uiAction": "Inspect Team card in Page A Competition Detail Modal",
+    "networkRequest": "GET /api/Competitions/{id}/teams/{teamId}",
+    "httpStatus": 200,
+    "uiResult": "Team Alpha E2E displays both Captain (A) and Member (B) after approval",
+    "pass": true
+  },
+  {
+    "stepName": "19. A Closes Registration via UI",
+    "uiAction": "Page A -> 'Cuộc thi của tôi' -> Click 'Đóng ĐK' on competition card",
+    "networkRequest": "POST http://localhost:5173/api/competitions/38/close-registration",
+    "httpStatus": 200,
+    "uiResult": "Status updated to 'Đã đóng đăng ký' on UI",
+    "pass": true
+  },
+  {
+    "stepName": "20. A Starts Competition via UI",
+    "uiAction": "Page A -> Click 'Bắt đầu' on competition card (Dialog automatically accepted)",
+    "networkRequest": "POST http://localhost:5173/api/competitions/38/start",
+    "httpStatus": 200,
+    "uiResult": "Status updated to 'Đang diễn ra' on UI",
+    "pass": true
+  },
+  {
+    "stepName": "21. A Completes Competition via UI",
+    "uiAction": "Page A -> Click 'Hoàn thành' on competition card (Dialog automatically accepted)",
+    "networkRequest": "POST http://localhost:5173/api/competitions/38/complete",
+    "httpStatus": 200,
+    "uiResult": "Status updated to 'Đã hoàn thành' on UI",
+    "pass": true
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "practicePagePass": true,
+  "createSessionRequestFired": true,
+  "sendArgumentFired": true,
+  "evaluatorRequest": {
+    "method": "POST",
+    "url": "http://localhost:5173/api/evaluate",
+    "postData": "{\"motion\":\"THBT mạng xã hội gây hại nhiều hơn có lợi cho học sinh sinh viên\",\"side\":\"pro\",\"stage\":\"opening\",\"argument_text\":\"Mạng xã hội làm giảm thời gian tương tác trực tiếp giữa con người và làm tăng nguy cơ lo âu ở thanh thiếu niên.\",\"opponent_argument_text\":null}",
+    "time": 1790918118110
+  },
+  "evaluatorResponse": {
+    "method": "POST",
+    "url": "http://localhost:5173/api/evaluate",
+    "status": 502,
+    "statusText": "Bad Gateway",
+    "body": "{\"detail\":\"GROQ_API_KEY chua duoc set trong .env\"}",
+    "time": 1790918120148
+  },
+  "opponentTurnRequest": {
+    "method": "POST",
+    "url": "http://localhost:5173/api/opponent/sessions/session-1790918114193/turns",
+    "postData": "{\"turn_index\":2,\"new_learner_speeches\":[{\"turn_index\":1,\"round_type\":\"opening\",\"text\":\"Mạng xã hội làm giảm thời gian tương tác trực tiếp giữa con người và làm tăng nguy cơ lo âu ở thanh thiếu niên.\"}]}",
+    "time": 1790918118116
+  },
+  "opponentTurnResponse": {
+    "method": "POST",
+    "url": "http://localhost:5173/api/opponent/sessions/session-1790918114193/turns",
+    "status": 500,
+    "statusText": "Internal Server Error",
+    "body": "Internal Server Error",
+    "time": 1790918124202
+  },
+  "learnerMessageRendered": true,
+  "noMockDataFallback": true
+}

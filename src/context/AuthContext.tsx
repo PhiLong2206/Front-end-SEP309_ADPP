@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { User, LoginRequest, AuthContextType, RoleType } from "../types";
-import { getToken, setToken, getUserData, setUserData, clearAuthStorage } from "../utils/token";
+import { getToken, setToken, getRefreshToken, setRefreshToken, getUserData, setUserData, clearAuthStorage } from "../utils/token";
 import authApi from "../api/authApi";
 import userApi from "../api/userApi";
 
@@ -129,6 +129,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setToken(res.data.accessToken);
+        if (res.data.refreshToken) {
+          setRefreshToken(res.data.refreshToken);
+        }
         setUserData(authenticatedUser);
         setTokenState(res.data.accessToken);
         setUser(authenticatedUser);
@@ -176,6 +179,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setToken(res.data.accessToken);
+        if (res.data.refreshToken) {
+          setRefreshToken(res.data.refreshToken);
+        }
         setUserData(authenticatedUser);
         setTokenState(res.data.accessToken);
         setUser(authenticatedUser);
@@ -203,6 +209,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
+      const currentRefreshToken = getRefreshToken();
+      if (currentRefreshToken) {
+        try {
+          await authApi.revokeToken({ refreshToken: currentRefreshToken });
+        } catch {
+          // Ignore revoke error on logout
+        }
+      }
       // Clear all stored authentication keys
       clearAuthStorage();
       setTokenState(null);

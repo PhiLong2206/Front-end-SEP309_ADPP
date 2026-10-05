@@ -7,28 +7,12 @@ interface CoachingAdvice {
   content: string;
 }
 
-const COACHING_ADVICE: CoachingAdvice[] = [
-  {
-    type: "weakness",
-    label: "Điểm yếu của đối phương",
-    content: "Đối phương đang dựa vào lập luận 'công cụ trung lập' nhưng chưa có dẫn chứng cụ thể. Đây là cơ hội tốt để bạn yêu cầu dẫn chứng.",
-  },
-  {
-    type: "strategy",
-    label: "Chiến lược đề xuất",
-    content: "Nhấn mạnh tính bất cân xứng quyền lực: thuật toán AI được hàng nghìn kỹ sư thiết kế để giữ chân người dùng, không thể so sánh với ý chí tự kiểm soát của trẻ 13–17 tuổi.",
-  },
-  {
-    type: "evidence",
-    label: "Loại bằng chứng nên dùng",
-    content: "Nên sử dụng số liệu từ WHO (2023) về tỷ lệ trầm cảm thanh thiếu niên tăng 40% kể từ 2012, hoặc nghiên cứu của Jean Twenge về 'iGen generation'.",
-  },
-  {
-    type: "logic_error",
-    label: "Lỗi logic cần tránh",
-    content: "Tránh khái quát hóa quá mức (hasty generalization): không phải mọi người dùng mạng xã hội đều bị ảnh hưởng tiêu cực — hãy tập trung vào nhóm dễ bị tổn thương.",
-  },
-];
+export interface CoachingAdvice {
+  type: "weakness" | "strategy" | "evidence" | "logic_error";
+  label: string;
+  content: string;
+}
+
 
 const TYPE_CONFIG = {
   weakness: {
@@ -60,28 +44,22 @@ const TYPE_CONFIG = {
 interface AICoachingPanelProps {
   usageCount?: number;
   costPerUse?: number;
+  advice?: CoachingAdvice[];
   onUsed?: () => void;
+  onRequestCoaching?: () => void;
+  isLoading?: boolean;
 }
 
 const AICoachingPanel: React.FC<AICoachingPanelProps> = ({
   usageCount = 1,
   costPerUse = 2000,
+  advice,
   onUsed,
+  onRequestCoaching,
+  isLoading = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [localUsageCount, setLocalUsageCount] = useState(usageCount);
-
-  const handleRequestCoaching = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setHasLoaded(true);
-      setLocalUsageCount((c) => c + 1);
-      onUsed?.();
-    }, 1400);
-  };
+  const [localUsageCount] = useState(usageCount);
 
   return (
     <div className="bg-white debate-panel-secondary rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -120,51 +98,70 @@ const AICoachingPanel: React.FC<AICoachingPanelProps> = ({
             </span>
           </div>
 
-          {!hasLoaded ? (
-            <button
-              type="button"
-              onClick={handleRequestCoaching}
-              disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-[15px] font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-60 shadow-xs"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  <span>AI đang phân tích...</span>
-                </>
-              ) : (
-                <>
-                  <Bot size={16} />
-                  <span>Yêu cầu phân tích AI (tính phí {costPerUse.toLocaleString()}đ)</span>
-                </>
+          {!advice || advice.length === 0 ? (
+            <div className="space-y-3">
+              <div className="py-6 text-center text-slate-400 space-y-1.5">
+                <Bot size={28} className="mx-auto text-slate-300 dark:text-slate-600" />
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Chưa có phân tích cho lượt này</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Gửi lập luận để nhận phản hồi và gợi ý chiến lược từ AI.</p>
+              </div>
+
+              {onRequestCoaching && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onRequestCoaching();
+                    onUsed?.();
+                  }}
+                  disabled={isLoading}
+                  className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-[15px] font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-60 shadow-xs"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      <span>AI đang phân tích...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bot size={16} />
+                      <span>Yêu cầu phân tích AI (tính phí {costPerUse.toLocaleString()}đ)</span>
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+            </div>
           ) : (
             <div className="space-y-3">
               {/* Advice cards */}
-              {COACHING_ADVICE.map((advice, i) => {
-                const cfg = TYPE_CONFIG[advice.type];
+              {advice.map((item, i) => {
+                const cfg = TYPE_CONFIG[item.type];
                 const Icon = cfg.icon;
                 return (
                   <div key={i} className={`p-4 rounded-xl border ${cfg.bg} space-y-2`}>
                     <div className="flex items-center gap-2">
                       <Icon size={14} className={cfg.color} />
-                      <span className={`text-[14px] font-bold ${cfg.color}`}>{advice.label}</span>
+                      <span className={`text-[14px] font-bold ${cfg.color}`}>{item.label}</span>
                     </div>
-                    <p className={`text-[15px] leading-[1.65] ${cfg.textColor}`}>{advice.content}</p>
+                    <p className={`text-[15px] leading-[1.65] ${cfg.textColor}`}>{item.content}</p>
                   </div>
                 );
               })}
 
               {/* Refresh button */}
-              <button
-                type="button"
-                onClick={handleRequestCoaching}
-                className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-[rgba(148,163,184,0.20)] text-slate-700 dark:text-[#CBD5E1] bg-slate-50 dark:bg-[#091713] text-[15px] font-semibold flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-[#123326] transition-colors"
-              >
-                <RefreshCw size={14} />
-                <span>Phân tích lại ({costPerUse.toLocaleString()}đ)</span>
-              </button>
+              {onRequestCoaching && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onRequestCoaching();
+                    onUsed?.();
+                  }}
+                  disabled={isLoading}
+                  className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-[rgba(148,163,184,0.20)] text-slate-700 dark:text-[#CBD5E1] bg-slate-50 dark:bg-[#091713] text-[15px] font-semibold flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-[#123326] transition-colors disabled:opacity-60"
+                >
+                  <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+                  <span>Phân tích lại ({costPerUse.toLocaleString()}đ)</span>
+                </button>
+              )}
             </div>
           )}
         </div>

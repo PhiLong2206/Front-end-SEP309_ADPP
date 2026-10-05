@@ -1,10 +1,19 @@
-import React from "react";
-import { MockDebateMessage } from "../../mocks/debate";
+export interface DebateMessageItem {
+  id: string;
+  speaker: "AI" | "Learner";
+  speakerName: string;
+  side: "Ủng hộ" | "Phản đối";
+  stage: string;
+  roundNumber: number;
+  timestamp: string;
+  content: string;
+}
+
 import { Bot, User as UserIcon } from "lucide-react";
 import Badge from "../common/Badge";
 
 export interface DebateMessageProps {
-  message: MockDebateMessage;
+  message: DebateMessageItem;
 }
 
 const DebateMessage: React.FC<DebateMessageProps> = ({ message }) => {

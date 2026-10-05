@@ -1,24 +1,73 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, Mic, Send, Lightbulb, User as UserIcon, Bot } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Clock,
+  Mic,
+  Send,
+  Lightbulb,
+  User as UserIcon,
+  Bot,
+  AlertCircle,
+  Award,
+  BookOpen,
+  Sparkles,
+} from "lucide-react";
 import DebateStepper from "../../../components/debate/DebateStepper";
 import RebuttalSuggestion from "../../../components/debate/RebuttalSuggestion";
-import AICoachingPanel from "../../../components/debate/AICoachingPanel";
+import AICoachingPanel, { CoachingAdvice } from "../../../components/debate/AICoachingPanel";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
-import { MOCK_DEBATE_TRANSCRIPT, MockDebateMessage } from "../../../mocks/debate";
+import { aiApi } from "../../../api";
+import {
+  CaseFileResponse,
+  ArgumentEvaluationResult,
+  BackendDebateSide,
+  BackendDifficulty,
+  DebateRoundType,
+} from "../../../types";
+
+export interface DebateRoomMessage {
+  id: string;
+  speaker: "Learner" | "AI";
+  speakerName: string;
+  side: "Ủng hộ" | "Phản đối";
+  stage: "Mở đầu" | "Phản biện" | "Kết luận";
+  roundNumber: number;
+  timestamp: string;
+  content: string;
+}
 
 const DebateRoom: React.FC = () => {
   const { sessionId = "demo-session" } = useParams<{ sessionId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [currentRound, setCurrentRound] = useState(2); // Vòng 2 - Phản biện
-  const [messages, setMessages] = useState<MockDebateMessage[]>(MOCK_DEBATE_TRANSCRIPT);
+  const roleParam = searchParams.get("role") || "PRO";
+  const difficultyParam = searchParams.get("difficulty") || "Trung bình";
+  const motionParam = searchParams.get("motion") || "Mạng xã hội có gây hại nhiều hơn lợi ích?";
+
+  const learnerSide: BackendDebateSide = roleParam === "PRO" ? "pro" : "con";
+  const aiSide: BackendDebateSide = roleParam === "PRO" ? "con" : "pro";
+  const difficulty: BackendDifficulty =
+    difficultyParam === "Khó" ? "hard" : difficultyParam === "Dễ" ? "easy" : "medium";
+
+  const [currentRound, setCurrentRound] = useState(1);
+  const [messages, setMessages] = useState<DebateRoomMessage[]>([]);
   const [argumentText, setArgumentText] = useState("");
   const [secondsRemaining, setSecondsRemaining] = useState(135); // 02:15
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+
+  // Microservice states
+  const [aiOpponentStatus, setAiOpponentStatus] = useState<string>("init");
+  const [opponentError, setOpponentError] = useState<string | null>(null);
+  const [evaluatorError, setEvaluatorError] = useState<string | null>(null);
+  const [casePlan, setCasePlan] = useState<CaseFileResponse | null>(null);
+  const [evaluationResult, setEvaluationResult] = useState<ArgumentEvaluationResult | null>(null);
+  const [rightPanelTab, setRightPanelTab] = useState<"evaluation" | "caseplan" | "coaching">("evaluation");
 
   // Countdown timer simulation (02:15)
   useEffect(() => {
@@ -34,65 +83,197 @@ const DebateRoom: React.FC = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleSendArgument = (e: React.FormEvent) => {
+  // Initialize session with AI Opponent Service on mount
+  useEffect(() => {
+    let isMounted = true;
+    const initOpponent = async () => {
+      try {
+        setOpponentError(null);
+        setAiOpponentStatus("planning");
+        const res = await aiApi.createOpponentSession({
+          external_session_id: sessionId,
+          motion: motionParam,
+          learner_side: learnerSide,
+          ai_side: aiSide,
+          difficulty,
+          language: "vi",
+        });
+        if (isMounted) {
+          setAiOpponentStatus(res.status || "ready");
+        }
+        // Try fetching Case Plan
+        try {
+          const plan = await aiApi.getOpponentCasePlan(sessionId);
+          if (isMounted) setCasePlan(plan);
+        } catch {
+          // Case plan might not be immediately available
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setAiOpponentStatus("error");
+          const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+          const detail = errorObj.response?.data?.detail || errorObj.message || "Không thể kết nối AI Opponent Service";
+          setOpponentError(`AI Opponent (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+        }
+      }
+    };
+
+    initOpponent();
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId, motionParam, learnerSide, aiSide, difficulty]);
+
+  const handleSendArgument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!argumentText.trim() || isAiGenerating) return;
 
-    const newLearnerMsg: MockDebateMessage = {
+    const currentText = argumentText.trim();
+    const currentTurn = messages.length + 1;
+    const stage: DebateRoundType = currentRound === 1 ? "opening" : currentRound === 2 ? "rebuttal" : "closing";
+
+    const newLearnerMsg: DebateRoomMessage = {
       id: `msg-${Date.now()}`,
       speaker: "Learner",
-      speakerName: "Bạn (Phi Long)",
-      side: "Ủng hộ",
+      speakerName: "Bạn",
+      side: learnerSide === "pro" ? "Ủng hộ" : "Phản đối",
       stage: currentRound === 1 ? "Mở đầu" : currentRound === 2 ? "Phản biện" : "Kết luận",
       roundNumber: currentRound,
       timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-      content: argumentText.trim(),
+      content: currentText,
     };
 
     setMessages((prev) => [...prev, newLearnerMsg]);
     setArgumentText("");
     setIsAiGenerating(true);
+    setIsEvaluating(true);
+    setOpponentError(null);
+    setEvaluatorError(null);
 
-    // Simulate AI opponent response
-    setTimeout(() => {
-      const aiResponseMsg: MockDebateMessage = {
+    // 1. Call AI Evaluator Microservice (POST /evaluate)
+    const opponentRecentSpeech = messages
+      .filter((m) => m.speaker === "AI")
+      .slice(-1)[0]?.content || null;
+
+    aiApi
+      .evaluateSpeechArgument({
+        motion: motionParam,
+        side: learnerSide,
+        stage,
+        argument_text: currentText,
+        opponent_argument_text: opponentRecentSpeech,
+      })
+      .then((res) => {
+        setEvaluationResult(res);
+        setRightPanelTab("evaluation");
+      })
+      .catch((err: unknown) => {
+        const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+        const detail = errorObj.response?.data?.detail || errorObj.message || "Lỗi khi gọi AI Evaluator";
+        setEvaluatorError(`AI Evaluator (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+      })
+      .finally(() => {
+        setIsEvaluating(false);
+      });
+
+    // 2. Call AI Opponent Microservice (POST /opponent/sessions/{id}/turns)
+    try {
+      const turnRes = await aiApi.generateOpponentTurn(sessionId, {
+        turn_index: currentTurn + 1,
+        new_learner_speeches: [
+          {
+            turn_index: currentTurn,
+            round_type: stage,
+            text: currentText,
+          },
+        ],
+      });
+
+      const aiResponseMsg: DebateRoomMessage = {
         id: `msg-${Date.now() + 1}`,
         speaker: "AI",
         speakerName: "Đối thủ AI",
-        side: "Phản đối",
+        side: aiSide === "pro" ? "Ủng hộ" : "Phản đối",
         stage: currentRound === 1 ? "Mở đầu" : currentRound === 2 ? "Phản biện" : "Kết luận",
         roundNumber: currentRound,
         timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-        content:
-          "Tôi ghi nhận góc nhìn của bạn. Tuy nhiên, việc kìm hãm mạng xã hội sẽ làm mất đi cơ hội tiếp cận thế giới phẳng của giới trẻ. Chúng ta cần hướng tới việc giáo dục kỹ năng số và nâng cao nhận thức người dùng thay vì áp đặt các lệnh cấm đoan.",
+        content: turnRes.speech_text,
       };
       setMessages((prev) => [...prev, aiResponseMsg]);
-      setIsAiGenerating(false);
 
       if (currentRound < 3) {
         setCurrentRound((prev) => prev + 1);
         setSecondsRemaining(120);
       }
-    }, 1600);
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+      const detail = errorObj.response?.data?.detail || errorObj.message || "Lỗi tạo bài phản biện từ AI";
+      setOpponentError(`AI Opponent (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+      // ABSOLUTE RULE: DO NOT FALLBACK TO FAKE/MOCK AI RESPONSE!
+    } finally {
+      setIsAiGenerating(false);
+    }
   };
+
+  // Convert evaluation suggestions to coaching advice if available
+  const coachingAdvice: CoachingAdvice[] = evaluationResult
+    ? [
+        ...(evaluationResult.weaknesses?.map((w) => ({
+          type: "weakness" as const,
+          label: "Điểm yếu cần khắc phục",
+          content: w,
+        })) || []),
+        ...(evaluationResult.suggestions?.map((s) => ({
+          type: "strategy" as const,
+          label: "Gợi ý chiến lược tiếp theo",
+          content: s,
+        })) || []),
+      ]
+    : [];
+
+  const handleRequestEvaluation = useCallback(() => {
+    // Re-evaluating latest learner argument
+    const latestLearnerMsg = messages.filter((m) => m.speaker === "Learner").slice(-1)[0];
+    if (!latestLearnerMsg) return;
+    setIsEvaluating(true);
+    setEvaluatorError(null);
+    aiApi
+      .evaluateSpeechArgument({
+        motion: motionParam,
+        side: learnerSide,
+        stage: currentRound === 1 ? "opening" : currentRound === 2 ? "rebuttal" : "closing",
+        argument_text: latestLearnerMsg.content,
+        opponent_argument_text: messages.filter((m) => m.speaker === "AI").slice(-1)[0]?.content || null,
+      })
+      .then((res) => {
+        setEvaluationResult(res);
+      })
+      .catch((err: unknown) => {
+        const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+        setEvaluatorError(`AI Evaluator (${errorObj.response?.status || "Lỗi"}): ${errorObj.response?.data?.detail || errorObj.message}`);
+      })
+      .finally(() => {
+        setIsEvaluating(false);
+      });
+  }, [messages, motionParam, learnerSide, currentRound]);
 
   return (
     <div className="space-y-4.5 max-w-6xl mx-auto pb-6">
-      {/* 1. TOP BAR: Thoát | Topic Title | 02:15 Timer (Spec #1, #3) */}
+      {/* 1. TOP BAR: Thoát | Topic Title | Timer & Finish */}
       <div className="bg-white debate-panel-main px-6 py-3.5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-4">
         {/* Left: Thoát button */}
         <button
           type="button"
           onClick={() => setShowExitConfirm(true)}
-          className="inline-flex items-center gap-2 px-3.5 py-2 text-[15px] font-semibold text-slate-700 dark:text-[#CBD5E1] bg-slate-100 hover:bg-slate-200 dark:bg-[#10231C] dark:hover:bg-[#123326] rounded-xl transition-colors"
+          className="inline-flex items-center gap-2 px-3.5 py-2 text-[15px] font-semibold text-slate-700 dark:text-[#CBD5E1] bg-slate-100 hover:bg-slate-200 dark:bg-[#10231C] dark:hover:bg-[#123326] rounded-xl transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
           <span>Thoát</span>
         </button>
 
-        {/* Center: Topic Title (17-18px font-weight: 700) */}
+        {/* Center: Topic Title */}
         <div className="text-center font-bold text-[17px] sm:text-[18px] text-slate-900 dark:text-[#F8FAFC] truncate max-w-md">
-          Mạng xã hội có gây hại nhiều hơn lợi ích?
+          {motionParam}
         </div>
 
         {/* Right: Timer & Finish */}
@@ -105,14 +286,35 @@ const DebateRoom: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate(`/learner/debate/${sessionId}/result`)}
-            className="px-4 py-2 bg-[#008A64] text-white rounded-xl text-[15px] font-semibold hover:bg-[#007457] transition-all shadow-sm shadow-[#008A64]/20"
+            className="px-4 py-2 bg-[#008A64] text-white rounded-xl text-[15px] font-semibold hover:bg-[#007457] transition-all shadow-sm shadow-[#008A64]/20 cursor-pointer"
           >
             Nộp bài
           </button>
         </div>
       </div>
 
-      {/* 2. ROUND PROGRESS STEPPER: Mở đầu | Phản biện | Kết luận */}
+      {/* Error & Status Banners */}
+      {opponentError && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 rounded-2xl text-rose-700 dark:text-rose-300 text-sm flex items-start gap-3">
+          <AlertCircle size={18} className="shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">Lỗi từ AI Opponent Service:</p>
+            <p className="font-mono text-xs">{opponentError}</p>
+          </div>
+        </div>
+      )}
+
+      {evaluatorError && (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-2xl text-amber-800 dark:text-amber-300 text-sm flex items-start gap-3">
+          <AlertCircle size={18} className="shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">Lỗi từ AI Evaluator Service:</p>
+            <p className="font-mono text-xs">{evaluatorError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 2. ROUND PROGRESS STEPPER */}
       <DebateStepper currentRound={currentRound} />
 
       {/* 3. MAIN WORKSPACE (3 Columns: Conversation 42%, Diễn biến 24%, AI Assistant 34%) */}
@@ -127,6 +329,18 @@ const DebateRoom: React.FC = () => {
           </div>
 
           <div className="space-y-4">
+            {messages.length === 0 && (
+              <div className="py-16 text-center text-slate-400 space-y-2">
+                <Bot size={36} className="mx-auto text-slate-300" />
+                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                  Phiên tranh biện đã kết nối ({aiOpponentStatus})
+                </p>
+                <p className="text-xs">
+                  Hãy nhập lập luận đầu tiên của bạn ở khung bên dưới để gửi tới AI Opponent Service!
+                </p>
+              </div>
+            )}
+
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -165,7 +379,7 @@ const DebateRoom: React.FC = () => {
             {isAiGenerating && (
               <div className="p-4 bg-[#ECFDF5]/30 dark:bg-[rgba(16,185,129,0.08)] rounded-2xl border border-[#008A64]/20 dark:border-[rgba(16,185,129,0.25)] text-[15px] text-slate-700 dark:text-[#DCE7E3] animate-pulse flex items-center gap-2.5">
                 <Bot size={16} className="text-[#008A64] dark:text-[#34D399]" />
-                <span>Đối thủ AI đang lập luận phản hồi...</span>
+                <span>AI Opponent Service đang sinh bài phản hồi...</span>
               </div>
             )}
           </div>
@@ -177,58 +391,224 @@ const DebateRoom: React.FC = () => {
             Diễn biến
           </div>
 
-          {/* Vòng 1 */}
-          <div className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.16)] space-y-2.5">
-            <span className="text-[15px] font-semibold text-slate-900 dark:text-[#F8FAFC] block">
-              Vòng 1 - Mở đầu
-            </span>
-            <div className="space-y-1.5 text-[14px]">
-              <div className="flex items-center gap-2 text-[#008A64] dark:text-[#34D399] font-semibold">
-                <UserIcon size={14} />
-                <span>Bạn: Đã hoàn thành (80/100)</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-600 dark:text-[#CBD5E1]">
-                <Bot size={14} />
-                <span>Đối thủ AI: Đã hoàn thành</span>
-              </div>
-            </div>
-          </div>
+          {[
+            { round: 1, name: "Vòng 1 - Mở đầu" },
+            { round: 2, name: "Vòng 2 - Phản biện" },
+            { round: 3, name: "Vòng 3 - Kết luận" },
+          ].map((item) => {
+            const isPast = currentRound > item.round;
+            const isCurrent = currentRound === item.round;
+            const roundLearnerMsgs = messages.filter((m) => m.speaker === "Learner" && m.roundNumber === item.round);
+            const roundAiMsgs = messages.filter((m) => m.speaker === "AI" && m.roundNumber === item.round);
 
-          {/* Vòng 2 */}
-          <div className="p-3.5 bg-[#ECFDF5]/70 dark:bg-[#123326] rounded-xl border border-[#008A64]/40 dark:border-[rgba(16,185,129,0.35)] space-y-2.5 debate-surface-elevated">
-            <span className="text-[15px] font-semibold text-[#008A64] dark:text-[#34D399] flex items-center justify-between">
-              <span>Vòng 2 - Phản biện</span>
-              <span className="text-xs px-2 py-0.5 bg-[#008A64] text-white rounded font-bold">
-                Đang diễn ra
-              </span>
-            </span>
-            <div className="space-y-1.5 text-[14px]">
-              <div className="flex items-center gap-2 text-[#008A64] dark:text-[#34D399] font-semibold">
-                <UserIcon size={14} />
-                <span>Bạn (đang đến lượt)</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-500 dark:text-[#94A3B8]">
-                <Bot size={14} />
-                <span>Đối thủ AI: Chờ lượt</span>
-              </div>
-            </div>
-          </div>
+            return (
+              <div
+                key={item.round}
+                className={`p-3.5 rounded-xl border space-y-2.5 ${
+                  isCurrent
+                    ? "bg-[#ECFDF5]/70 dark:bg-[#123326] border-[#008A64]/40 text-[#008A64] dark:text-[#34D399]"
+                    : isPast
+                    ? "bg-slate-50 dark:bg-[#091713] border-slate-200/80 text-slate-900 dark:text-[#F8FAFC]"
+                    : "bg-slate-50/50 dark:bg-[#091713]/60 border-slate-100 text-slate-400 opacity-60"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[15px] font-semibold">{item.name}</span>
+                  {isCurrent && (
+                    <span className="text-xs px-2 py-0.5 bg-[#008A64] text-white rounded font-bold">
+                      Đang diễn ra
+                    </span>
+                  )}
+                  {isPast && (
+                    <span className="text-xs px-2 py-0.5 bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 rounded font-semibold">
+                      Hoàn thành
+                    </span>
+                  )}
+                </div>
 
-          {/* Vòng 3 */}
-          <div className="p-3.5 bg-slate-50/50 dark:bg-[#091713]/60 rounded-xl border border-slate-100 dark:border-[rgba(148,163,184,0.10)] opacity-70 space-y-2">
-            <span className="text-[15px] font-semibold text-slate-600 dark:text-[#94A3B8] block">
-              Vòng 3 - Kết luận
-            </span>
-            <div className="text-[14px] text-slate-400 dark:text-[#94A3B8]">
-              Chưa bắt đầu
-            </div>
-          </div>
+                <div className="space-y-1.5 text-[14px]">
+                  <div className="flex items-center gap-2">
+                    <UserIcon size={14} />
+                    <span>
+                      Bạn: {roundLearnerMsgs.length > 0 ? "Đã gửi lập luận" : isCurrent ? "Đang đến lượt" : "Chưa gửi"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-[#94A3B8]">
+                    <Bot size={14} />
+                    <span>
+                      Đối thủ AI: {roundAiMsgs.length > 0 ? "Đã phản hồi" : isCurrent ? "Chờ lượt" : "Chưa bắt đầu"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* RIGHT COLUMN: Gợi ý phản biện + AI Coaching (~34%) */}
-        <div className="space-y-4 h-[540px] xl:h-[580px] overflow-y-auto">
-          <RebuttalSuggestion />
-          <AICoachingPanel costPerUse={2000} />
+        {/* RIGHT COLUMN: Tabbed AI Assistant (Evaluation / Case Plan / Coaching) (~34%) */}
+        <div className="space-y-3 h-[540px] xl:h-[580px] overflow-y-auto">
+          {/* Navigation Tabs */}
+          <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-[#10231C] p-1 rounded-xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setRightPanelTab("evaluation")}
+              className={`py-2 px-1 rounded-lg text-center transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                rightPanelTab === "evaluation"
+                  ? "bg-white dark:bg-[#163529] text-[#008A64] dark:text-[#34D399] shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              }`}
+            >
+              <Award size={13} />
+              <span>Đánh giá</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRightPanelTab("caseplan")}
+              className={`py-2 px-1 rounded-lg text-center transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                rightPanelTab === "caseplan"
+                  ? "bg-white dark:bg-[#163529] text-[#008A64] dark:text-[#34D399] shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              }`}
+            >
+              <BookOpen size={13} />
+              <span>Case Plan</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRightPanelTab("coaching")}
+              className={`py-2 px-1 rounded-lg text-center transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                rightPanelTab === "coaching"
+                  ? "bg-white dark:bg-[#163529] text-[#008A64] dark:text-[#34D399] shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              }`}
+            >
+              <Sparkles size={13} />
+              <span>Gợi ý</span>
+            </button>
+          </div>
+
+          {/* TAB 1: Evaluation from AI Evaluator Service */}
+          {rightPanelTab === "evaluation" && (
+            <div className="bg-white debate-panel-secondary rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/60">
+                <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-[#F8FAFC]">
+                  <Award size={18} className="text-[#008A64]" />
+                  <span>Đánh giá lượt nói (AI Evaluator)</span>
+                </div>
+                {isEvaluating && (
+                  <span className="text-xs text-[#008A64] font-semibold animate-pulse">Đang chấm điểm...</span>
+                )}
+              </div>
+
+              {!evaluationResult ? (
+                <div className="py-8 text-center text-slate-400 space-y-2">
+                  <Award size={32} className="mx-auto text-slate-300 dark:text-slate-600" />
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Chưa có kết quả chấm điểm</p>
+                  <p className="text-xs leading-relaxed">
+                    Sau khi bạn gửi lập luận, AI Evaluator sẽ chấm điểm theo rubric 5 tiêu chí: Logic, Dẫn chứng, Liên quan, Cấu trúc, Thuyết phục.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Overall score */}
+                  <div className="p-4 bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.12)] border border-[#008A64]/30 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-[#008A64] uppercase tracking-wider">Điểm tổng kết</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-snug">
+                        {evaluationResult.overall_reasoning}
+                      </p>
+                    </div>
+                    <div className="text-2xl font-black text-[#008A64] dark:text-[#34D399] shrink-0 pl-3">
+                      {evaluationResult.overall_score}/10
+                    </div>
+                  </div>
+
+                  {/* 5 Criteria */}
+                  {evaluationResult.criteria && evaluationResult.criteria.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Chi tiết rubric</p>
+                      <div className="space-y-2">
+                        {evaluationResult.criteria.map((c, i) => (
+                          <div key={i} className="p-2.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-1">
+                            <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
+                              <span>{c.name}</span>
+                              <span className="text-[#008A64]">{c.score}/5</span>
+                            </div>
+                            <p className="text-slate-500 dark:text-slate-400">{c.reasoning}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strengths & Weaknesses */}
+                  {evaluationResult.strengths?.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Điểm mạnh:</p>
+                      <ul className="text-xs space-y-1 text-slate-600 dark:text-slate-300 list-disc list-inside">
+                        {evaluationResult.strengths.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: Case Plan from AI Opponent Service */}
+          {rightPanelTab === "caseplan" && (
+            <div className="bg-white debate-panel-secondary rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
+              <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-[#F8FAFC] pb-3 border-b border-slate-100 dark:border-slate-800/60">
+                <BookOpen size={18} className="text-[#008A64]" />
+                <span>Hồ sơ lập luận AI (Case Plan)</span>
+              </div>
+
+              {!casePlan ? (
+                <div className="py-8 text-center text-slate-400 space-y-2">
+                  <BookOpen size={32} className="mx-auto text-slate-300 dark:text-slate-600" />
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Chưa có Case Plan</p>
+                  <p className="text-xs leading-relaxed">
+                    Case Plan được AI Opponent Service sinh ra trong giai đoạn chuẩn bị (Planning).
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 text-xs">
+                  {/* Motion reading */}
+                  {casePlan.content?.motion_reading && (
+                    <div className="p-3 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80">
+                      <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">Định nghĩa phạm vi:</p>
+                      <p className="text-slate-600 dark:text-slate-400">{casePlan.content.motion_reading}</p>
+                    </div>
+                  )}
+
+                  {/* Arguments */}
+                  {casePlan.content?.arguments?.map((arg) => (
+                    <div key={arg.id} className="p-3 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1.5">
+                      <p className="font-bold text-[#008A64]">{arg.id}: {arg.title}</p>
+                      <p className="text-slate-700 dark:text-slate-300"><span className="font-semibold">Luận điểm:</span> {arg.claim}</p>
+                      <p className="text-slate-600 dark:text-slate-400"><span className="font-semibold">Lý lẽ:</span> {arg.reasoning}</p>
+                      <p className="italic text-slate-500"><span className="font-semibold">Ví dụ:</span> {arg.example}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: Coaching & Rebuttal Advice */}
+          {rightPanelTab === "coaching" && (
+            <div className="space-y-4">
+              <RebuttalSuggestion />
+              <AICoachingPanel
+                costPerUse={2000}
+                advice={coachingAdvice}
+                onRequestCoaching={handleRequestEvaluation}
+                isLoading={isEvaluating}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -249,7 +629,7 @@ const DebateRoom: React.FC = () => {
             rows={3}
             value={argumentText}
             onChange={(e) => setArgumentText(e.target.value.slice(0, 2000))}
-            placeholder="Nhập nội dung phản biện của bạn..."
+            placeholder="Nhập nội dung phản biện của bạn và gửi tới AI..."
             className="w-full p-3.5 text-[15px] sm:text-[16px] leading-[1.65] bg-slate-50 dark:bg-[#091713] border border-slate-200 dark:border-[rgba(148,163,184,0.20)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64] resize-none text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-[#64748B] transition-all"
           />
 
@@ -259,7 +639,7 @@ const DebateRoom: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsRecording(!isRecording)}
-                className={`p-2.5 rounded-xl border transition-colors ${
+                className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
                   isRecording
                     ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/40 text-red-600 dark:text-red-400"
                     : "bg-slate-100 dark:bg-[#10231C] border-slate-200 dark:border-[rgba(148,163,184,0.20)] text-slate-600 dark:text-[#CBD5E1] hover:bg-slate-200 dark:hover:bg-[#123326]"
@@ -273,7 +653,7 @@ const DebateRoom: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowTipsModal(true)}
-                className="px-4 py-2 bg-[#ECFDF5] text-[#008A64] dark:bg-[rgba(16,185,129,0.12)] dark:text-[#34D399] border border-[#008A64]/30 dark:border-[rgba(16,185,129,0.30)] rounded-xl text-[15px] font-semibold inline-flex items-center gap-2 hover:bg-emerald-100 dark:hover:bg-[rgba(16,185,129,0.20)] transition-colors"
+                className="px-4 py-2 bg-[#ECFDF5] text-[#008A64] dark:bg-[rgba(16,185,129,0.12)] dark:text-[#34D399] border border-[#008A64]/30 dark:border-[rgba(16,185,129,0.30)] rounded-xl text-[15px] font-semibold inline-flex items-center gap-2 hover:bg-emerald-100 dark:hover:bg-[rgba(16,185,129,0.20)] transition-colors cursor-pointer"
               >
                 <Lightbulb size={16} />
                 <span>Gợi ý phản biện</span>
@@ -284,7 +664,7 @@ const DebateRoom: React.FC = () => {
             <button
               type="submit"
               disabled={!argumentText.trim() || isAiGenerating}
-              className="px-6 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white rounded-xl text-[15px] sm:text-[16px] font-semibold inline-flex items-center gap-2 transition-all shadow-sm shadow-[#008A64]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white rounded-xl text-[15px] sm:text-[16px] font-semibold inline-flex items-center gap-2 transition-all shadow-sm shadow-[#008A64]/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <span>{isAiGenerating ? "Đang gửi..." : "Gửi lập luận"}</span>
               <Send size={15} />
@@ -305,14 +685,14 @@ const DebateRoom: React.FC = () => {
         variant="danger"
       />
 
-      {/* Tips modal for quick mobile/tablet lookup */}
+      {/* Tips modal */}
       {showTipsModal && (
         <ConfirmDialog
           isOpen={showTipsModal}
           onClose={() => setShowTipsModal(false)}
           onConfirm={() => setShowTipsModal(false)}
-          title="Gợi ý phản biện AI"
-          message="Đối phương cho rằng mạng xã hội chỉ là công cụ trung lập. Bạn hãy xoáy sâu vào tính bất cân xứng giữa thuật toán tối ưu tương tác của Big Tech và tâm lý của trẻ vị thành niên."
+          title="Gợi ý phản biện"
+          message="Hãy xác định rõ luận điểm chính của đối phương, phân tích tính hợp lý của lý lẽ và kiểm tra xem bằng chứng đưa ra có xác thực không."
           confirmText="Đã hiểu"
           cancelText="Đóng"
           variant="primary"

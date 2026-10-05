@@ -1,12 +1,32 @@
 import React from "react";
 import { Lightbulb, Target, Compass, HelpCircle } from "lucide-react";
-import { MOCK_REBUTTAL_TIPS } from "../../mocks/debate";
 
-export interface RebuttalSuggestionProps {
-  tips?: typeof MOCK_REBUTTAL_TIPS;
+export interface RebuttalTips {
+  mainPoint: string;
+  vulnerabilities: string[];
+  directions: string[];
+  sampleQuestions: string[];
 }
 
-const RebuttalSuggestion: React.FC<RebuttalSuggestionProps> = ({ tips = MOCK_REBUTTAL_TIPS }) => {
+export interface RebuttalSuggestionProps {
+  tips?: RebuttalTips | null;
+}
+
+const RebuttalSuggestion: React.FC<RebuttalSuggestionProps> = ({ tips }) => {
+  if (!tips) {
+    return (
+      <div className="bg-white debate-panel-secondary rounded-2xl border border-slate-200 shadow-xs p-5 space-y-3 text-center">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center mx-auto">
+          <Lightbulb size={20} />
+        </div>
+        <h3 className="font-bold text-slate-800 text-sm">Gợi ý phản biện AI</h3>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          AI sẽ phân tích lập luận của đối thủ và đề xuất hướng phản biện tại đây sau mỗi lượt nói.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white debate-panel-secondary rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4.5">
       {/* Header */}
@@ -38,46 +58,50 @@ const RebuttalSuggestion: React.FC<RebuttalSuggestionProps> = ({ tips = MOCK_REB
           <span>Điểm có thể khai thác</span>
         </div>
         <ul className="space-y-2">
-          {tips.vulnerabilities.map((vuln, i) => (
+          {tips.vulnerabilities.map((v, i) => (
             <li
               key={i}
-              className="text-[15px] leading-[1.65] text-slate-700 bg-rose-50/70 dark:bg-[rgba(239,68,68,0.08)] debate-card-vuln debate-card-vuln-text border border-rose-200/80 dark:border-[rgba(239,68,68,0.30)] p-3.5 rounded-xl"
+              className="text-[14px] text-rose-700 dark:text-[#FDA4AF] bg-rose-50 dark:bg-[rgba(244,63,94,0.10)] debate-card-vuln p-3 rounded-xl border border-rose-200/70 dark:border-[rgba(244,63,94,0.22)] flex items-start gap-2"
             >
-              • {vuln}
+              <span className="font-bold shrink-0 mt-0.5">•</span>
+              <span className="leading-snug">{v}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* 3. Hướng phản biện */}
+      {/* 3. Hướng phản hồi gợi ý */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-[15px] font-semibold text-[#008A64] dark:text-[#34D399]">
-          <Compass size={15} className="text-[#008A64] dark:text-[#34D399]" />
-          <span>Hướng phản biện</span>
+          <Compass size={15} />
+          <span>Hướng phản hồi gợi ý</span>
         </div>
         <ul className="space-y-2">
-          {tips.suggestedDirections.map((dir, i) => (
+          {tips.directions.map((d, i) => (
             <li
               key={i}
-              className="text-[15px] leading-[1.65] text-slate-700 bg-[#ECFDF5]/60 dark:bg-[rgba(16,185,129,0.08)] debate-card-dir debate-card-dir-text border border-[#008A64]/20 dark:border-[rgba(16,185,129,0.25)] p-3.5 rounded-xl"
+              className="text-[14px] text-slate-700 dark:text-[#D1FAE5] bg-emerald-50/60 dark:bg-[rgba(16,185,129,0.10)] p-3 rounded-xl border border-emerald-200/60 dark:border-[rgba(16,185,129,0.22)] flex items-start gap-2"
             >
-              • {dir}
+              <span className="font-bold text-[#008A64] dark:text-[#34D399] shrink-0 mt-0.5">
+                {i + 1}.
+              </span>
+              <span className="leading-snug">{d}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* 4. Câu hỏi gợi ý */}
+      {/* 4. Câu hỏi chất vấn mẫu */}
       <div className="space-y-2">
-        <div className="flex items-center gap-2 text-[15px] font-semibold text-sky-600 dark:text-[#38BDF8]">
-          <HelpCircle size={15} className="text-sky-600 dark:text-[#38BDF8]" />
-          <span>Câu hỏi gợi ý</span>
+        <div className="flex items-center gap-2 text-[15px] font-semibold text-amber-600 dark:text-[#FBBF24]">
+          <HelpCircle size={15} />
+          <span>Câu hỏi chất vấn mẫu</span>
         </div>
         <ul className="space-y-2">
-          {tips.suggestedQuestions.map((q, i) => (
+          {tips.sampleQuestions.map((q, i) => (
             <li
               key={i}
-              className="text-[15px] leading-[1.65] text-slate-700 bg-slate-50 dark:bg-[#091713] debate-card-neutral debate-card-neutral-text border border-slate-200/70 dark:border-[rgba(148,163,184,0.16)] p-3.5 rounded-xl italic"
+              className="text-[14px] italic text-slate-700 dark:text-[#FEF3C7] bg-amber-50/60 dark:bg-[rgba(245,158,11,0.10)] p-3 rounded-xl border border-amber-200/60 dark:border-[rgba(245,158,11,0.22)]"
             >
               &ldquo;{q}&rdquo;
             </li>

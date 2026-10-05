@@ -4,7 +4,33 @@ import {
   CheckCircle2, Clock, AlertCircle, ArrowRight,
   Receipt, Wallet, ChevronDown, ChevronUp, X
 } from "lucide-react";
-import { MOCK_AI_USAGE, MOCK_TRANSACTIONS, AI_SERVICE_PRICE, AIUsageRecord, PaymentTransaction } from "../../../mocks/events";
+export interface PaymentTransaction {
+  id: string;
+  amount: number;
+  method: "MoMo" | "VNPay" | "BankTransfer";
+  status: "SUCCESS" | "FAILED" | "PENDING";
+  createdAt: string;
+  description: string;
+}
+
+export interface AIUsageRecord {
+  id: string;
+  service: "AI_COACHING" | "REBUTTAL_HINT" | "AI_EVALUATION" | "AI_JUDGE_1V1" | "SPEECH_TO_TEXT";
+  serviceLabel: string;
+  sessionTopic: string;
+  usedAt: string;
+  quantity: number;
+  totalCost: number;
+  status: "pending" | "paid" | "free";
+}
+
+export const AI_SERVICE_PRICE: Record<string, { label: string; price: number; unitLabel: string }> = {
+  AI_COACHING: { label: "AI Debate Coach (1v1)", price: 5000, unitLabel: "lượt" },
+  REBUTTAL_HINT: { label: "Gợi ý phản biện tức thì", price: 2000, unitLabel: "lượt" },
+  AI_EVALUATION: { label: "Chấm điểm & Phân tích chi tiết", price: 10000, unitLabel: "bài" },
+  AI_JUDGE_1V1: { label: "AI Trọng tài chấm trận đấu", price: 15000, unitLabel: "trận" },
+  SPEECH_TO_TEXT: { label: "Chuyển giọng nói thành văn bản", price: 1000, unitLabel: "phút" },
+};
 
 // ── Service icon map ──────────────────────────────────────────
 const SERVICE_ICONS: Record<string, React.ElementType> = {
@@ -169,10 +195,11 @@ const Payments: React.FC = () => {
   const [showPricing, setShowPricing] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [paySuccess, setPaySuccess] = useState(false);
-  const [transactions, setTransactions] = useState<PaymentTransaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+  const [aiUsage] = useState<AIUsageRecord[]>([]);
 
-  const pendingUsage = MOCK_AI_USAGE.filter((u) => u.status === "pending");
-  const paidUsage = MOCK_AI_USAGE.filter((u) => u.status === "paid");
+  const pendingUsage = aiUsage.filter((u) => u.status === "pending");
+  const paidUsage = aiUsage.filter((u) => u.status === "paid");
   const pendingTotal = pendingUsage.reduce((s, u) => s + u.totalCost, 0);
   const totalPaidAll = paidUsage.reduce((s, u) => s + u.totalCost, 0);
 
@@ -285,25 +312,31 @@ const Payments: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-black text-slate-900">Lịch sử sử dụng AI</h2>
-          <span className="text-xs text-slate-400">{MOCK_AI_USAGE.length} bản ghi</span>
+          <span className="text-xs text-slate-400">{aiUsage.length} bản ghi</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-              <tr>
-                <th className="px-5 py-3">Dịch vụ</th>
-                <th className="px-5 py-3">Thời gian</th>
-                <th className="px-5 py-3 text-center">Số lần</th>
-                <th className="px-5 py-3 text-right">Chi phí</th>
-                <th className="px-5 py-3 text-right">Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {MOCK_AI_USAGE.map((record) => (
-                <UsageRow key={record.id} record={record} />
-              ))}
-            </tbody>
-          </table>
+          {aiUsage.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              Chưa có lịch sử sử dụng dịch vụ AI tính phí.
+            </div>
+          ) : (
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-400 tracking-wider">
+                <tr>
+                  <th className="px-5 py-3">Dịch vụ</th>
+                  <th className="px-5 py-3">Thời gian</th>
+                  <th className="px-5 py-3 text-center">Số lần</th>
+                  <th className="px-5 py-3 text-right">Chi phí</th>
+                  <th className="px-5 py-3 text-right">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {aiUsage.map((record) => (
+                  <UsageRow key={record.id} record={record} />
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -314,15 +347,20 @@ const Payments: React.FC = () => {
           <h2 className="text-sm font-black text-slate-900">Lịch sử giao dịch</h2>
         </div>
         <div className="divide-y divide-slate-100">
-          {transactions.map((txn) => (
-            <div key={txn.id} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50/60 transition-colors">
+          {transactions.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              Chưa có giao dịch thanh toán nào.
+            </div>
+          ) : (
+            transactions.map((txn) => (
+              <div key={txn.id} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50/60 transition-colors">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${txn.status === "SUCCESS" ? "bg-[#ECFDF5]" : txn.status === "FAILED" ? "bg-rose-50" : "bg-amber-50"}`}>
                 {txn.status === "SUCCESS" ? (
-                  <CheckCircle2 size={18} className="text-[#008A64]" />
+                   <CheckCircle2 size={18} className="text-[#008A64]" />
                 ) : txn.status === "FAILED" ? (
-                  <AlertCircle size={18} className="text-rose-500" />
+                   <AlertCircle size={18} className="text-rose-500" />
                 ) : (
-                  <Clock size={18} className="text-amber-500" />
+                   <Clock size={18} className="text-amber-500" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -336,7 +374,8 @@ const Payments: React.FC = () => {
                 </p>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
 
         {pendingTotal > 0 && (

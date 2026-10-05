@@ -2,11 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Badge from "../common/Badge";
 import DifficultyBadge from "./DifficultyBadge";
-import { MockTopic } from "../../mocks/topics";
+import { Topic } from "../../types";
 import { BookOpen } from "lucide-react";
 
 export interface TopicTableProps {
-  topics: MockTopic[];
+  topics: Topic[];
 }
 
 const TopicTable: React.FC<TopicTableProps> = ({ topics }) => {

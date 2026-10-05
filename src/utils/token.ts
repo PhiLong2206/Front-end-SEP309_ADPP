@@ -50,6 +50,34 @@ export const setUserData = (user: User | null): void => {
   }
 };
 
+export const getRefreshToken = (): string | null => {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  } catch {
+    return null;
+  }
+};
+
+export const setRefreshToken = (token: string | null): void => {
+  try {
+    if (token) {
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    }
+  } catch (error) {
+    console.error("Error setting refresh token to localStorage", error);
+  }
+};
+
+export const removeRefreshToken = (): void => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+  } catch (error) {
+    console.error("Error removing refresh token from localStorage", error);
+  }
+};
+
 export const clearAuthStorage = (): void => {
   try {
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -59,3 +87,4 @@ export const clearAuthStorage = (): void => {
     console.error("Error clearing auth storage", error);
   }
 };
+

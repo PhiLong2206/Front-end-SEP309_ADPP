@@ -92,9 +92,15 @@ export interface UpdateProfileRequest {
   phoneNumber?: string;
 }
 
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   expiresAt: string;
+  refreshToken?: string;
+  refreshTokenExpiresAt?: string;
   user: UserInfoDto;
 }
 

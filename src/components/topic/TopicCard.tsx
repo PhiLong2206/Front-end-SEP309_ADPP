@@ -2,11 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Badge from "../common/Badge";
 import DifficultyBadge from "./DifficultyBadge";
-import { MockTopic } from "../../mocks/topics";
+import { Topic } from "../../types";
 import { ArrowUpRight } from "lucide-react";
 
 export interface TopicCardProps {
-  topic: MockTopic;
+  topic: Topic;
   showImage?: boolean;
 }
 

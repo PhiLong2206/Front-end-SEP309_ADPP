@@ -1,0 +1,84 @@
+{
+  "testChecklist": {
+    "Login Account A": {
+      "pass": true,
+      "details": "Logged in successfully. User: nguyenphilong226@gmail.com, Role: Learner"
+    },
+    "Current User": {
+      "pass": true,
+      "details": "Email verified on profile. System role is 'Learner' (NOT hard-coded Admin)"
+    },
+    "Create Competition": {
+      "pass": true,
+      "details": "Competition created with ID: 34, format: TEAM"
+    },
+    "Open Registration": {
+      "pass": true,
+      "details": "Registration opened for competition 34. Status: REGISTRATION_OPEN"
+    },
+    "Create Team": {
+      "pass": true,
+      "details": "Team created: 'Team Falcon 1790914603123' with ID: 8, Captain: Account A"
+    },
+    "Invite Account B": {
+      "pass": true,
+      "details": "Invitation sent to Account B (UserId: 4). Request ID: 5"
+    },
+    "Account B receives invitation": {
+      "pass": true,
+      "details": "Account B retrieved pending invitation #5 for team 8"
+    },
+    "Accept invitation": {
+      "pass": true,
+      "details": "Account B accepted invitation #5"
+    },
+    "Team contains A + B": {
+      "pass": true,
+      "details": "Verified team #8 has Captain A (UserId: 1) and Member B (UserId: 4). Total size: 2"
+    },
+    "Leave team": {
+      "pass": true,
+      "details": "Account B left team #8 via DELETE .../members/me"
+    },
+    "Join request": {
+      "pass": true,
+      "details": "Account B sent join request to Team #8. Request ID: 6"
+    },
+    "Captain receives join request": {
+      "pass": true,
+      "details": "Captain A retrieved join request #6 from User 4"
+    },
+    "Approve join request": {
+      "pass": true,
+      "details": "Captain A approved join request #6"
+    },
+    "Team contains A + B after approval": {
+      "pass": true,
+      "details": "Confirmed team #8 contains Captain A (UserId: 1) and Member B (UserId: 4) after approval."
+    },
+    "Close registration": {
+      "pass": true,
+      "details": "Competition 34 registration closed. Status: REGISTRATION_CLOSED"
+    },
+    "Start competition": {
+      "pass": true,
+      "details": "Competition 34 started. Status: IN_PROGRESS"
+    },
+    "Complete competition": {
+      "pass": true,
+      "details": "Competition 34 completed. Status: COMPLETED"
+    },
+    "Refresh/F5 persistence": {
+      "pass": true,
+      "details": "Token and state persisted across F5 reload"
+    },
+    "Logout/revoke token": {
+      "pass": true,
+      "details": "Tokens revoked on backend, cleared in localStorage, redirected to /login"
+    }
+  },
+  "failedRequests": [],
+  "networkLogsSummary": {
+    "totalRequests": 52
+  }
+}

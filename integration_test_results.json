@@ -1,0 +1,161 @@
+{
+  "total": 22,
+  "passed": 22,
+  "failed": 0,
+  "results": [
+    {
+      "id": 1,
+      "name": "Login Account A (nguyenphilong226@gmail.com)",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "UserId: 1, Roles: [\"Member\"]"
+    },
+    {
+      "id": 2,
+      "name": "POST /Auth/refresh-token (NEW API)",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Rotated token received, expiresAt: 2026-10-02T04:37:16.5573471Z"
+    },
+    {
+      "id": 3,
+      "name": "GET /Users/me",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Profile loaded for Nguyễn Phi Long (nguyenphilong226@gmail.com)"
+    },
+    {
+      "id": 4,
+      "name": "Login Account B (longnpse180044@fpt.edu.vn)",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "UserId: 4, Roles: [\"Member\"]"
+    },
+    {
+      "id": 5,
+      "name": "POST /Auth/refresh-token for Account B",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "Account B token rotation successful"
+    },
+    {
+      "id": 6,
+      "name": "GET /Competitions List",
+      "account": "Public/All",
+      "status": "PASS",
+      "details": "Found 20 competitions in system."
+    },
+    {
+      "id": 7,
+      "name": "POST /Competitions (Create TEAM Comp)",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Created CompetitionId: 32"
+    },
+    {
+      "id": 8,
+      "name": "POST /Competitions/{id}/open-registration",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Competition 32 is now OpenRegistration"
+    },
+    {
+      "id": 9,
+      "name": "POST /competitions/{id}/teams (Create Team)",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Created TeamId: 6"
+    },
+    {
+      "id": 10,
+      "name": "POST /teams/{teamId}/invitations (Invite User)",
+      "account": "Account A -> B",
+      "status": "PASS",
+      "details": "Invitation RequestId: 2 sent to UserId: 4"
+    },
+    {
+      "id": 11,
+      "name": "GET /teams/invitations/me",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "Found 1 invitations. Targeted invitation present: true"
+    },
+    {
+      "id": 12,
+      "name": "POST /teams/invitations/{requestId}/accept",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "Invitation accepted successfully"
+    },
+    {
+      "id": 13,
+      "name": "GET /teams/{teamId} (Verify Members)",
+      "account": "Team Alpha",
+      "status": "PASS",
+      "details": "Team has 1 members (Account A: false, Account B: true)"
+    },
+    {
+      "id": 14,
+      "name": "DELETE /teams/{teamId}/members/me (Leave Team)",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "Account B successfully left the team"
+    },
+    {
+      "id": 15,
+      "name": "POST /Auth/revoke-token (NEW API)",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "Refresh token successfully revoked on logout"
+    },
+    {
+      "id": 16,
+      "name": "UI Login & Session Storage (Account A)",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Redirected to: http://localhost:5173/learner/dashboard, Token: YES, RefreshToken: YES"
+    },
+    {
+      "id": 17,
+      "name": "UI Dashboard displays Live Competitions Section",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Section visible: true"
+    },
+    {
+      "id": 18,
+      "name": "UI Competitions Page Navigation",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Rendered competition cards count: 0"
+    },
+    {
+      "id": 19,
+      "name": "UI Open Competition Detail Modal",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Modal displayed: true"
+    },
+    {
+      "id": 20,
+      "name": "UI Logout & Storage Clear",
+      "account": "Account A",
+      "status": "PASS",
+      "details": "Session cleared and redirected to login"
+    },
+    {
+      "id": 21,
+      "name": "UI Login Account B (longnpse180044@fpt.edu.vn)",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "Redirected to: http://localhost:5173/learner/dashboard, Token: YES, RefreshToken: YES"
+    },
+    {
+      "id": 22,
+      "name": "UI Account B Profile/Settings verification",
+      "account": "Account B",
+      "status": "PASS",
+      "details": "Email field rendered: longnpse180044@fpt.edu.vn"
+    }
+  ]
+}

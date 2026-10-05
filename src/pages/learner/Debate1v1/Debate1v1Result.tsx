@@ -1,7 +1,93 @@
 import React from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Trophy, Target, CheckCircle2, AlertCircle, Gavel, RotateCcw, ArrowRight, FileText, Swords, Clock } from "lucide-react";
-import { MOCK_1V1_MATCHES } from "../../../mocks/events";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import {
+  Trophy,
+  Swords,
+  AlertCircle,
+  Clock,
+  FileText,
+  Gavel,
+  Target,
+  CheckCircle2,
+  RotateCcw,
+  ArrowRight,
+} from "lucide-react";
+
+export interface PlayerResult {
+  name: string;
+  avatar: string;
+  role: "PRO" | "CON" | string;
+  score: number;
+}
+
+export interface MatchResultDetail {
+  id: string;
+  topic: string;
+  date: string;
+  duration: string;
+  rules: string;
+  result: "WIN" | "LOSE" | "DRAW";
+  playerA: PlayerResult;
+  playerB: PlayerResult;
+  scores: Record<string, number>;
+  opponentScores: Record<string, number>;
+  aiJudgeVerdict: string;
+  judgeComments: string[];
+  myStrengths: string[];
+  myImprovements: string[];
+  feedback?: string[];
+}
+
+const defaultMockMatch: MatchResultDetail = {
+  id: "match-001",
+  topic: "Trí tuệ nhân tạo có nên được sử dụng trong việc ra phán quyết tư pháp?",
+  date: "24/02/2025",
+  duration: "18 phút 42 giây",
+  rules: "Luật WSDC chuẩn",
+  result: "WIN",
+  playerA: {
+    name: "Bạn (Nguyễn Phi Long)",
+    avatar: "NL",
+    role: "PRO",
+    score: 84,
+  },
+  playerB: {
+    name: "Trần Minh Trí",
+    avatar: "TT",
+    role: "CON",
+    score: 76,
+  },
+  scores: {
+    logic: 88,
+    evidence: 82,
+    relevance: 85,
+    structure: 80,
+    persuasiveness: 85,
+  },
+  opponentScores: {
+    logic: 75,
+    evidence: 78,
+    relevance: 74,
+    structure: 76,
+    persuasiveness: 77,
+  },
+  aiJudgeVerdict:
+    "Bên Ủng hộ (Player A) đã xây dựng hệ thống luận điểm chặt chẽ hơn về tính minh bạch của thuật toán và khả năng giảm thiểu định kiến của con người trong các vụ án dân sự. Bên Phản đối có những phản biện sắc bén về trách nhiệm đạo đức nhưng chưa cung cấp đủ dẫn chứng cụ thể.",
+  judgeComments: [
+    "Khả năng phản biện luận điểm thứ 2 của đối thủ rất kịp thời và logic.",
+    "Cần lưu ý bổ sung thêm tiền lệ quốc tế trong phần phản bác về khung pháp lý.",
+    "Ngôn ngữ lập luận tự tin, kiểm soát thời gian từng lượt nói rất tốt.",
+  ],
+  myStrengths: [
+    "Bố cục bài nói rõ ràng theo mô hình PEEL (Point - Explanation - Evidence - Link).",
+    "Tận dụng số liệu thống kê từ các nghiên cứu tư pháp thực tế hiệu quả.",
+    "Khả năng bác bỏ lập luận ngụy biện của đối phương xuất sắc.",
+  ],
+  myImprovements: [
+    "Cần mở rộng phân tích các tình huống ngoại lệ về mặt đạo đức pháp luật.",
+    "Tốc độ nói ở phần kết luận hơi nhanh, nên giữ nhịp độ ổn định.",
+  ],
+};
 
 function ScoreBar({ label, myScore, theirScore }: { label: string; myScore: number; theirScore: number }) {
   const maxPct = 100;
@@ -19,15 +105,15 @@ function ScoreBar({ label, myScore, theirScore }: { label: string; myScore: numb
         {/* My score */}
         <div className="flex-1 bg-slate-100 rounded-l-full overflow-hidden flex justify-end">
           <div
-            className="h-full bg-[#008A64] rounded-full"
-            style={{ width: `${(myScore / maxPct) * 100}%` }}
+            className="h-full bg-[#008A64] rounded-full transition-all duration-500"
+            style={{ width: `${Math.min(100, Math.max(0, (myScore / maxPct) * 100))}%` }}
           />
         </div>
         {/* Their score */}
         <div className="flex-1 bg-slate-100 rounded-r-full overflow-hidden">
           <div
-            className="h-full bg-rose-400 rounded-full"
-            style={{ width: `${(theirScore / maxPct) * 100}%` }}
+            className="h-full bg-rose-400 rounded-full transition-all duration-500"
+            style={{ width: `${Math.min(100, Math.max(0, (theirScore / maxPct) * 100))}%` }}
           />
         </div>
       </div>
@@ -37,7 +123,8 @@ function ScoreBar({ label, myScore, theirScore }: { label: string; myScore: numb
 
 const Debate1v1Result: React.FC = () => {
   const navigate = useNavigate();
-  const match = MOCK_1V1_MATCHES[0];
+  const location = useLocation();
+  const match = (location.state as { match?: MatchResultDetail })?.match || defaultMockMatch;
 
   const isWin = match.result === "WIN";
   const isDraw = match.result === "DRAW";
@@ -151,8 +238,8 @@ const Debate1v1Result: React.FC = () => {
                 <ScoreBar
                   key={key}
                   label={label}
-                  myScore={match.scores[key as keyof typeof match.scores]}
-                  theirScore={match.opponentScores[key as keyof typeof match.opponentScores]}
+                  myScore={match.scores[key] ?? 0}
+                  theirScore={match.opponentScores[key] ?? 0}
                 />
               ))}
             </div>

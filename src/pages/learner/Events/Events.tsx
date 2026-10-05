@@ -1,24 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Calendar, Trophy, Users, Clock, Tag, ChevronRight, CheckCircle, AlertCircle, Filter, Zap, BookOpen, Swords } from "lucide-react";
-import { MOCK_EVENTS, DebateEvent } from "../../../mocks/events";
+import competitionApi from "../../../api/competitionApi";
+import { CompetitionListItem } from "../../../types";
+
+export interface DebateEvent {
+  id: string;
+  title: string;
+  description: string;
+  type: "competition" | "event";
+  status: "upcoming" | "ongoing" | "ended";
+  format: "AI_JUDGE" | "EDUCATOR_JUDGE" | "PEER";
+  startDate: string;
+  registerDeadline: string;
+  currentParticipants: number;
+  maxParticipants: number;
+  isRegistered: boolean;
+  tags: string[];
+  bannerUrl?: string;
+}
 
 const statusConfig = {
-  upcoming: { label: "Sap dien ra", color: "bg-blue-50 text-blue-700 border-blue-200" },
-  ongoing: { label: "Dang dien ra", color: "bg-[#ECFDF5] text-[#008A64] border-[#008A64]/30" },
-  ended: { label: "Da ket thuc", color: "bg-slate-100 text-slate-500 border-slate-200" },
+  upcoming: { label: "Sắp diễn ra", color: "bg-blue-50 text-blue-700 border-blue-200" },
+  ongoing: { label: "Đang diễn ra", color: "bg-[#ECFDF5] text-[#008A64] border-[#008A64]/30" },
+  ended: { label: "Đã kết thúc", color: "bg-slate-100 text-slate-500 border-slate-200" },
 };
 
 const formatConfig = {
   AI_JUDGE: { label: "AI Judge", icon: Zap, color: "text-violet-600" },
-  EDUCATOR_JUDGE: { label: "GV Cham diem", icon: BookOpen, color: "text-blue-600" },
-  PEER: { label: "Danh gia cheo", icon: Users, color: "text-amber-600" },
+  EDUCATOR_JUDGE: { label: "GV Chấm điểm", icon: BookOpen, color: "text-blue-600" },
+  PEER: { label: "Đánh giá chéo", icon: Users, color: "text-amber-600" },
 };
 
 function getDaysLeft(dateStr: string) {
+  if (!dateStr) return null;
   const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
   if (diff < 0) return null;
-  if (diff === 0) return "Hom nay";
-  return "Con " + diff + " ngay";
+  if (diff === 0) return "Hôm nay";
+  return "Còn " + diff + " ngày";
 }
 
 function ProgressBar({ value, max }: { value: number; max: number }) {
@@ -161,10 +180,51 @@ function EventCard({ event, onRegister }: { event: DebateEvent; onRegister: (id:
 }
 
 const Events: React.FC = () => {
-  const [events, setEvents] = useState<DebateEvent[]>(MOCK_EVENTS);
+  const navigate = useNavigate();
+  const [events, setEvents] = useState<DebateEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<"all" | "event" | "competition">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "upcoming" | "ongoing" | "ended">("all");
-  const [successId, setSuccessId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const res = await competitionApi.getCompetitions();
+        if (res.success && res.data) {
+          const mapped: DebateEvent[] = res.data.map((c) => {
+            let status: "upcoming" | "ongoing" | "ended" = "upcoming";
+            if (c.status === "IN_PROGRESS") status = "ongoing";
+            else if (c.status === "COMPLETED" || c.status === "CANCELLED") status = "ended";
+
+            return {
+              id: c.competitionId.toString(),
+              title: c.title,
+              description: c.description || "Cuộc thi tranh biện",
+              type: "competition",
+              status,
+              format: "AI_JUDGE",
+              startDate: c.startDate || c.createdAt,
+              registerDeadline: c.registrationDeadline || "",
+              currentParticipants: c.registeredCount || 0,
+              maxParticipants: c.maxParticipants || 10,
+              isRegistered: false,
+              tags: [c.format, c.status],
+            };
+          });
+          setEvents(mapped);
+        } else {
+          setEvents([]);
+        }
+      } catch (err) {
+        console.error("Failed to load events", err);
+        setEvents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const filtered = events.filter((e) => {
     if (filterType !== "all" && e.type !== filterType) return false;
@@ -173,13 +233,7 @@ const Events: React.FC = () => {
   });
 
   const handleRegister = (id: string) => {
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, isRegistered: true, currentParticipants: e.currentParticipants + 1 } : e
-      )
-    );
-    setSuccessId(id);
-    setTimeout(() => setSuccessId(null), 3000);
+    navigate(`/learner/competitions/${id}`);
   };
 
   const myRegistered = events.filter((e) => e.isRegistered);
@@ -203,11 +257,11 @@ const Events: React.FC = () => {
         )}
       </div>
 
-      {/* Success toast */}
-      {successId && (
-        <div className="p-3.5 bg-[#ECFDF5] border border-[#008A64]/30 rounded-xl flex items-center gap-2.5 text-sm text-emerald-800">
-          <CheckCircle size={16} className="text-[#008A64]" />
-          <span>Dang ky thanh cong! Ban se nhan duoc thong bao truoc ngay dien ra.</span>
+      {/* Loading state */}
+      {loading && (
+        <div className="py-12 text-center text-slate-400">
+          <div className="w-6 h-6 border-2 border-[#008A64] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-xs">Đang tải danh sách cuộc thi...</p>
         </div>
       )}
 

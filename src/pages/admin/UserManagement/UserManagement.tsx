@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Search, Filter, MoreVertical, Plus } from "lucide-react";
 import Button from "../../../components/common/Button";
 
-interface MockUserItem {
+interface UserItem {
   id: string;
   fullName: string;
   email: string;
@@ -11,18 +11,10 @@ interface MockUserItem {
   joinedDate: string;
 }
 
-const INITIAL_USERS: MockUserItem[] = [
-  { id: "1", fullName: "Admin System", email: "admin@adpp.local", role: "Administrator", status: "Active", joinedDate: "2026-01-10" },
-  { id: "2", fullName: "Nguyen Van Educator", email: "educator@adpp.local", role: "Educator", status: "Active", joinedDate: "2026-02-15" },
-  { id: "3", fullName: "Tran Thi Learner", email: "learner@adpp.local", role: "Learner", status: "Active", joinedDate: "2026-03-01" },
-  { id: "4", fullName: "Le Quoc Bao", email: "bao.le@fpt.edu.vn", role: "Learner", status: "Active", joinedDate: "2026-03-12" },
-  { id: "5", fullName: "Pham Hoang Nam", email: "nam.pham@fpt.edu.vn", role: "Educator", status: "Inactive", joinedDate: "2026-03-18" },
-];
-
 const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
-  const [users] = useState<MockUserItem[]>(INITIAL_USERS);
+  const [users] = useState<UserItem[]>([]);
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =

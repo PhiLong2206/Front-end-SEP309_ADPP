@@ -25,6 +25,8 @@ export interface Topic {
   backgroundInfo?: string;
   prosHints?: string[];
   consHints?: string[];
+  imageUrl?: string;
+  practicesCount?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;

@@ -1,0 +1,163 @@
+﻿{
+    "openapi":  "3.0.1",
+    "info":  {
+                 "title":  "System Service API - AI Debate Practice Platform",
+                 "description":  "Central Business Service handling Identity \u0026 Competition Modules.",
+                 "version":  "v1"
+             },
+    "paths":  {
+                  "/api/Admin/test":  {
+                                          "get":  "@{tags=System.Object[]; responses=}"
+                                      },
+                  "/api/Auth/register":  {
+                                             "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                         },
+                  "/api/Auth/verify-register-otp":  {
+                                                        "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                                    },
+                  "/api/Auth/login":  {
+                                          "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                      },
+                  "/api/Auth/google-login":  {
+                                                 "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                             },
+                  "/api/Auth/send-otp":  {
+                                             "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                         },
+                  "/api/Auth/verify-otp":  {
+                                               "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                           },
+                  "/api/Auth/forgot-password":  {
+                                                    "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                                },
+                  "/api/Auth/reset-password":  {
+                                                   "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                               },
+                  "/api/Auth/change-password":  {
+                                                    "put":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                                },
+                  "/api/Auth/refresh-token":  {
+                                                  "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                              },
+                  "/api/Auth/revoke-token":  {
+                                                 "post":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                             },
+                  "/api/competitions/{id}/judges":  {
+                                                        "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                    },
+                  "/api/competitions/{id}/registrations":  {
+                                                               "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}",
+                                                               "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                           },
+                  "/api/competitions/{id}/registrations/{registrationId}":  {
+                                                                                "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                            },
+                  "/api/competitions/{id}/registrations/{registrationId}/approve":  {
+                                                                                        "put":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                                    },
+                  "/api/competitions/{id}/registrations/{registrationId}/reject":  {
+                                                                                       "put":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}"
+                                                                                   },
+                  "/api/competitions/{id}/registrations/me":  {
+                                                                  "delete":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}"
+                                                              },
+                  "/api/competitions/{id}/registrations/{registrationId}/status":  {
+                                                                                       "put":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}"
+                                                                                   },
+                  "/api/Competitions":  {
+                                            "post":  "@{tags=System.Object[]; requestBody=; responses=}",
+                                            "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                        },
+                  "/api/Competitions/{id}":  {
+                                                 "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}",
+                                                 "patch":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}"
+                                             },
+                  "/api/Competitions/{id}/open-registration":  {
+                                                                   "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                               },
+                  "/api/Competitions/{id}/close-registration":  {
+                                                                    "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                },
+                  "/api/Competitions/{id}/start":  {
+                                                       "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                   },
+                  "/api/Competitions/{id}/complete":  {
+                                                          "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                      },
+                  "/api/Competitions/{id}/cancel":  {
+                                                        "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                    },
+                  "/api/competitions/{id}/teams/{teamId}/invitations":  {
+                                                                            "post":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}"
+                                                                        },
+                  "/api/competitions/{id}/teams/invitations/me":  {
+                                                                      "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                  },
+                  "/api/competitions/{id}/teams/invitations/{requestId}/accept":  {
+                                                                                      "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                                  },
+                  "/api/competitions/{id}/teams/invitations/{requestId}/reject":  {
+                                                                                      "post":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}"
+                                                                                  },
+                  "/api/competitions/{id}/teams/{teamId}/join-requests":  {
+                                                                              "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}",
+                                                                              "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                          },
+                  "/api/competitions/{id}/teams/{teamId}/join-requests/{requestId}/approve":  {
+                                                                                                  "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                                              },
+                  "/api/competitions/{id}/teams/{teamId}/join-requests/{requestId}/reject":  {
+                                                                                                 "post":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}"
+                                                                                             },
+                  "/api/competitions/{id}/teams":  {
+                                                       "post":  "@{tags=System.Object[]; parameters=System.Object[]; requestBody=; responses=}",
+                                                       "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                   },
+                  "/api/competitions/{id}/teams/{teamId}":  {
+                                                                "get":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                            },
+                  "/api/competitions/{id}/teams/{teamId}/members/me":  {
+                                                                           "delete":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                       },
+                  "/api/competitions/{id}/teams/{teamId}/members/{userId}":  {
+                                                                                 "delete":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                             },
+                  "/api/competitions/{id}/teams/{teamId}/withdraw":  {
+                                                                         "post":  "@{tags=System.Object[]; parameters=System.Object[]; responses=}"
+                                                                     },
+                  "/api/Users/me":  {
+                                        "get":  "@{tags=System.Object[]; responses=}",
+                                        "put":  "@{tags=System.Object[]; requestBody=; responses=}"
+                                    }
+              },
+    "components":  {
+                       "schemas":  {
+                                       "CancelRegistrationRequest":  "@{type=object; properties=; additionalProperties=False}",
+                                       "ChangePasswordRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "CreateCompetitionRequest":  "@{type=object; properties=; additionalProperties=False}",
+                                       "CreateCompetitionTeamRequest":  "@{type=object; properties=; additionalProperties=False}",
+                                       "GoogleLoginRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "LoginRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "PatchCompetitionRequest":  "@{type=object; properties=; additionalProperties=False}",
+                                       "RefreshTokenRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "RegisterRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "RejectRegistrationRequest":  "@{type=object; properties=; additionalProperties=False}",
+                                       "RejectTeamRequestDto":  "@{type=object; properties=; additionalProperties=False}",
+                                       "ResetPasswordRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "SendOtpRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "SendTeamInvitationRequest":  "@{type=object; properties=; additionalProperties=False}",
+                                       "UpdateProfileRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "UpdateRegistrationStatusRequest":  "@{type=object; properties=; additionalProperties=False}",
+                                       "VerifyOtpRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}",
+                                       "VerifyRegisterOtpRequest":  "@{required=System.Object[]; type=object; properties=; additionalProperties=False}"
+                                   },
+                       "securitySchemes":  {
+                                               "Bearer":  "@{type=apiKey; description=JWT Authorization header using the Bearer scheme. Enter \u0027Bearer\u0027 [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"; name=Authorization; in=header}"
+                                           }
+                   },
+    "security":  [
+                     {
+                         "Bearer":  ""
+                     }
+                 ]
+}

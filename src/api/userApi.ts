@@ -43,7 +43,7 @@ const userApi = {
     axiosClient.get("/admin/test"),
 
   // -------------------------------------------------------------
-  // Admin Management Endpoints (Mock / Placeholder for Microservice Expansion)
+  // Admin Management Endpoints (Pending Backend Microservice Implementation)
   // -------------------------------------------------------------
   getAllUsers: (params?: PaginationParams): Promise<ApiResponse<PaginatedResponse<User>>> =>
     axiosClient.get("/admin/users", { params }),

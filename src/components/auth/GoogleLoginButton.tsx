@@ -54,34 +54,44 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
     import.meta.env.VITE_GOOGLE_CLIENT_ID ||
     "119895824683-gvfvnu766krikjofaj3fjtfvk6marg30.apps.googleusercontent.com";
 
+  const onSuccessRef = useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     let checkInterval: ReturnType<typeof setInterval> | null = null;
+    let isMounted = true;
 
     const setupGoogleSignIn = () => {
-
+      if (!isMounted) return false;
       if (!window.google?.accounts?.id) return false;
 
       try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response) => {
-            if (response?.credential) {
-              setLoading(true);
-              try {
-                await onSuccess(response.credential);
-              } catch (err: unknown) {
-                const errorObj = err as { message?: string };
-                onError?.(errorObj?.message || "Đăng nhập Google thất bại.");
-              } finally {
-                setLoading(false);
+        if (!initializedRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (response) => {
+              if (response?.credential) {
+                setLoading(true);
+                try {
+                  await onSuccessRef.current(response.credential);
+                } catch (err: unknown) {
+                  const errorObj = err as { message?: string };
+                  onErrorRef.current?.(errorObj?.message || "Đăng nhập Google thất bại.");
+                } finally {
+                  if (isMounted) setLoading(false);
+                }
+              } else {
+                onErrorRef.current?.("Không nhận được token xác thực từ Google.");
               }
-            } else {
-              onError?.("Không nhận được token xác thực từ Google.");
-            }
-          },
-        });
+            },
+          });
+          initializedRef.current = true;
+        }
 
-        if (buttonRef.current) {
+        if (buttonRef.current && isMounted) {
           buttonRef.current.innerHTML = "";
           window.google.accounts.id.renderButton(buttonRef.current, {
             theme: "outline",
@@ -95,7 +105,7 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
           });
         }
 
-        setIsGisReady(true);
+        if (isMounted) setIsGisReady(true);
         return true;
       } catch (err) {
         console.error("Error setting up Google Sign-In:", err);
@@ -112,9 +122,10 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
     }
 
     return () => {
+      isMounted = false;
       if (checkInterval) clearInterval(checkInterval);
     };
-  }, [clientId, onSuccess, onError]);
+  }, [clientId]);
 
   const handleManualClick = () => {
     if (disabled || loading) return;

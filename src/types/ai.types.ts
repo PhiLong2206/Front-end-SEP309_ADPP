@@ -54,3 +54,108 @@ export interface AIJudgeResult {
   feedbackForAffirmative: string;
   feedbackForNegative: string;
 }
+
+// ── AI Microservices Integration (ai-opponent-service & ai-evaluator-service) ──
+
+export type OpponentSide = "pro" | "con" | "AFFIRMATIVE" | "NEGATIVE";
+export type BackendDebateSide = "pro" | "con";
+export type OpponentDifficulty = "easy" | "medium" | "hard" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+export type BackendDifficulty = "easy" | "medium" | "hard";
+export type DebateRoundType = "opening" | "rebuttal" | "closing";
+
+export interface CreateOpponentSessionRequest {
+  external_session_id: string;
+  motion: string;
+  learner_side: BackendDebateSide;
+  ai_side: BackendDebateSide;
+  difficulty?: BackendDifficulty;
+  language?: "vi";
+}
+
+export interface CreateOpponentSessionResponse {
+  opponent_session_id: string;
+  status: "created" | "planning" | "ready" | "failed" | string;
+}
+
+export interface LearnerSpeechInput {
+  turn_index: number;
+  round_type: DebateRoundType;
+  text: string;
+}
+
+export interface CreateTurnRequest {
+  turn_index: number;
+  new_learner_speeches?: LearnerSpeechInput[];
+}
+
+export interface TurnResponse {
+  turn_index: number;
+  round_type: DebateRoundType | string;
+  mode: string;
+  speech_text: string;
+}
+
+export interface CasePlanDefinition {
+  term: string;
+  meaning: string;
+}
+
+export interface CasePlanArgument {
+  id: string;
+  title: string;
+  claim: string;
+  reasoning: string;
+  example: string;
+  impact: string;
+}
+
+export interface CasePlanAnticipated {
+  id: string;
+  learner_claim: string;
+  planned_response: string;
+}
+
+export interface CaseFileContent {
+  motion_reading: string;
+  definitions: CasePlanDefinition[];
+  arguments: CasePlanArgument[];
+  anticipated_opponent_arguments: CasePlanAnticipated[];
+  weighing: string;
+}
+
+export interface CaseFileResponse {
+  id: string;
+  session_id: string;
+  content: CaseFileContent;
+  prompt_version: string;
+  llm_provider: string;
+  llm_model: string;
+  temperature: number;
+  created_at: string;
+}
+
+export interface ArgumentEvaluationPayload {
+  motion: string;
+  side: BackendDebateSide;
+  stage?: DebateRoundType;
+  argument_text: string;
+  opponent_argument_text?: string | null;
+}
+
+export interface RubricCriterionScore {
+  name: string;
+  score: number;
+  reasoning: string;
+}
+
+export interface ArgumentEvaluationResult {
+  overall_score: number;
+  overall_reasoning: string;
+  criteria: RubricCriterionScore[];
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+  raw_model_output?: string | null;
+}
+
+

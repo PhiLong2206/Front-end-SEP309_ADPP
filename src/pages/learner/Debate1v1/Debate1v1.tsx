@@ -4,8 +4,35 @@ import SearchInput from "../../../components/common/SearchInput";
 import Button from "../../../components/common/Button";
 import Modal from "../../../components/common/Modal";
 import Input from "../../../components/common/Input";
-import { MOCK_MATCHMAKING_USERS, MatchmakingUser } from "../../../mocks/users";
-import { MOCK_1V1_MATCHES, MOCK_1V1_MY_ROOMS } from "../../../mocks/events";
+export interface MatchmakingUser {
+  id: string;
+  fullName: string;
+  avatarUrl: string;
+  totalMatches: number;
+  averageScore: number;
+  status: "Online" | "Offline" | "InMatch";
+}
+
+export interface Room1v1 {
+  id: string;
+  name: string;
+  topic: string;
+  format: string;
+  isPrivate: boolean;
+  participantCount: number;
+}
+
+export interface Match1v1 {
+  id: string;
+  topic: string;
+  date: string;
+  duration: string;
+  rules: string;
+  result: "WIN" | "LOSE" | "DRAW";
+  playerA: { name: string; score: number };
+  playerB: { name: string; score: number };
+}
+
 import {
   Plus, Check, Trophy, Clock, Swords, Lock, Unlock,
   ArrowRight, Users, CheckCircle2, AlertCircle, FileText
@@ -18,9 +45,11 @@ const Debate1v1: React.FC = () => {
   const [selectedOpponent, setSelectedOpponent] = useState<MatchmakingUser | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [challengeSuccess, setChallengeSuccess] = useState(false);
-  const [myRooms, setMyRooms] = useState(MOCK_1V1_MY_ROOMS);
+  const [myRooms, setMyRooms] = useState<Room1v1[]>([]);
+  const [matchmakingUsers] = useState<MatchmakingUser[]>([]);
+  const [matches] = useState<Match1v1[]>([]);
 
-  const filteredUsers = MOCK_MATCHMAKING_USERS.filter((user) =>
+  const filteredUsers = matchmakingUsers.filter((user) =>
     user.fullName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -101,7 +130,14 @@ const Debate1v1: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredUsers.map((user) => (
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-10 text-slate-400">
+                        Hiện tại chưa có người dùng nào trực tuyến để thách đấu.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -134,7 +170,8 @@ const Debate1v1: React.FC = () => {
                         </Button>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -212,7 +249,7 @@ const Debate1v1: React.FC = () => {
       {/* ── Tab 3: Lịch sử đối kháng ── */}
       {activeTab === "history" && (
         <div className="space-y-4">
-          {MOCK_1V1_MATCHES.length === 0 ? (
+          {matches.length === 0 ? (
             <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs">
               Chưa có lịch sử đối kháng 1 vs 1.
             </div>
@@ -221,9 +258,9 @@ const Debate1v1: React.FC = () => {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Tổng trận", value: MOCK_1V1_MATCHES.length, icon: Swords, color: "text-blue-500" },
-                  { label: "Thắng", value: MOCK_1V1_MATCHES.filter((m) => m.result === "WIN").length, icon: Trophy, color: "text-amber-500" },
-                  { label: "Thua", value: MOCK_1V1_MATCHES.filter((m) => m.result === "LOSE").length, icon: AlertCircle, color: "text-rose-500" },
+                  { label: "Tổng trận", value: matches.length, icon: Swords, color: "text-blue-500" },
+                  { label: "Thắng", value: matches.filter((m) => m.result === "WIN").length, icon: Trophy, color: "text-amber-500" },
+                  { label: "Thua", value: matches.filter((m) => m.result === "LOSE").length, icon: AlertCircle, color: "text-rose-500" },
                 ].map((s) => (
                   <div key={s.label} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs text-center">
                     <s.icon size={18} className={`${s.color} mx-auto mb-1.5`} />
@@ -235,7 +272,7 @@ const Debate1v1: React.FC = () => {
 
               {/* Match history list */}
               <div className="space-y-3">
-                {MOCK_1V1_MATCHES.map((match) => (
+                {matches.map((match) => (
                   <div key={match.id} className={`bg-white rounded-2xl border shadow-xs p-5 flex items-center gap-4 ${
                     match.result === "WIN" ? "border-[#008A64]/30" : match.result === "LOSE" ? "border-rose-200" : "border-slate-200"
                   }`}>
