@@ -379,8 +379,12 @@ const CompetitionAdminDetailModal: React.FC<Props> = ({
         showNotification(res.message || "Thêm giám khảo thất bại.", true);
       }
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      showNotification(e.message || "Thêm giám khảo thất bại.", true);
+      const e = err as { message?: string; response?: { status?: number } };
+      if (e.response?.status === 405 || e.response?.status === 404) {
+        showNotification("Backend chưa có API thêm giám khảo thủ công (Người tạo cuộc thi đã được hệ thống tự động gán làm giám khảo chính).", true);
+      } else {
+        showNotification(e.message || "Thêm giám khảo thất bại.", true);
+      }
     } finally {
       setActionLoading(false);
     }

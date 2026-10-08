@@ -1,0 +1,205 @@
+{
+  "total": 33,
+  "passed": 33,
+  "failed": 0,
+  "results": [
+    {
+      "category": "Auth",
+      "name": "User A Login via FE Vite Proxy (/api/Auth/login)",
+      "passed": true,
+      "details": "User ID: 1"
+    },
+    {
+      "category": "Auth",
+      "name": "User B Login via FE Vite Proxy (/api/Auth/login)",
+      "passed": true,
+      "details": "User ID: 4"
+    },
+    {
+      "category": "Users",
+      "name": "User A GET /api/Users/me",
+      "passed": true,
+      "details": "nguyenphilong226@gmail.com"
+    },
+    {
+      "category": "Users",
+      "name": "User B GET /api/Users/me",
+      "passed": true,
+      "details": "longnpse180044@fpt.edu.vn"
+    },
+    {
+      "category": "Users",
+      "name": "User A PUT /api/Users/me",
+      "passed": true,
+      "details": "User profile updated successfully."
+    },
+    {
+      "category": "Auth",
+      "name": "POST /api/Auth/refresh-token",
+      "passed": true,
+      "details": "Token rotated successfully"
+    },
+    {
+      "category": "Competitions",
+      "name": "GET /api/Competitions",
+      "passed": true,
+      "details": "Found 28 competitions"
+    },
+    {
+      "category": "Competitions",
+      "name": "POST /api/Competitions",
+      "passed": true,
+      "details": "ID: 40"
+    },
+    {
+      "category": "Competitions",
+      "name": "GET /api/Competitions/40",
+      "passed": true,
+      "details": "Kỳ thi Tranh biện Mùa hè 1791442929277"
+    },
+    {
+      "category": "Competitions",
+      "name": "PATCH /api/Competitions/40",
+      "passed": true,
+      "details": "Competition updated successfully."
+    },
+    {
+      "category": "Competitions",
+      "name": "POST /api/Competitions/40/open-registration",
+      "passed": true,
+      "details": "Competition status updated to OpenRegistration."
+    },
+    {
+      "category": "Competitions",
+      "name": "User B POST /api/competitions/40/registrations",
+      "passed": true,
+      "details": "Registration ID: 13"
+    },
+    {
+      "category": "Competitions",
+      "name": "GET /api/competitions/40/registrations",
+      "passed": true,
+      "details": "Count: 1"
+    },
+    {
+      "category": "Competitions",
+      "name": "GET /api/competitions/40/registrations/13",
+      "passed": true,
+      "details": "Status: Pending"
+    },
+    {
+      "category": "Competitions",
+      "name": "PUT /api/competitions/40/registrations/13/approve",
+      "passed": true,
+      "details": "Registration approved successfully."
+    },
+    {
+      "category": "Competitions",
+      "name": "GET /api/competitions/40/judges",
+      "passed": true,
+      "details": "Count: 1"
+    },
+    {
+      "category": "Competitions",
+      "name": "POST /api/Competitions/40/close-registration",
+      "passed": true,
+      "details": "Competition status updated to RegistrationClosed."
+    },
+    {
+      "category": "Competitions",
+      "name": "POST /api/Competitions/40/start",
+      "passed": true,
+      "details": "Competition status updated to Ongoing."
+    },
+    {
+      "category": "Competitions",
+      "name": "POST /api/Competitions/40/complete",
+      "passed": true,
+      "details": "Competition status updated to Completed."
+    },
+    {
+      "category": "Debate",
+      "name": "POST /api/Debate/ai-practice",
+      "passed": true,
+      "details": "Session ID: 4"
+    },
+    {
+      "category": "Debate",
+      "name": "GET /api/Debate/4",
+      "passed": true,
+      "details": "Stage: 1"
+    },
+    {
+      "category": "Debate",
+      "name": "POST /api/Debate/4/arguments",
+      "passed": true,
+      "details": "Argument submitted successfully."
+    },
+    {
+      "category": "Debate",
+      "name": "GET /api/Debate/4/transcript",
+      "passed": true,
+      "details": "Arguments: 1"
+    },
+    {
+      "category": "Debate",
+      "name": "GET /api/Debate/my-history (User A)",
+      "passed": true,
+      "details": "History count: 4"
+    },
+    {
+      "category": "Debate",
+      "name": "POST /api/Debate/p2p",
+      "passed": true,
+      "details": "Session ID: 5"
+    },
+    {
+      "category": "Debate",
+      "name": "User B POST /api/Debate/5/join",
+      "passed": true,
+      "details": "Joined P2P debate session successfully."
+    },
+    {
+      "category": "Challenges",
+      "name": "User A POST /api/debate/challenges (to User B)",
+      "passed": true,
+      "details": "Challenge ID: 4"
+    },
+    {
+      "category": "Challenges",
+      "name": "User A GET /api/debate/challenges/sent",
+      "passed": true,
+      "details": "Count: 4"
+    },
+    {
+      "category": "Challenges",
+      "name": "User B GET /api/debate/challenges/received",
+      "passed": true,
+      "details": "Count: 4"
+    },
+    {
+      "category": "Challenges",
+      "name": "GET /api/debate/challenges/4",
+      "passed": true,
+      "details": "Status: 1"
+    },
+    {
+      "category": "Challenges",
+      "name": "User B POST /api/debate/challenges/4/accept",
+      "passed": true,
+      "details": "Debate Session: 6"
+    },
+    {
+      "category": "Challenges",
+      "name": "User B POST /api/debate/challenges/5/reject",
+      "passed": true,
+      "details": "Challenge rejected."
+    },
+    {
+      "category": "Challenges",
+      "name": "User A POST /api/debate/challenges/6/cancel",
+      "passed": true,
+      "details": "Challenge cancelled."
+    }
+  ]
+}

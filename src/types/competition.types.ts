@@ -22,6 +22,12 @@ export interface CompetitionListItem {
   startDate: string;
   status: CompetitionLifecycleStatus | string;
   isPublic: boolean;
+  description?: string;
+  createdAt?: string;
+  registrationDeadline?: string;
+  registeredCount?: number;
+  maxParticipants?: number;
+  format?: string;
 }
 
 export interface CompetitionDetail {

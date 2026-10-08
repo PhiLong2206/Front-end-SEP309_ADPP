@@ -1,73 +1,188 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import SearchInput from "../../../components/common/SearchInput";
 import Button from "../../../components/common/Button";
 import Modal from "../../../components/common/Modal";
 import Input from "../../../components/common/Input";
-export interface MatchmakingUser {
-  id: string;
-  fullName: string;
-  avatarUrl: string;
-  totalMatches: number;
-  averageScore: number;
-  status: "Online" | "Offline" | "InMatch";
-}
-
-export interface Room1v1 {
-  id: string;
-  name: string;
-  topic: string;
-  format: string;
-  isPrivate: boolean;
-  participantCount: number;
-}
-
-export interface Match1v1 {
-  id: string;
-  topic: string;
-  date: string;
-  duration: string;
-  rules: string;
-  result: "WIN" | "LOSE" | "DRAW";
-  playerA: { name: string; score: number };
-  playerB: { name: string; score: number };
-}
-
+import Badge from "../../../components/common/Badge";
 import {
-  Plus, Check, Trophy, Clock, Swords, Lock, Unlock,
-  ArrowRight, Users, CheckCircle2, AlertCircle, FileText
+  Plus, Check, Swords, AlertCircle,
+  RefreshCw, Loader2, Send, X, Inbox, ArrowRight
 } from "lucide-react";
+import { debateApi } from "../../../api";
+import {
+  ChallengeResponse,
+  BackendChallengeStatus,
+  SystemDebateSide,
+  CreateChallengeRequest,
+  DebateHistoryItemDto,
+} from "../../../types";
 
 const Debate1v1: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"find" | "myRooms" | "history">("find");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOpponent, setSelectedOpponent] = useState<MatchmakingUser | null>(null);
+  const [activeTab, setActiveTab] = useState<"received" | "sent" | "find" | "history">("received");
+
+  // State for Challenges
+  const [receivedChallenges, setReceivedChallenges] = useState<ChallengeResponse[]>([]);
+  const [sentChallenges, setSentChallenges] = useState<ChallengeResponse[]>([]);
+  const [historyList, setHistoryList] = useState<DebateHistoryItemDto[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  // Create Challenge Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [challengeSuccess, setChallengeSuccess] = useState(false);
-  const [myRooms, setMyRooms] = useState<Room1v1[]>([]);
-  const [matchmakingUsers] = useState<MatchmakingUser[]>([]);
-  const [matches] = useState<Match1v1[]>([]);
+  const [targetUserId, setTargetUserId] = useState<string>("");
+  const [challengeTopic, setChallengeTopic] = useState<string>("");
+  const [challengerSide, setChallengerSide] = useState<number>(SystemDebateSide.PRO);
+  const [timeLimit, setTimeLimit] = useState<number>(180);
+  const [isSubmittingChallenge, setIsSubmittingChallenge] = useState(false);
 
-  const filteredUsers = matchmakingUsers.filter((user) =>
-    user.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [recRes, sentRes, histRes] = await Promise.allSettled([
+        debateApi.getReceivedChallenges(),
+        debateApi.getSentChallenges(),
+        debateApi.getUserHistory(),
+      ]);
 
-  const handleChallenge = (user: MatchmakingUser) => {
-    setSelectedOpponent(user);
-    setChallengeSuccess(true);
-    setTimeout(() => { setChallengeSuccess(false); setSelectedOpponent(null); }, 2500);
+      if (recRes.status === "fulfilled" && recRes.value?.success && Array.isArray(recRes.value.data)) {
+        setReceivedChallenges(recRes.value.data);
+      }
+      if (sentRes.status === "fulfilled" && sentRes.value?.success && Array.isArray(sentRes.value.data)) {
+        setSentChallenges(sentRes.value.data);
+      }
+      if (histRes.status === "fulfilled" && histRes.value?.success && Array.isArray(histRes.value.data)) {
+        setHistoryList(histRes.value.data.filter((h) => h.debateType === 2 || h.debateType === 3));
+      }
+    } catch (err) {
+      console.warn("Failed fetching challenge data:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateRoom = () => {
-    setShowCreateModal(false);
-    setActiveTab("myRooms");
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const handleCreateChallenge = async () => {
+    const userIdNum = parseInt(targetUserId, 10);
+    if (isNaN(userIdNum) || !challengeTopic.trim()) {
+      setFeedbackMsg({ text: "Vui lòng nhập ID người nhận hợp lệ và chủ đề tranh biện.", type: "error" });
+      return;
+    }
+
+    setIsSubmittingChallenge(true);
+    try {
+      const payload: CreateChallengeRequest = {
+        challengedUserId: userIdNum,
+        topic: challengeTopic.trim(),
+        challengerPreferredSide: challengerSide,
+        turnTimeLimitSeconds: timeLimit,
+      };
+
+      const res = await debateApi.createChallenge(payload);
+      if (res?.success) {
+        setFeedbackMsg({ text: "Đã gửi lời mời thách đấu thành công!", type: "success" });
+        setShowCreateModal(false);
+        setChallengeTopic("");
+        setTargetUserId("");
+        setActiveTab("sent");
+        fetchAllData();
+      } else {
+        setFeedbackMsg({ text: res?.message || "Không thể tạo lời mời thách đấu.", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setFeedbackMsg({ text: e.message || "Lỗi khi gửi lời mời thách đấu.", type: "error" });
+    } finally {
+      setIsSubmittingChallenge(false);
+    }
   };
+
+  const handleAcceptChallenge = async (challengeId: number) => {
+    setActionLoadingId(challengeId);
+    try {
+      const res = await debateApi.acceptChallenge(challengeId);
+      if (res?.success) {
+        setFeedbackMsg({ text: "Đã chấp nhận thách đấu! Chuyển tới phiên tranh biện...", type: "success" });
+        if (res.data?.debateSessionId) {
+          navigate(`/learner/debate/${res.data.debateSessionId}`);
+        } else {
+          fetchAllData();
+        }
+      } else {
+        setFeedbackMsg({ text: res?.message || "Không thể chấp nhận thách đấu.", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setFeedbackMsg({ text: e.message || "Lỗi khi chấp nhận thách đấu.", type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRejectChallenge = async (challengeId: number) => {
+    setActionLoadingId(challengeId);
+    try {
+      const res = await debateApi.rejectChallenge(challengeId);
+      if (res?.success) {
+        setFeedbackMsg({ text: "Đã từ chối lời mời thách đấu.", type: "success" });
+        fetchAllData();
+      } else {
+        setFeedbackMsg({ text: res?.message || "Không thể từ chối thách đấu.", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setFeedbackMsg({ text: e.message || "Lỗi khi từ chối thách đấu.", type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCancelChallenge = async (challengeId: number) => {
+    setActionLoadingId(challengeId);
+    try {
+      const res = await debateApi.cancelChallenge(challengeId);
+      if (res?.success) {
+        setFeedbackMsg({ text: "Đã hủy lời mời thách đấu thành công.", type: "success" });
+        fetchAllData();
+      } else {
+        setFeedbackMsg({ text: res?.message || "Không thể hủy lời mời.", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setFeedbackMsg({ text: e.message || "Lỗi khi hủy lời mời.", type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const getChallengeStatusBadge = (status: BackendChallengeStatus | number) => {
+    switch (status) {
+      case 1:
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Đang chờ phản hồi</span>;
+      case 2:
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Đã chấp nhận</span>;
+      case 3:
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">Đã từ chối</span>;
+      case 4:
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">Đã hủy</span>;
+      case 5:
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">Hết hạn</span>;
+      default:
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Khác</span>;
+    }
+  };
+
+  const pendingReceivedCount = receivedChallenges.filter((c) => c.status === 1).length;
 
   const TABS = [
-    { id: "find" as const, label: "Tìm đối thủ" },
-    { id: "myRooms" as const, label: "Phòng của tôi" },
-    { id: "history" as const, label: "Lịch sử đối kháng" },
+    { id: "received" as const, label: `Lời mời nhận được ${pendingReceivedCount > 0 ? `(${pendingReceivedCount})` : ""}` },
+    { id: "sent" as const, label: `Thách đấu đã gửi (${sentChallenges.length})` },
+    { id: "find" as const, label: "Tạo thách đấu mới" },
+    { id: "history" as const, label: `Lịch sử đối kháng (${historyList.length})` },
   ];
 
   return (
@@ -76,25 +191,54 @@ const Debate1v1: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Tranh biện 1 vs 1</h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Thách đấu trực tiếp với các người học khác theo thời gian thực.</p>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Thách đấu trực tiếp và quản lý lời mời tranh biện với người học khác.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowCreateModal(true)}
-          className="self-start sm:self-auto inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm shadow-[#008A64]/20 transition-all hover:scale-102"
-        >
-          <Plus size={16} /><span>+ Tạo phòng tranh biện</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchAllData}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 shadow-xs transition-colors cursor-pointer"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Làm mới
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#008A64] hover:bg-[#007457] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Gửi lời thách đấu</span>
+          </button>
+        </div>
       </div>
 
+      {/* Notification banner */}
+      {feedbackMsg && (
+        <div className={`p-3.5 rounded-xl text-xs sm:text-sm flex items-center justify-between gap-2.5 border ${
+          feedbackMsg.type === "success"
+            ? "bg-[#ECFDF5] border-[#008A64]/30 text-emerald-800"
+            : "bg-rose-50 border-rose-200 text-rose-800"
+        }`}>
+          <div className="flex items-center gap-2">
+            {feedbackMsg.type === "success" ? <Check size={16} className="text-[#008A64]" /> : <AlertCircle size={16} className="text-rose-600" />}
+            <span>{feedbackMsg.text}</span>
+          </div>
+          <button onClick={() => setFeedbackMsg(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-slate-200">
+      <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`pb-3 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all ${
+            className={`pb-3 px-4 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition-all cursor-pointer ${
               activeTab === tab.id
                 ? "border-[#008A64] text-[#008A64]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -105,252 +249,345 @@ const Debate1v1: React.FC = () => {
         ))}
       </div>
 
-      {/* ── Tab 1: Tìm đối thủ ── */}
-      {activeTab === "find" && (
+      {/* ── Tab 1: Lời mời nhận được ── */}
+      {activeTab === "received" && (
         <div className="space-y-4">
-          <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Tìm người học theo tên..." className="max-w-xs" />
+          {loading ? (
+            <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs">
+              <Loader2 size={32} className="mx-auto mb-2 text-[#008A64] animate-spin" />
+              <p className="text-sm font-semibold">Đang tải lời mời thách đấu...</p>
+            </div>
+          ) : receivedChallenges.length === 0 ? (
+            <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs space-y-2">
+              <Inbox size={32} className="mx-auto text-slate-300" />
+              <p className="text-sm font-semibold">Hiện chưa có lời mời thách đấu nào gửi tới bạn.</p>
+              <p className="text-xs text-slate-400">Bạn có thể chủ động tạo lời thách đấu gửi tới người học khác!</p>
+            </div>
+          ) : (
+            <div className="grid gap-3.5">
+              {receivedChallenges.map((challenge) => {
+                const isActionLoading = actionLoadingId === challenge.challengeId;
+                const isPending = challenge.status === 1;
+                return (
+                  <div key={challenge.challengeId} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-900 text-sm">{challenge.challenger?.fullName || "Người dùng"}</span>
+                        <span className="text-xs text-slate-400">({challenge.challenger?.email})</span>
+                        {getChallengeStatusBadge(challenge.status)}
+                      </div>
+                      <p className="text-sm font-medium text-slate-800">&ldquo;{challenge.topic}&rdquo;</p>
+                      <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                        <span>Phe đối thủ: <strong>{challenge.challengerPreferredSide === 1 ? "Ủng hộ (PRO)" : "Phản đối (CON)"}</strong></span>
+                        <span>Thời gian lượt: <strong>{challenge.turnTimeLimitSeconds}s</strong></span>
+                        <span>Gửi lúc: {new Date(challenge.createdAt).toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}</span>
+                      </div>
+                    </div>
 
-          {challengeSuccess && selectedOpponent && (
-            <div className="p-3.5 bg-[#ECFDF5] border border-[#008A64]/30 rounded-xl text-xs sm:text-sm text-emerald-800 flex items-center gap-2.5">
-              <Check size={16} className="text-[#008A64]" />
-              <span>Đã gửi lời mời thách đấu tới <strong>{selectedOpponent.fullName}</strong>. Đang chờ đối thủ xác nhận...</span>
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                      {isPending ? (
+                        <>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={isActionLoading}
+                            onClick={() => handleRejectChallenge(challenge.challengeId)}
+                            className="text-xs"
+                          >
+                            Từ chối
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={isActionLoading}
+                            onClick={() => handleAcceptChallenge(challenge.challengeId)}
+                            className="text-xs"
+                          >
+                            {isActionLoading ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                            Chấp nhận
+                          </Button>
+                        </>
+                      ) : challenge.debateSessionId ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => navigate(`/learner/debate/${challenge.debateSessionId}`)}
+                          className="text-xs"
+                        >
+                          Vào phòng đấu <ArrowRight size={13} />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
+        </div>
+      )}
 
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-500 tracking-wider border-b border-slate-200">
-                  <tr>
-                    <th scope="col" className="px-5 py-3.5">Người học</th>
-                    <th scope="col" className="px-5 py-3.5 text-center">Số trận</th>
-                    <th scope="col" className="px-5 py-3.5 text-center">Điểm TB</th>
-                    <th scope="col" className="px-5 py-3.5 text-center">Trạng thái</th>
-                    <th scope="col" className="px-5 py-3.5 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-10 text-slate-400">
-                        Hiện tại chưa có người dùng nào trực tuyến để thách đấu.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={user.avatarUrl} alt={user.fullName} className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" />
-                          <span className="font-bold text-slate-900 text-xs sm:text-sm">{user.fullName}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-center text-xs font-semibold text-slate-700 font-mono">{user.totalMatches}</td>
-                      <td className="px-5 py-4 text-center text-xs font-bold text-[#008A64] font-mono">{user.averageScore}</td>
-                      <td className="px-5 py-4 text-center whitespace-nowrap">
-                        {user.status === "Online" ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#008A64] border border-[#008A64]/30">
-                            <span className="w-2 h-2 rounded-full bg-[#008A64] animate-pulse" />Trực tuyến
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200">
-                            <span className="w-2 h-2 rounded-full bg-slate-400" />Ngoại tuyến
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-right whitespace-nowrap">
-                        <Button
-                          variant={user.status === "Online" ? "primary" : "secondary"}
-                          size="sm"
-                          disabled={user.status !== "Online"}
-                          onClick={() => handleChallenge(user)}
-                          className="px-3.5 py-1.5 text-xs font-bold"
-                        >
-                          Thách đấu
-                        </Button>
-                      </td>
-                    </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+      {/* ── Tab 2: Thách đấu đã gửi ── */}
+      {activeTab === "sent" && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs">
+              <Loader2 size={32} className="mx-auto mb-2 text-[#008A64] animate-spin" />
+              <p className="text-sm font-semibold">Đang tải thách đấu đã gửi...</p>
             </div>
+          ) : sentChallenges.length === 0 ? (
+            <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs space-y-2">
+              <Send size={32} className="mx-auto text-slate-300" />
+              <p className="text-sm font-semibold">Bạn chưa gửi lời mời thách đấu nào.</p>
+              <Button variant="primary" size="sm" onClick={() => setShowCreateModal(true)} className="mt-2">
+                Tạo lời thách đấu ngay
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-3.5">
+              {sentChallenges.map((challenge) => {
+                const isActionLoading = actionLoadingId === challenge.challengeId;
+                const isPending = challenge.status === 1;
+                return (
+                  <div key={challenge.challengeId} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-900 text-sm">Gửi tới: {challenge.challenged?.fullName || `User #${challenge.challenged?.userId}`}</span>
+                        <span className="text-xs text-slate-400">({challenge.challenged?.email})</span>
+                        {getChallengeStatusBadge(challenge.status)}
+                      </div>
+                      <p className="text-sm font-medium text-slate-800">&ldquo;{challenge.topic}&rdquo;</p>
+                      <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                        <span>Phe của bạn: <strong>{challenge.challengerPreferredSide === 1 ? "Ủng hộ (PRO)" : "Phản đối (CON)"}</strong></span>
+                        <span>Giới hạn lượt: <strong>{challenge.turnTimeLimitSeconds}s</strong></span>
+                        <span>Thời gian: {new Date(challenge.createdAt).toLocaleDateString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                      {isPending ? (
+                        <button
+                          type="button"
+                          disabled={isActionLoading}
+                          onClick={() => handleCancelChallenge(challenge.challengeId)}
+                          className="px-3.5 py-1.5 border border-slate-200 text-rose-600 hover:border-rose-300 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                        >
+                          {isActionLoading ? "Đang hủy..." : "Hủy lời mời"}
+                        </button>
+                      ) : challenge.debateSessionId ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => navigate(`/learner/debate/${challenge.debateSessionId}`)}
+                          className="text-xs"
+                        >
+                          Vào phòng đấu <ArrowRight size={13} />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab 3: Tạo thách đấu mới ── */}
+      {activeTab === "find" && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs max-w-2xl mx-auto space-y-5">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Thiết lập lời mời thách đấu 1 vs 1</h2>
+            <p className="text-xs text-slate-500 mt-1">Nhập ID người dùng bạn muốn thách đấu trực tiếp trên hệ thống.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">ID Người nhận thách đấu (User ID) <span className="text-rose-500">*</span></label>
+              <input
+                type="number"
+                placeholder="Ví dụ: 4 (hoặc ID của bạn bè)"
+                value={targetUserId}
+                onChange={(e) => setTargetUserId(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Gợi ý: Tài khoản test 2 có User ID là 4 (longnpse180044@fpt.edu.vn).</p>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1.5">Chủ đề tranh biện <span className="text-rose-500">*</span></label>
+              <textarea
+                rows={3}
+                placeholder="Ví dụ: AI có nên thay thế con người trong các quyết định tư pháp?"
+                value={challengeTopic}
+                onChange={(e) => setChallengeTopic(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64] resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Phe của bạn</label>
+                <select
+                  value={challengerSide}
+                  onChange={(e) => setChallengerSide(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
+                >
+                  <option value={SystemDebateSide.PRO}>Ủng hộ (PRO)</option>
+                  <option value={SystemDebateSide.CON}>Phản đối (CON)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Thời gian mỗi lượt</label>
+                <select
+                  value={timeLimit}
+                  onChange={(e) => setTimeLimit(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
+                >
+                  <option value={120}>2 phút (120 giây)</option>
+                  <option value={180}>3 phút (180 giây)</option>
+                  <option value={240}>4 phút (240 giây)</option>
+                  <option value={300}>5 phút (300 giây)</option>
+                </select>
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="md"
+              disabled={isSubmittingChallenge || !targetUserId || !challengeTopic.trim()}
+              onClick={handleCreateChallenge}
+              className="w-full mt-2"
+            >
+              {isSubmittingChallenge ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              <span>Gửi lời mời thách đấu</span>
+            </Button>
           </div>
         </div>
       )}
 
-      {/* ── Tab 2: Phòng của tôi ── */}
-      {activeTab === "myRooms" && (
-        <div className="space-y-4">
-          {myRooms.length === 0 ? (
-            <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs">
-              <Users size={32} className="mx-auto mb-3 text-slate-300" />
-              <p className="text-sm font-semibold">Bạn chưa tạo phòng tranh biện nào.</p>
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(true)}
-                className="mt-4 px-4 py-2 bg-[#008A64] text-white text-xs font-bold rounded-xl hover:bg-[#007457] transition-all inline-flex items-center gap-1.5"
-              >
-                <Plus size={14} />Tạo phòng ngay
-              </button>
-            </div>
-          ) : (
-            myRooms.map((room) => (
-              <div key={room.id} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex-1 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-black text-slate-900 text-sm">{room.name}</h3>
-                    {room.isPrivate ? (
-                      <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                        <Lock size={10} />Riêng tư
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-[11px] font-bold text-[#008A64] bg-[#ECFDF5] border border-[#008A64]/30 px-2 py-0.5 rounded-full">
-                        <Unlock size={10} />Công khai
-                      </span>
-                    )}
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
-                      room.status === "waiting"
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                        : "bg-[#ECFDF5] text-[#008A64] border-[#008A64]/30"
-                    }`}>
-                      {room.status === "waiting" ? "⏳ Chờ đối thủ" : "🔴 Đang diễn ra"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 italic">&ldquo;{room.topic}&rdquo;</p>
-                  <div className="flex items-center gap-3 text-xs text-slate-400">
-                    <span className="flex items-center gap-1"><Users size={11} />{room.currentPlayers}/{room.maxPlayers}</span>
-                    <span>{room.rules}</span>
-                    <span>{room.createdAt}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => setMyRooms((prev) => prev.filter((r) => r.id !== room.id))}
-                    className="px-3 py-1.5 border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 text-xs font-semibold rounded-xl transition-all"
-                  >
-                    Xóa
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/learner/debate-1v1/room")}
-                    className="px-4 py-1.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold rounded-xl inline-flex items-center gap-1.5 transition-all shadow-sm"
-                  >
-                    Vào phòng <ArrowRight size={13} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* ── Tab 3: Lịch sử đối kháng ── */}
+      {/* ── Tab 4: Lịch sử đối kháng ── */}
       {activeTab === "history" && (
         <div className="space-y-4">
-          {matches.length === 0 ? (
-            <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs">
-              Chưa có lịch sử đối kháng 1 vs 1.
+          {historyList.length === 0 ? (
+            <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-500 shadow-xs">
+              <Swords size={32} className="mx-auto mb-2 text-slate-300" />
+              <p className="text-sm font-semibold">Chưa có trận đấu đối kháng P2P/1v1 nào hoàn thành.</p>
+              <p className="text-xs text-slate-400 mt-1">Hãy gửi thách đấu hoặc chấp nhận lời mời để bắt đầu thi đấu.</p>
             </div>
           ) : (
-            <>
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Tổng trận", value: matches.length, icon: Swords, color: "text-blue-500" },
-                  { label: "Thắng", value: matches.filter((m) => m.result === "WIN").length, icon: Trophy, color: "text-amber-500" },
-                  { label: "Thua", value: matches.filter((m) => m.result === "LOSE").length, icon: AlertCircle, color: "text-rose-500" },
-                ].map((s) => (
-                  <div key={s.label} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs text-center">
-                    <s.icon size={18} className={`${s.color} mx-auto mb-1.5`} />
-                    <p className="text-2xl font-black text-slate-900">{s.value}</p>
-                    <p className="text-xs text-slate-400">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Match history list */}
-              <div className="space-y-3">
-                {matches.map((match) => (
-                  <div key={match.id} className={`bg-white rounded-2xl border shadow-xs p-5 flex items-center gap-4 ${
-                    match.result === "WIN" ? "border-[#008A64]/30" : match.result === "LOSE" ? "border-rose-200" : "border-slate-200"
-                  }`}>
-                    {/* Result badge */}
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
-                      match.result === "WIN"
-                        ? "bg-[#ECFDF5] text-[#008A64]"
-                        : match.result === "LOSE"
-                        ? "bg-rose-50 text-rose-600"
-                        : "bg-slate-100 text-slate-600"
-                    }`}>
-                      {match.result === "WIN" ? <><CheckCircle2 size={20} /></> : match.result === "LOSE" ? <AlertCircle size={20} /> : <Swords size={20} />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-slate-900 line-clamp-1">{match.topic}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
-                        <span className="flex items-center gap-1"><Swords size={11} />vs {match.playerB.name}</span>
-                        <span className="flex items-center gap-1"><Clock size={11} />{match.duration}</span>
-                        <span>{match.date}</span>
-                        <span className="font-bold">{match.rules}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <p className="text-2xl font-black text-slate-900 font-mono">{match.playerA.score}</p>
-                      <p className="text-[11px] text-slate-400">vs {match.playerB.score}</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => navigate("/learner/debate-1v1/match-001/result")}
-                      className="px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:border-[#008A64] hover:text-[#008A64] text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 shrink-0"
-                    >
-                      <FileText size={13} />Xem kết quả
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <table className="w-full text-left text-xs text-slate-600">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase text-slate-500 tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-5 py-3.5">Mã / Chủ đề</th>
+                    <th className="px-5 py-3.5">Hình thức</th>
+                    <th className="px-5 py-3.5">Phe</th>
+                    <th className="px-5 py-3.5">Ngày đấu</th>
+                    <th className="px-5 py-3.5 text-right">Chi tiết</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {historyList.map((item) => (
+                    <tr key={item.sessionId} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-5 py-4 max-w-sm">
+                        <div className="font-bold text-slate-900">{item.title || item.topic}</div>
+                        <div className="text-slate-400 text-[11px]">#{item.sessionId}</div>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap font-medium text-slate-700">
+                        {item.debateType === 2 ? "P2P Trực tiếp" : "Thách đấu 1v1"}
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <Badge variant={item.userSide === 1 ? "primary" : "secondary"}>
+                          {item.userSide === 1 ? "Ủng hộ (PRO)" : "Phản đối (CON)"}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-slate-500">
+                        {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => navigate(`/learner/debate/${item.sessionId}`)}
+                          className="text-xs"
+                        >
+                          Vào phòng
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
 
-      {/* Create Room Modal */}
+      {/* Modal Quick Create Challenge */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="Tạo phòng tranh biện 1 vs 1"
+        title="Gửi thách đấu 1 vs 1"
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => setShowCreateModal(false)}>Hủy</Button>
-            <Button variant="primary" size="sm" onClick={handleCreateRoom}>Tạo phòng</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={isSubmittingChallenge || !targetUserId || !challengeTopic.trim()}
+              onClick={handleCreateChallenge}
+            >
+              {isSubmittingChallenge ? "Đang gửi..." : "Gửi lời mời"}
+            </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <Input label="Tên phòng" name="roomName" placeholder="Phòng luyện tập phản biện..." required onChange={() => {}} />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-700">Chủ đề tranh biện</label>
-            <select className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]">
-              <option>Mạng xã hội có gây hại nhiều hơn lợi ích?</option>
-              <option>Trí tuệ nhân tạo có nên được quản lý chặt chẽ?</option>
-              <option>Đại học có nên miễn học phí?</option>
-              <option>Năng lượng tái tạo có thể thay thế nhiên liệu hóa thạch?</option>
-            </select>
+          <Input
+            label="ID Người được thách đấu (User ID)"
+            name="targetUserId"
+            type="number"
+            placeholder="Ví dụ: 4 (tk longnpse180044@fpt.edu.vn)"
+            value={targetUserId}
+            onChange={(e) => setTargetUserId(e.target.value)}
+            required
+          />
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">Chủ đề tranh biện *</label>
+            <textarea
+              rows={3}
+              placeholder="Nhập kiến nghị / chủ đề muốn tranh biện..."
+              value={challengeTopic}
+              onChange={(e) => setChallengeTopic(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64] resize-none"
+            />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-700">Thể lệ</label>
-            <select className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]">
-              <option>WSDC</option>
-              <option>British Parliamentary (BP)</option>
-              <option>Tự do</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-3">
-            <input type="checkbox" id="privateRoom" className="w-4 h-4 accent-[#008A64]" />
-            <label htmlFor="privateRoom" className="text-xs font-semibold text-slate-700">Phòng riêng tư (chỉ người có link mới vào được)</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Phe của bạn</label>
+              <select
+                value={challengerSide}
+                onChange={(e) => setChallengerSide(Number(e.target.value))}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
+              >
+                <option value={SystemDebateSide.PRO}>Ủng hộ (PRO)</option>
+                <option value={SystemDebateSide.CON}>Phản đối (CON)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Thời gian mỗi lượt</label>
+              <select
+                value={timeLimit}
+                onChange={(e) => setTimeLimit(Number(e.target.value))}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
+              >
+                <option value={120}>2 phút (120s)</option>
+                <option value={180}>3 phút (180s)</option>
+                <option value={240}>4 phút (240s)</option>
+                <option value={300}>5 phút (300s)</option>
+              </select>
+            </div>
           </div>
         </div>
       </Modal>
@@ -359,3 +596,4 @@ const Debate1v1: React.FC = () => {
 };
 
 export default Debate1v1;
+

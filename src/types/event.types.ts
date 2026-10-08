@@ -19,6 +19,14 @@ export interface DebateEvent {
   status: EventStatus;
   bannerUrl?: string;
   createdAt: string;
+  type?: "workshop" | "competition" | "seminar" | string;
+  format?: string;
+  rules?: string;
+  organizer?: string;
+  topic?: string;
+  rounds?: number;
+  prizePool?: string;
+  entryFee?: number;
 }
 
 export interface CreateEventDto {

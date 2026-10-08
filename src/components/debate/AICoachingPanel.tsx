@@ -1,12 +1,6 @@
 import React, { useState } from "react";
 import { Bot, ChevronDown, ChevronUp, Lightbulb, Target, AlertTriangle, Zap, RefreshCw, Coins } from "lucide-react";
 
-interface CoachingAdvice {
-  type: "weakness" | "strategy" | "evidence" | "logic_error";
-  label: string;
-  content: string;
-}
-
 export interface CoachingAdvice {
   type: "weakness" | "strategy" | "evidence" | "logic_error";
   label: string;

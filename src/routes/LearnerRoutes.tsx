@@ -24,11 +24,13 @@ const LearnerRoutes: React.FC = () => {
       <Route path="topics" element={<Topics />} />
       <Route path="topics/:id" element={<TopicDetail />} />
       <Route path="debate" element={<DebatePractice />} />
+      <Route path="debate-practice" element={<DebatePractice />} />
       <Route path="debate/:sessionId" element={<DebateRoom />} />
       <Route path="debate/:sessionId/result" element={<DebateResult />} />
       <Route path="debate-1v1" element={<Debate1v1 />} />
       <Route path="debate-1v1/:matchId/result" element={<Debate1v1Result />} />
       <Route path="history" element={<DebateHistory />} />
+      <Route path="debate-history" element={<DebateHistory />} />
       <Route path="feedback" element={<Feedback />} />
       <Route path="progress" element={<Progress />} />
       <Route path="events" element={<Events />} />

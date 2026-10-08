@@ -43,7 +43,7 @@ const competitionApi = {
     axiosClient.patch(`/competitions/${id}`, data),
 
   deleteCompetition: (id: number | string): Promise<ApiResponse<void>> =>
-    axiosClient.delete(`/competitions/${id}`),
+    axiosClient.post(`/competitions/${id}/cancel`),
 
   // Lifecycle status transition endpoints
   openRegistration: (id: number | string): Promise<ApiResponse<object>> =>
@@ -69,6 +69,12 @@ const competitionApi = {
     axiosClient.get(`/competitions/${competitionId}/registrations`, {
       params: status ? { status } : undefined,
     }),
+
+  getRegistrationById: (
+    competitionId: number | string,
+    registrationId: number | string
+  ): Promise<ApiResponse<CompetitionRegistration>> =>
+    axiosClient.get(`/competitions/${competitionId}/registrations/${registrationId}`),
 
   getMyRegistration: async (
     competitionId: number | string,

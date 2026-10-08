@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Trophy, Users, Clock, Tag, ChevronRight, CheckCircle, AlertCircle, Filter, Zap, BookOpen, Swords } from "lucide-react";
 import competitionApi from "../../../api/competitionApi";
-import { CompetitionListItem } from "../../../types";
 
 export interface DebateEvent {
   id: string;
@@ -18,6 +17,12 @@ export interface DebateEvent {
   isRegistered: boolean;
   tags: string[];
   bannerUrl?: string;
+  rules?: string;
+  organizer?: string;
+  topic?: string;
+  rounds?: number;
+  prizePool?: string;
+  entryFee?: number;
 }
 
 const statusConfig = {
@@ -204,12 +209,12 @@ const Events: React.FC = () => {
               type: "competition",
               status,
               format: "AI_JUDGE",
-              startDate: c.startDate || c.createdAt,
-              registerDeadline: c.registrationDeadline || "",
+              startDate: c.startDate || c.createdAt || "",
+              registerDeadline: c.registrationDeadline || c.registrationEnd || "",
               currentParticipants: c.registeredCount || 0,
               maxParticipants: c.maxParticipants || 10,
               isRegistered: false,
-              tags: [c.format, c.status],
+              tags: [c.competitionType, String(c.status)],
             };
           });
           setEvents(mapped);

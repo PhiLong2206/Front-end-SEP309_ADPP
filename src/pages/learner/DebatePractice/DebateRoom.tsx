@@ -17,7 +17,7 @@ import DebateStepper from "../../../components/debate/DebateStepper";
 import RebuttalSuggestion from "../../../components/debate/RebuttalSuggestion";
 import AICoachingPanel, { CoachingAdvice } from "../../../components/debate/AICoachingPanel";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
-import { aiApi } from "../../../api";
+import { aiApi, debateApi } from "../../../api";
 import {
   CaseFileResponse,
   ArgumentEvaluationResult,
@@ -45,6 +45,7 @@ const DebateRoom: React.FC = () => {
   const roleParam = searchParams.get("role") || "PRO";
   const difficultyParam = searchParams.get("difficulty") || "Trung bình";
   const motionParam = searchParams.get("motion") || "Mạng xã hội có gây hại nhiều hơn lợi ích?";
+  const [motionText, setMotionText] = useState(motionParam);
 
   const learnerSide: BackendDebateSide = roleParam === "PRO" ? "pro" : "con";
   const aiSide: BackendDebateSide = roleParam === "PRO" ? "con" : "pro";
@@ -118,6 +119,40 @@ const DebateRoom: React.FC = () => {
       }
     };
 
+    const numSessionId = parseInt(sessionId, 10);
+    if (!isNaN(numSessionId) && numSessionId > 0) {
+      debateApi.getSessionDetails(numSessionId).then((res) => {
+        if (res.success && res.data) {
+          const restoredMotion = res.data.topic || res.data.title;
+          if (restoredMotion && isMounted) {
+            setMotionText(restoredMotion);
+          }
+        }
+      }).catch(() => {});
+
+      debateApi.getTranscript(numSessionId).then((res) => {
+        if (res.success && res.data?.arguments && res.data.arguments.length > 0) {
+          const loadedMsgs: DebateRoomMessage[] = res.data.arguments.map((arg) => ({
+            id: `arg-${arg.argumentId}`,
+            speaker: arg.isAI ? "AI" : "Learner",
+            speakerName: arg.speakerName || (arg.isAI ? "Đối thủ AI" : "Bạn"),
+            side: (arg.side === 1 || String(arg.side) === "PRO") ? "Ủng hộ" : "Phản đối",
+            stage: (arg.stage === 1 || String(arg.stage) === "Opening")
+              ? "Mở đầu"
+              : (arg.stage === 2 || String(arg.stage) === "Rebuttal")
+              ? "Phản biện"
+              : "Kết luận",
+            roundNumber: Math.ceil(arg.turnOrder / 2) || 1,
+            timestamp: arg.submittedAt ? new Date(arg.submittedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "",
+            content: arg.content,
+          }));
+          if (isMounted) {
+            setMessages(loadedMsgs);
+          }
+        }
+      }).catch(() => {});
+    }
+
     initOpponent();
     return () => {
       isMounted = false;
@@ -149,6 +184,14 @@ const DebateRoom: React.FC = () => {
     setIsEvaluating(true);
     setOpponentError(null);
     setEvaluatorError(null);
+
+    // Persist argument to Backend .NET DebateController
+    const numSessionId = parseInt(sessionId, 10);
+    if (!isNaN(numSessionId) && numSessionId > 0) {
+      debateApi.submitArgument(numSessionId, { content: currentText }).catch((err) => {
+        console.warn("Backend submitArgument warning:", err);
+      });
+    }
 
     // 1. Call AI Evaluator Microservice (POST /evaluate)
     const opponentRecentSpeech = messages
@@ -273,7 +316,7 @@ const DebateRoom: React.FC = () => {
 
         {/* Center: Topic Title */}
         <div className="text-center font-bold text-[17px] sm:text-[18px] text-slate-900 dark:text-[#F8FAFC] truncate max-w-md">
-          {motionParam}
+          {motionText}
         </div>
 
         {/* Right: Timer & Finish */}

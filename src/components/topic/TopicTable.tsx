@@ -46,7 +46,7 @@ const TopicTable: React.FC<TopicTableProps> = ({ topics }) => {
                   <DifficultyBadge difficulty={topic.difficulty} />
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap text-right text-xs font-semibold text-slate-700 font-mono">
-                  {topic.practicesCount.toLocaleString()}
+                  {(topic.practicesCount ?? 0).toLocaleString()}
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap text-right">
                   <div className="inline-flex items-center gap-2">

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Mic, BarChart2, Flame, ArrowRight, Trophy, Calendar, User, Settings, Swords } from "lucide-react";
+import { BarChart2, Flame, ArrowRight, Trophy, Calendar, User, Settings, Swords } from "lucide-react";
 import CompetitionStatusBadge from "../../../components/competition/CompetitionStatusBadge";
 import CompetitionTypeBadge from "../../../components/competition/CompetitionTypeBadge";
 import { useAuth } from "../../../hooks/useAuth";
 import competitionApi from "../../../api/competitionApi";
+import { debateApi } from "../../../api";
 import { CompetitionListItem } from "../../../types";
 import { formatDate } from "../../../utils/formatDate";
 
@@ -13,6 +14,7 @@ import natureBg from "../../../assets/images/nature-bg.jpg";
 const LearnerDashboard: React.FC = () => {
   const { user } = useAuth();
   const [competitions, setCompetitions] = useState<CompetitionListItem[]>([]);
+  const [debateCount, setDebateCount] = useState<number>(0);
   const [loadingComps, setLoadingComps] = useState(false);
 
   useEffect(() => {
@@ -29,7 +31,20 @@ const LearnerDashboard: React.FC = () => {
         setLoadingComps(false);
       }
     };
+
+    const loadDebateStats = async () => {
+      try {
+        const historyRes = await debateApi.getUserHistory();
+        if (historyRes.success && Array.isArray(historyRes.data)) {
+          setDebateCount(historyRes.data.length);
+        }
+      } catch {
+        // Fallback silently
+      }
+    };
+
     loadCompetitions();
+    loadDebateStats();
   }, []);
 
   return (
@@ -83,10 +98,10 @@ const LearnerDashboard: React.FC = () => {
         <div className="bg-white dark:bg-[#12231C] p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.18)] shadow-xs flex items-center justify-between hover:border-[#008A64]/40 hover:shadow-sm transition-all group">
           <div>
             <div className="text-3xl sm:text-4xl font-black text-[#0F172A] dark:text-[#F8FAFC] tracking-tight group-hover:text-[#008A64] dark:group-hover:text-emerald-400 transition-colors">
-              0
+              {debateCount}
             </div>
             <span className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1 inline-block">
-              Phiên tranh biện đã hoàn thành
+              Phiên tranh biện đã tham gia
             </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/30 text-[#008A64] dark:text-emerald-400 flex items-center justify-center shadow-xs">
