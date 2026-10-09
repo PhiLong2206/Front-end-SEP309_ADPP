@@ -8,6 +8,40 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      "/opponent": {
+        target: "http://localhost:8002",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/api/opponent": {
+        target: "http://localhost:8002",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+      "/evaluate": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/api/evaluate": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+      "/ai-health": {
+        target: "http://localhost:8002",
+        changeOrigin: true,
+        secure: false,
+        rewrite: () => "/health",
+      },
+      "/evaluator-health": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        secure: false,
+        rewrite: () => "/health",
+      },
       "/api": {
         target: "http://localhost:5001",
         changeOrigin: true,

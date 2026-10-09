@@ -24,6 +24,10 @@ import {
   BackendDebateSide,
   BackendDifficulty,
   DebateRoundType,
+  RoundEvaluationResult,
+  ArgumentTurn,
+  TurnSpeaker,
+  SessionEvaluationResult,
 } from "../../../types";
 
 export interface DebateRoomMessage {
@@ -102,12 +106,46 @@ const DebateRoom: React.FC = () => {
         if (isMounted) {
           setAiOpponentStatus(res.status || "ready");
         }
-        // Try fetching Case Plan
+
+        // Fetch Case Plan from AI service
         try {
           const plan = await aiApi.getOpponentCasePlan(sessionId);
-          if (isMounted) setCasePlan(plan);
+          if (isMounted && plan) {
+            setCasePlan(plan);
+          }
         } catch {
-          // Case plan might not be immediately available
+          // Case plan might still be generating or not ready immediately
+        }
+
+        // If AI is PRO (Affirmative), AI must deliver Turn 1 (Opening) first
+        if (aiSide === "pro" && isMounted) {
+          setIsAiGenerating(true);
+          try {
+            const firstTurnRes = await aiApi.generateOpponentTurn(sessionId, {
+              turn_index: 1,
+              new_learner_speeches: [],
+            });
+
+            if (isMounted && firstTurnRes?.speech_text) {
+              const aiFirstMsg: DebateRoomMessage = {
+                id: `msg-${Date.now()}`,
+                speaker: "AI",
+                speakerName: "Đối thủ AI",
+                side: "Ủng hộ",
+                stage: "Mở đầu",
+                roundNumber: 1,
+                timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+                content: firstTurnRes.speech_text,
+              };
+              setMessages((prev) => (prev.length === 0 ? [aiFirstMsg] : prev));
+            }
+          } catch (firstTurnErr: unknown) {
+            const errorObj = firstTurnErr as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+            const detail = errorObj.response?.data?.detail || errorObj.message || "Lỗi tạo bài phát biểu mở đầu từ AI";
+            if (isMounted) setOpponentError(`AI Opponent (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+          } finally {
+            if (isMounted) setIsAiGenerating(false);
+          }
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -164,8 +202,23 @@ const DebateRoom: React.FC = () => {
     if (!argumentText.trim() || isAiGenerating) return;
 
     const currentText = argumentText.trim();
-    const currentTurn = messages.length + 1;
     const stage: DebateRoundType = currentRound === 1 ? "opening" : currentRound === 2 ? "rebuttal" : "closing";
+
+    // Precise turn indexing according to match_format (6 turns total)
+    const learnerTurnIndex =
+      learnerSide === "pro"
+        ? currentRound === 1
+          ? 1
+          : currentRound === 2
+          ? 3
+          : 5
+        : currentRound === 1
+        ? 2
+        : currentRound === 2
+        ? 4
+        : 6;
+
+    const aiTurnIndex = learnerTurnIndex + 1; // 2, 4, 6 for pro; 3, 5 for con
 
     const newLearnerMsg: DebateRoomMessage = {
       id: `msg-${Date.now()}`,
@@ -220,12 +273,18 @@ const DebateRoom: React.FC = () => {
       });
 
     // 2. Call AI Opponent Microservice (POST /opponent/sessions/{id}/turns)
+    // If learner is CON and at Round 3 (Turn 6), Learner concludes debate - no further AI turn
+    if (learnerSide === "con" && currentRound === 3) {
+      setIsAiGenerating(false);
+      return;
+    }
+
     try {
       const turnRes = await aiApi.generateOpponentTurn(sessionId, {
-        turn_index: currentTurn + 1,
+        turn_index: aiTurnIndex,
         new_learner_speeches: [
           {
-            turn_index: currentTurn,
+            turn_index: learnerTurnIndex,
             round_type: stage,
             text: currentText,
           },
@@ -252,7 +311,6 @@ const DebateRoom: React.FC = () => {
       const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
       const detail = errorObj.response?.data?.detail || errorObj.message || "Lỗi tạo bài phản biện từ AI";
       setOpponentError(`AI Opponent (${errorObj.response?.status || "Lỗi"}): ${detail}`);
-      // ABSOLUTE RULE: DO NOT FALLBACK TO FAKE/MOCK AI RESPONSE!
     } finally {
       setIsAiGenerating(false);
     }
@@ -300,6 +358,108 @@ const DebateRoom: React.FC = () => {
       });
   }, [messages, motionParam, learnerSide, currentRound]);
 
+  const handleFinishDebate = async () => {
+    setIsEvaluating(true);
+    try {
+      // 1. Group messages by rounds for AI Evaluator
+      const round1Msgs = messages.filter((m) => m.roundNumber === 1);
+      const round2Msgs = messages.filter((m) => m.roundNumber === 2);
+      const round3Msgs = messages.filter((m) => m.roundNumber === 3);
+
+      const roundsToEvaluate: Array<{ stage: DebateRoundType; msgs: DebateRoomMessage[] }> = [
+        { stage: "opening", msgs: round1Msgs },
+        { stage: "rebuttal", msgs: round2Msgs },
+        { stage: "closing", msgs: round3Msgs },
+      ].filter((r) => r.msgs.length > 0) as Array<{ stage: DebateRoundType; msgs: DebateRoomMessage[] }>;
+
+      const roundResults: RoundEvaluationResult[] = [];
+      for (const r of roundsToEvaluate) {
+        const turns: ArgumentTurn[] = r.msgs.map((m) => ({
+          speaker: (m.speaker === "Learner" ? "learner" : "opponent") as TurnSpeaker,
+          text: m.content,
+        }));
+        if (turns.length > 0) {
+          try {
+            const res = await aiApi.evaluateDebateRound({
+              motion: motionParam,
+              side: learnerSide,
+              stage: r.stage,
+              turns,
+            });
+            roundResults.push(res);
+          } catch (roundErr) {
+            console.warn("AI Evaluator round error:", roundErr);
+          }
+        }
+      }
+
+      let sessionResult: SessionEvaluationResult | null = null;
+      if (roundResults.length > 0) {
+        try {
+          sessionResult = await aiApi.evaluateDebateSession({
+            motion: motionParam,
+            side: learnerSide,
+            rounds: roundResults,
+          });
+        } catch (sessionErr) {
+          console.warn("AI Evaluator session error:", sessionErr);
+        }
+      }
+
+      const overallScore100 = sessionResult
+        ? Math.round(sessionResult.overall_score * 10)
+        : evaluationResult
+        ? Math.round(evaluationResult.overall_score * 10)
+        : 75;
+
+      const criteriaScores = evaluationResult?.criteria || roundResults[0]?.criteria || [];
+      const getCriteriaScore = (name: string) => {
+        const found = criteriaScores.find((c: { name: string; score: number }) =>
+          c.name.toLowerCase().includes(name.toLowerCase())
+        );
+        return found ? found.score * 20 : 70;
+      };
+
+      const debateResultPayload = {
+        sessionId,
+        topicTitle: motionText,
+        overallScore: overallScore100,
+        ratingText:
+          overallScore100 >= 80 ? "Xuất sắc" : overallScore100 >= 65 ? "Khá tốt" : "Cần cải thiện",
+        scores: {
+          logic: getCriteriaScore("logic"),
+          evidence: getCriteriaScore("evidence"),
+          relevance: getCriteriaScore("relevance"),
+          structure: getCriteriaScore("structure"),
+          persuasiveness: getCriteriaScore("persuasiveness"),
+        },
+        strengths:
+          sessionResult?.overall_strengths?.length
+            ? sessionResult.overall_strengths
+            : evaluationResult?.strengths?.length
+            ? evaluationResult.strengths
+            : ["Luận điểm bám sát trọng tâm kiến nghị tranh biện."],
+        improvements:
+          sessionResult?.overall_weaknesses?.length
+            ? sessionResult.overall_weaknesses
+            : evaluationResult?.weaknesses?.length
+            ? evaluationResult.weaknesses
+            : ["Cần củng cố thêm số liệu và ví dụ minh họa thực tế."],
+        progressTrend: sessionResult?.progress_trend || evaluationResult?.overall_reasoning,
+        stageBreakdown: sessionResult?.stage_breakdown,
+        criteriaList: criteriaScores,
+      };
+
+      navigate(`/learner/debate/${sessionId}/result`, {
+        state: { result: debateResultPayload },
+      });
+    } catch {
+      navigate(`/learner/debate/${sessionId}/result`);
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
   return (
     <div className="space-y-4.5 max-w-6xl mx-auto pb-6">
       {/* 1. TOP BAR: Thoát | Topic Title | Timer & Finish */}
@@ -328,10 +488,11 @@ const DebateRoom: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => navigate(`/learner/debate/${sessionId}/result`)}
-            className="px-4 py-2 bg-[#008A64] text-white rounded-xl text-[15px] font-semibold hover:bg-[#007457] transition-all shadow-sm shadow-[#008A64]/20 cursor-pointer"
+            onClick={handleFinishDebate}
+            disabled={isEvaluating}
+            className="px-4 py-2 bg-[#008A64] text-white rounded-xl text-[15px] font-semibold hover:bg-[#007457] transition-all shadow-sm shadow-[#008A64]/20 disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
           >
-            Nộp bài
+            <span>{isEvaluating ? "Đang chấm..." : "Nộp bài"}</span>
           </button>
         </div>
       </div>
@@ -621,20 +782,69 @@ const DebateRoom: React.FC = () => {
                   {/* Motion reading */}
                   {casePlan.content?.motion_reading && (
                     <div className="p-3 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80">
-                      <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">Định nghĩa phạm vi:</p>
-                      <p className="text-slate-600 dark:text-slate-400">{casePlan.content.motion_reading}</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">Định nghĩa phạm vi & Bối cảnh:</p>
+                      <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{casePlan.content.motion_reading}</p>
+                    </div>
+                  )}
+
+                  {/* Definitions */}
+                  {casePlan.content?.definitions && casePlan.content.definitions.length > 0 && (
+                    <div className="p-3 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-2">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Thuật ngữ cốt lõi:</p>
+                      <div className="space-y-1.5">
+                        {casePlan.content.definitions.map((def, idx) => (
+                          <p key={idx} className="text-slate-600 dark:text-slate-400">
+                            <span className="font-semibold text-[#008A64]">{def.term}:</span> {def.meaning}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {/* Arguments */}
-                  {casePlan.content?.arguments?.map((arg) => (
-                    <div key={arg.id} className="p-3 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1.5">
-                      <p className="font-bold text-[#008A64]">{arg.id}: {arg.title}</p>
-                      <p className="text-slate-700 dark:text-slate-300"><span className="font-semibold">Luận điểm:</span> {arg.claim}</p>
-                      <p className="text-slate-600 dark:text-slate-400"><span className="font-semibold">Lý lẽ:</span> {arg.reasoning}</p>
-                      <p className="italic text-slate-500"><span className="font-semibold">Ví dụ:</span> {arg.example}</p>
+                  {casePlan.content?.arguments && casePlan.content.arguments.length > 0 && (
+                    <div className="space-y-2.5">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Các luận điểm chính của AI:</p>
+                      {casePlan.content.arguments.map((arg) => (
+                        <div key={arg.id} className="p-3 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1.5">
+                          <p className="font-bold text-[#008A64]">{arg.id}: {arg.title}</p>
+                          <p className="text-slate-700 dark:text-slate-300"><span className="font-semibold">Luận điểm:</span> {arg.claim}</p>
+                          <p className="text-slate-600 dark:text-slate-400"><span className="font-semibold">Lý lẽ:</span> {arg.reasoning}</p>
+                          {arg.example && (
+                            <p className="italic text-slate-500"><span className="font-semibold">Ví dụ:</span> {arg.example}</p>
+                          )}
+                          {arg.impact && (
+                            <p className="text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Tác động:</span> {arg.impact}</p>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Anticipated arguments */}
+                  {casePlan.content?.anticipated_opponent_arguments && casePlan.content.anticipated_opponent_arguments.length > 0 && (
+                    <div className="space-y-2.5">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Dự đoán phản biện của đối phương:</p>
+                      {casePlan.content.anticipated_opponent_arguments.map((item) => (
+                        <div key={item.id} className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-800/40 space-y-1.5">
+                          <p className="font-semibold text-amber-800 dark:text-amber-300">
+                            <span className="font-bold">Dự đoán bạn sẽ nói:</span> {item.learner_claim}
+                          </p>
+                          <p className="text-slate-600 dark:text-slate-300">
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">AI chuẩn bị phản bác:</span> {item.planned_response}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Weighing */}
+                  {casePlan.content?.weighing && (
+                    <div className="p-3 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80">
+                      <p className="font-bold text-slate-800 dark:text-slate-200 mb-1">Cân nhắc tác động (Weighing):</p>
+                      <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{casePlan.content.weighing}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

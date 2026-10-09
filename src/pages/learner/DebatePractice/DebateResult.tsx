@@ -17,6 +17,9 @@ export interface DebateResultData {
   };
   strengths: string[];
   improvements: string[];
+  progressTrend?: string;
+  stageBreakdown?: Record<string, number>;
+  criteriaList?: Array<{ name: string; score: number; reasoning: string }>;
 }
 
 const DebateResult: React.FC = () => {
@@ -28,8 +31,8 @@ const DebateResult: React.FC = () => {
     return (
       <div className="space-y-6 max-w-4xl mx-auto py-16 text-center">
         <FileText size={40} className="mx-auto text-slate-300" />
-        <h2 className="text-lg font-black text-slate-900">Không tìm thấy kết quả đánh giá</h2>
-        <p className="text-xs text-slate-500 mt-1">
+        <h2 className="text-lg font-black text-slate-900 dark:text-[#F8FAFC]">Không tìm thấy kết quả đánh giá</h2>
+        <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1">
           Phiên tranh biện này chưa có dữ liệu chấm điểm từ AI hoặc phiên chưa kết thúc.
         </p>
         <Link
@@ -48,60 +51,107 @@ const DebateResult: React.FC = () => {
       {/* 3 Main Columns */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
         {/* LEFT COLUMN: Kết quả tranh biện & Circular Score (~30%) */}
-        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between">
+        <div className="md:col-span-4 bg-white dark:bg-[#10231C] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
           <div className="space-y-2">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
               Kết quả tranh biện
             </h2>
-            <p className="text-xs text-slate-600 line-clamp-2">
-              Chủ đề: <span className="font-semibold text-[#008A64]">&ldquo;{result.topicTitle}&rdquo;</span>
+            <p className="text-xs text-slate-600 dark:text-[#94A3B8] line-clamp-2">
+              Chủ đề: <span className="font-semibold text-[#008A64] dark:text-[#34D399]">&ldquo;{result.topicTitle}&rdquo;</span>
             </p>
           </div>
 
           {/* Circular Score Badge Center */}
           <div className="my-6 flex flex-col items-center justify-center">
-            <div className="w-32 h-32 rounded-full border-4 border-[#008A64] flex flex-col items-center justify-center bg-[#ECFDF5]/50 shadow-sm shadow-[#008A64]/10">
-              <span className="text-4xl font-black text-slate-900 font-mono leading-none">
+            <div className="w-32 h-32 rounded-full border-4 border-[#008A64] flex flex-col items-center justify-center bg-[#ECFDF5]/50 dark:bg-[rgba(16,185,129,0.1)] shadow-sm shadow-[#008A64]/10">
+              <span className="text-4xl font-black text-slate-900 dark:text-[#F8FAFC] font-mono leading-none">
                 {result.overallScore}
               </span>
-              <span className="text-[11px] font-bold text-slate-500 mt-1">/ 100</span>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-[#94A3B8] mt-1">/ 100</span>
             </div>
-            <span className="mt-4 px-3.5 py-1 rounded-full text-xs font-bold bg-[#ECFDF5] text-[#008A64] border border-[#008A64]/30">
+            <span className="mt-4 px-3.5 py-1 rounded-full text-xs font-bold bg-[#ECFDF5] text-[#008A64] dark:bg-[rgba(16,185,129,0.15)] dark:text-[#34D399] border border-[#008A64]/30">
               {result.ratingText}
             </span>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 text-xs text-slate-500 text-center">
-            Đánh giá tự động bởi Ban giám khảo AI • Tiêu chuẩn Quốc tế
+          {/* Stage breakdown if available */}
+          {result.stageBreakdown && Object.keys(result.stageBreakdown).length > 0 && (
+            <div className="p-3 bg-slate-50 dark:bg-[#091713] rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2 mb-3">
+              <p className="font-bold text-slate-700 dark:text-slate-300">Điểm theo giai đoạn:</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {Object.entries(result.stageBreakdown).map(([stage, sc]) => (
+                  <div key={stage} className="p-1.5 bg-white dark:bg-[#123326] rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span className="capitalize text-slate-500 dark:text-slate-400 block text-[10px]">
+                      {stage === "opening" ? "Mở đầu" : stage === "rebuttal" ? "Phản biện" : "Kết luận"}
+                    </span>
+                    <span className="font-bold text-[#008A64] dark:text-[#34D399] text-xs">
+                      {sc}/10
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500 dark:text-[#94A3B8] text-center">
+            Đánh giá tự động bởi AI Evaluator Service • Tiêu chuẩn Rubric 5 tiêu chí
           </div>
         </div>
 
         {/* CENTER COLUMN: Điểm theo tiêu chí (~35%) */}
-        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+        <div className="md:col-span-4 bg-white dark:bg-[#10231C] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
             Điểm theo tiêu chí
           </h2>
           <div className="pt-2">
             <ScoreBreakdown scores={result.scores} />
           </div>
+
+          {result.criteriaList && result.criteriaList.length > 0 && (
+            <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <p className="font-bold text-slate-700 dark:text-slate-300">Giải trình tiêu chí:</p>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {result.criteriaList.map((c, i) => (
+                  <div key={i} className="p-2 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                    <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                      <span>{c.name}</span>
+                      <span className="text-[#008A64] dark:text-[#34D399]">{c.score}/5</span>
+                    </div>
+                    <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">{c.reasoning}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: Nhận xét chi tiết (~35%) */}
-        <div className="md:col-span-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4">
+        <div className="md:col-span-4 bg-white dark:bg-[#10231C] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4">
           <div className="space-y-4">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
               Nhận xét chi tiết
             </h2>
 
+            {/* Tiến trình & Xu hướng */}
+            {result.progressTrend && (
+              <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/40 text-xs space-y-1">
+                <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                  <CheckCircle2 size={13} className="text-[#008A64]" />
+                  Tổng quan chất lượng
+                </span>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{result.progressTrend}</p>
+              </div>
+            )}
+
             {/* Điểm mạnh */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5 uppercase tracking-wider">
+              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
                 <CheckCircle2 size={14} className="text-[#008A64]" />
                 Điểm mạnh
               </span>
               <ul className="space-y-1.5 pl-1">
                 {result.strengths.map((str, idx) => (
-                  <li key={idx} className="text-xs text-slate-600 leading-relaxed flex items-start gap-1.5">
+                  <li key={idx} className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed flex items-start gap-1.5">
                     <span className="text-[#008A64] font-bold mt-0.5">•</span>
                     <span>{str}</span>
                   </li>
@@ -110,14 +160,14 @@ const DebateResult: React.FC = () => {
             </div>
 
             {/* Cần cải thiện */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <span className="text-xs font-bold text-amber-800 flex items-center gap-1.5 uppercase tracking-wider">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-bold text-amber-800 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
                 <AlertCircle size={14} className="text-amber-500" />
                 Cần cải thiện
               </span>
               <ul className="space-y-1.5 pl-1">
                 {result.improvements.map((imp, idx) => (
-                  <li key={idx} className="text-xs text-slate-600 leading-relaxed flex items-start gap-1.5">
+                  <li key={idx} className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed flex items-start gap-1.5">
                     <span className="text-amber-500 font-bold mt-0.5">•</span>
                     <span>{imp}</span>
                   </li>

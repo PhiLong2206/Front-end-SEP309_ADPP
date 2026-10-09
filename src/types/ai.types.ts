@@ -63,6 +63,14 @@ export type OpponentDifficulty = "easy" | "medium" | "hard" | "BEGINNER" | "INTE
 export type BackendDifficulty = "easy" | "medium" | "hard";
 export type DebateRoundType = "opening" | "rebuttal" | "closing";
 
+export type TurnMode = "opening_first" | "opening_reply" | "rebuttal" | "closing";
+export type SessionStatus = "created" | "planning" | "ready" | "failed";
+
+export interface AIHealthResponse {
+  status: string;
+  llm_provider: string;
+}
+
 export interface CreateOpponentSessionRequest {
   external_session_id: string;
   motion: string;
@@ -74,7 +82,21 @@ export interface CreateOpponentSessionRequest {
 
 export interface CreateOpponentSessionResponse {
   opponent_session_id: string;
-  status: "created" | "planning" | "ready" | "failed" | string;
+  status: SessionStatus | string;
+}
+
+export interface SessionResponse {
+  id: string;
+  external_session_id: string;
+  motion: string;
+  ai_side: BackendDebateSide;
+  learner_side: BackendDebateSide;
+  difficulty: BackendDifficulty;
+  language: string;
+  status: SessionStatus;
+  created_at: string;
+  updated_at: string;
+  case_file?: CaseFileResponse | null;
 }
 
 export interface LearnerSpeechInput {
@@ -91,7 +113,7 @@ export interface CreateTurnRequest {
 export interface TurnResponse {
   turn_index: number;
   round_type: DebateRoundType | string;
-  mode: string;
+  mode: TurnMode | string;
   speech_text: string;
 }
 
@@ -142,11 +164,20 @@ export interface ArgumentEvaluationPayload {
   opponent_argument_text?: string | null;
 }
 
+export type TurnSpeaker = "learner" | "opponent";
+
+export interface ArgumentTurn {
+  speaker: TurnSpeaker;
+  text: string;
+}
+
 export interface RubricCriterionScore {
   name: string;
   score: number;
   reasoning: string;
 }
+
+export type CriterionScore = RubricCriterionScore;
 
 export interface ArgumentEvaluationResult {
   overall_score: number;
@@ -155,6 +186,40 @@ export interface ArgumentEvaluationResult {
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];
+  raw_model_output?: string | null;
+}
+
+export interface RoundEvaluationRequest {
+  motion: string;
+  side: BackendDebateSide;
+  stage: DebateRoundType;
+  turns: ArgumentTurn[];
+}
+
+export interface RoundEvaluationResult {
+  stage: DebateRoundType;
+  round_score: number;
+  criteria: RubricCriterionScore[];
+  consistency_note: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+  raw_model_output?: string | null;
+}
+
+export interface SessionEvaluationRequest {
+  motion: string;
+  side: BackendDebateSide;
+  rounds: RoundEvaluationResult[];
+}
+
+export interface SessionEvaluationResult {
+  overall_score: number;
+  stage_breakdown: Record<string, number>;
+  progress_trend: string;
+  overall_strengths?: string[];
+  overall_weaknesses?: string[];
+  overall_suggestions?: string[];
   raw_model_output?: string | null;
 }
 
