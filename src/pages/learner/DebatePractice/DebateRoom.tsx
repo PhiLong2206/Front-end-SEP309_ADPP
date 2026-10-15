@@ -12,12 +12,21 @@ import {
   Award,
   BookOpen,
   Sparkles,
+  Shield,
+  Flame,
+  Swords,
+  RefreshCw,
+  Copy,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
 import DebateStepper from "../../../components/debate/DebateStepper";
 import RebuttalSuggestion from "../../../components/debate/RebuttalSuggestion";
 import AICoachingPanel, { CoachingAdvice } from "../../../components/debate/AICoachingPanel";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
 import { aiApi, debateApi } from "../../../api";
+import { useAuth } from "../../../hooks/useAuth";
 import {
   CaseFileResponse,
   ArgumentEvaluationResult,
@@ -28,6 +37,8 @@ import {
   ArgumentTurn,
   TurnSpeaker,
   SessionEvaluationResult,
+  DebateSessionResponse,
+  SideSwapRequestResponse,
 } from "../../../types";
 
 export interface DebateRoomMessage {
@@ -40,6 +51,42 @@ export interface DebateRoomMessage {
   timestamp: string;
   content: string;
 }
+
+const getFallbackAiSpeech = (round: number, aiSideStr: string, motion: string) => {
+  if (round === 1) {
+    return aiSideStr === "Ủng hộ"
+      ? `Chào bạn, đối với kiến nghị "${motion}", phe chúng tôi khẳng định sự ủng hộ mạnh mẽ. Thứ nhất, việc triển khai chính sách này mang lại giải pháp căn cơ, thúc đẩy tiến bộ xã hội và giải quyết triệt để các hạn chế hiện hữu. Thứ hai, các nghiên cứu và kinh nghiệm thực tiễn đều chứng minh lợi ích dài hạn vượt trội hơn nhiều so với chi phí ban đầu.`
+      : `Chào bạn, đối với kiến nghị "${motion}", phe phản đối chúng tôi cho rằng đây là một đề xuất chưa khả thi và tiềm ẩn rủi ro lớn. Thứ nhất, gánh nặng tài chính và áp lực hạ tầng là quá lớn. Thứ hai, chúng ta còn rất nhiều giải pháp thay thế an toàn, hiệu quả hơn chưa được khai thác. Do đó, chúng tôi phản đối kiến nghị này.`;
+  } else if (round === 2) {
+    return `Tôi ghi nhận những điểm bạn vừa trình bày, tuy nhiên lập luận đó chưa đủ tính thuyết phục. Thứ nhất, bạn chưa giải quyết được bài toán về tính khả thi và tác động thực tế đối với các bên liên quan. Thứ hai, việc quá nhấn mạnh vào lợi ích trước mắt mà bỏ qua rủi ro hệ thống sẽ gây ra những hệ quả khó lường. Phe chúng tôi kiên định giữ vững lập trường phản bác.`;
+  } else {
+    return `Tổng kết lại phiên tranh biện về kiến nghị "${motion}", điểm then chốt nằm ở việc cân bằng giữa lợi ích phát triển và mức độ kiểm soát rủi ro. Phe chúng tôi đã chứng minh tính nhất quán xuyên suốt 3 vòng rằng góc nhìn của chúng tôi mang lại giải pháp bền vững nhất. Cảm ơn bạn vì một lượt tranh biện rất kịch tính!`;
+  }
+};
+
+const getFallbackEvaluation = (text: string, round: number, motion: string): ArgumentEvaluationResult => {
+  const wordCount = text.trim().split(/\s+/).length;
+  const isTooShort = wordCount < 5;
+  const score = isTooShort ? 5.5 : Math.min(8.8, 7.2 + (wordCount > 15 ? 1.0 : 0.4));
+
+  return {
+    overall_score: score,
+    overall_reasoning: isTooShort
+      ? `Bài phát biểu còn quá ngắn (${wordCount} từ). Cần diễn giải luận điểm chi tiết hơn xoay quanh kiến nghị "${motion}".`
+      : `Lập luận vòng ${round} thể hiện rõ quan điểm cá nhân, cấu trúc phản biện tương đối tốt. Cần bổ sung thêm dẫn chứng số liệu để tăng tính thuyết phục.`,
+    criteria: [
+      { name: "Logic & Cấu trúc", score: isTooShort ? 5.0 : 8.0, reasoning: isTooShort ? "Chưa đủ nội dung để đánh giá logic." : "Luận điểm rõ ràng, các ý liên kết mạch lạc." },
+      { name: "Dẫn chứng thực tiễn", score: isTooShort ? 4.5 : 7.0, reasoning: "Cần dẫn chứng số liệu hoặc tiền lệ thực tế cụ thể hơn." },
+      { name: "Kỹ năng phản biện", score: isTooShort ? 5.5 : 8.2, reasoning: "Nhận diện đúng trọng tâm luận đề tranh luận." },
+    ],
+    strengths: isTooShort ? ["Có nỗ lực tham gia lượt nói."] : ["Xác định đúng trọng tâm kiến nghị.", "Ngôn ngữ diễn đạt tự nhiên, tự tin."],
+    weaknesses: isTooShort ? ["Nội dung quá ngắn, thiếu luận cứ."] : ["Chưa trích dẫn nguồn số liệu cụ thể.", "Cần phân tích sâu hơn về hệ quả lâu dài."],
+    suggestions: [
+      "Áp dụng cấu trúc PEEL (Point - Luận điểm, Explanation - Giải thích, Evidence - Bằng chứng, Link - Liên kết).",
+      "Dự đoán trước phản biện của đối phương để chủ động rào đón.",
+    ],
+  };
+};
 
 const DebateRoom: React.FC = () => {
   const { sessionId = "demo-session" } = useParams<{ sessionId: string }>();
@@ -73,14 +120,56 @@ const DebateRoom: React.FC = () => {
   const [casePlan, setCasePlan] = useState<CaseFileResponse | null>(null);
   const [evaluationResult, setEvaluationResult] = useState<ArgumentEvaluationResult | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<"evaluation" | "caseplan" | "coaching">("evaluation");
+  const [isAiOfflineMode, setIsAiOfflineMode] = useState<boolean>(false);
 
-  // Countdown timer simulation (02:15)
+  // Auth & Backend Session Details State
+  const { user } = useAuth();
+  const currentUserId = user?.userId || (user?.id ? parseInt(String(user.id), 10) : 0);
+
+  const [sessionDetails, setSessionDetails] = useState<DebateSessionResponse | null>(null);
+  const [pendingSwapRequests, setPendingSwapRequests] = useState<SideSwapRequestResponse[]>([]);
+  const [isStarting, setIsStarting] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [roomFeedback, setRoomFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  const numSessionId = parseInt(sessionId, 10);
+  const isBackendSession = !isNaN(numSessionId) && numSessionId > 0;
+  const isAiSession = Boolean(sessionDetails?.participants.some((p) => p.isAI));
+  const isP2pOr2v2 = Boolean(
+    sessionDetails &&
+    (!isAiSession || sessionDetails.debateType === 2 || sessionDetails.debateType === 3)
+  );
+  const is2v2 = Boolean(
+    sessionDetails &&
+    (sessionDetails.participants.length > 2 ||
+      (sessionDetails.title && (sessionDetails.title.toLowerCase().includes("2 vs 2") || sessionDetails.title.toLowerCase().includes("2v2"))))
+  );
+  const isHost = Boolean(sessionDetails && sessionDetails.createdByUserId === currentUserId);
+  const proParticipants = sessionDetails?.participants.filter((p) => p.side === 1 || String(p.side) === "PRO") || [];
+  const conParticipants = sessionDetails?.participants.filter((p) => p.side === 2 || String(p.side) === "CON") || [];
+  const canHostStart = Boolean(
+    sessionDetails &&
+    (is2v2
+      ? proParticipants.length >= 2 && conParticipants.length >= 2
+      : proParticipants.length >= 1 && conParticipants.length >= 1)
+  );
+
+  const myParticipant = sessionDetails?.participants.find((p) => p.userId === currentUserId);
+  const mySide = myParticipant?.side;
+  const isMyTurn = !isP2pOr2v2 || !sessionDetails ? true : (
+    (sessionDetails.currentTurnSide === mySide) ||
+    (String(sessionDetails.currentTurnSide) === "PRO" && (mySide === 1 || String(mySide) === "PRO")) ||
+    (String(sessionDetails.currentTurnSide) === "CON" && (mySide === 2 || String(mySide) === "CON"))
+  );
+
+  // Countdown timer simulation (02:15) - active only during debate progress
   useEffect(() => {
+    if (isBackendSession && sessionDetails?.status === 1) return;
     const interval = setInterval(() => {
       setSecondsRemaining((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isBackendSession, sessionDetails?.status]);
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -88,8 +177,73 @@ const DebateRoom: React.FC = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Initialize session with AI Opponent Service on mount
+  const loadBackendSession = useCallback(async (numId: number) => {
+    try {
+      const res = await debateApi.getSessionDetails(numId);
+      if (res?.success && res.data) {
+        setSessionDetails(res.data);
+        if (res.data.topic || res.data.title) {
+          setMotionText(res.data.topic || res.data.title);
+        }
+      }
+    } catch (e) {
+      console.warn("Error fetching session details:", e);
+    }
+  }, []);
+
+  const loadBackendTranscript = useCallback(async (numId: number) => {
+    try {
+      const res = await debateApi.getTranscript(numId);
+      if (res?.success && res.data?.arguments && res.data.arguments.length > 0) {
+        const loadedMsgs: DebateRoomMessage[] = res.data.arguments.map((arg) => ({
+          id: `arg-${arg.argumentId}`,
+          speaker: arg.isAI ? "AI" : "Learner",
+          speakerName: arg.speakerName || (arg.isAI ? "Đối thủ AI" : "Bạn"),
+          side: (arg.side === 1 || String(arg.side) === "PRO") ? "Ủng hộ" : "Phản đối",
+          stage: (arg.stage === 1 || String(arg.stage) === "Opening")
+            ? "Mở đầu"
+            : (arg.stage === 2 || String(arg.stage) === "Rebuttal")
+            ? "Phản biện"
+            : "Kết luận",
+          roundNumber: Math.ceil(arg.turnOrder / 2) || 1,
+          timestamp: arg.submittedAt ? new Date(arg.submittedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "",
+          content: arg.content,
+        }));
+        setMessages(loadedMsgs);
+      }
+    } catch (e) {
+      console.warn("Error fetching transcript:", e);
+    }
+  }, []);
+
+  // Polling for backend sessions
   useEffect(() => {
+    if (!isBackendSession) return;
+
+    loadBackendSession(numSessionId);
+    loadBackendTranscript(numSessionId);
+
+    const interval = setInterval(() => {
+      loadBackendSession(numSessionId);
+      if (sessionDetails?.status === 1) {
+        debateApi.getPendingSwapRequests(numSessionId).then((res) => {
+          if (res?.success && Array.isArray(res.data)) {
+            setPendingSwapRequests(res.data);
+          }
+        }).catch(() => {});
+      } else if (sessionDetails?.status === 2) {
+        loadBackendTranscript(numSessionId);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isBackendSession, numSessionId, sessionDetails?.status, loadBackendSession, loadBackendTranscript]);
+
+  // Initialize session with AI Opponent Service on mount (only for AI mode when debate is active)
+  useEffect(() => {
+    if (isP2pOr2v2) return; // Do not call Python AI Opponent if human vs human
+    if (isBackendSession && sessionDetails?.status === 1) return; // Wait until host starts debate session
+
     let isMounted = true;
     const initOpponent = async () => {
       try {
@@ -114,10 +268,9 @@ const DebateRoom: React.FC = () => {
             setCasePlan(plan);
           }
         } catch {
-          // Case plan might still be generating or not ready immediately
+          // Case plan might still be generating
         }
 
-        // If AI is PRO (Affirmative), AI must deliver Turn 1 (Opening) first
         if (aiSide === "pro" && isMounted) {
           setIsAiGenerating(true);
           try {
@@ -139,67 +292,153 @@ const DebateRoom: React.FC = () => {
               };
               setMessages((prev) => (prev.length === 0 ? [aiFirstMsg] : prev));
             }
-          } catch (firstTurnErr: unknown) {
-            const errorObj = firstTurnErr as { response?: { status?: number; data?: { detail?: string } }; message?: string };
-            const detail = errorObj.response?.data?.detail || errorObj.message || "Lỗi tạo bài phát biểu mở đầu từ AI";
-            if (isMounted) setOpponentError(`AI Opponent (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+          } catch {
+            const fallbackSpeech = getFallbackAiSpeech(1, "Ủng hộ", motionText);
+            const aiFirstMsg: DebateRoomMessage = {
+              id: `msg-${Date.now()}`,
+              speaker: "AI",
+              speakerName: "Đối thủ AI",
+              side: "Ủng hộ",
+              stage: "Mở đầu",
+              roundNumber: 1,
+              timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+              content: fallbackSpeech,
+            };
+            if (isMounted) {
+              setMessages((prev) => (prev.length === 0 ? [aiFirstMsg] : prev));
+              setIsAiOfflineMode(true);
+            }
           } finally {
             if (isMounted) setIsAiGenerating(false);
           }
         }
-      } catch (err: unknown) {
+      } catch {
         if (isMounted) {
-          setAiOpponentStatus("error");
-          const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
-          const detail = errorObj.response?.data?.detail || errorObj.message || "Không thể kết nối AI Opponent Service";
-          setOpponentError(`AI Opponent (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+          setAiOpponentStatus("ready (mô phỏng)");
+          setIsAiOfflineMode(true);
+          setCasePlan({
+            id: `case-${sessionId}`,
+            session_id: sessionId,
+            prompt_version: "v5",
+            llm_provider: "local-simulation",
+            llm_model: "fallback",
+            temperature: 0.7,
+            created_at: new Date().toISOString(),
+            content: {
+              case_summary: `Chiến lược tranh biện cho phe ${aiSide === "pro" ? "Ủng hộ" : "Phản đối"} kiến nghị: "${motionText}".`,
+              main_points: [
+                { title: "Luận điểm trọng tâm", description: "Tập trung vào tính khả thi, hiệu quả thực tế và bảo đảm an toàn hệ thống." },
+                { title: "Luận điểm bổ trợ", description: "Củng cố bằng các bài học kinh nghiệm quốc tế và mục tiêu phát triển bền vững." },
+              ],
+              predicted_learner_arguments: [
+                { point: "Quan ngại về chi phí và tính rủi ro", planned_rebuttal: "Chứng minh rằng việc chủ động triển khai với quy chuẩn kiểm soát nghiêm ngặt sẽ mang lại giá trị cao hơn nhiều." },
+              ],
+            } as any,
+          });
+
+          if (aiSide === "pro") {
+            const fallbackSpeech = getFallbackAiSpeech(1, "Ủng hộ", motionText);
+            const aiFirstMsg: DebateRoomMessage = {
+              id: `msg-${Date.now()}`,
+              speaker: "AI",
+              speakerName: "Đối thủ AI",
+              side: "Ủng hộ",
+              stage: "Mở đầu",
+              roundNumber: 1,
+              timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+              content: fallbackSpeech,
+            };
+            setMessages((prev) => (prev.length === 0 ? [aiFirstMsg] : prev));
+          }
         }
       }
     };
-
-    const numSessionId = parseInt(sessionId, 10);
-    if (!isNaN(numSessionId) && numSessionId > 0) {
-      debateApi.getSessionDetails(numSessionId).then((res) => {
-        if (res.success && res.data) {
-          const restoredMotion = res.data.topic || res.data.title;
-          if (restoredMotion && isMounted) {
-            setMotionText(restoredMotion);
-          }
-        }
-      }).catch(() => {});
-
-      debateApi.getTranscript(numSessionId).then((res) => {
-        if (res.success && res.data?.arguments && res.data.arguments.length > 0) {
-          const loadedMsgs: DebateRoomMessage[] = res.data.arguments.map((arg) => ({
-            id: `arg-${arg.argumentId}`,
-            speaker: arg.isAI ? "AI" : "Learner",
-            speakerName: arg.speakerName || (arg.isAI ? "Đối thủ AI" : "Bạn"),
-            side: (arg.side === 1 || String(arg.side) === "PRO") ? "Ủng hộ" : "Phản đối",
-            stage: (arg.stage === 1 || String(arg.stage) === "Opening")
-              ? "Mở đầu"
-              : (arg.stage === 2 || String(arg.stage) === "Rebuttal")
-              ? "Phản biện"
-              : "Kết luận",
-            roundNumber: Math.ceil(arg.turnOrder / 2) || 1,
-            timestamp: arg.submittedAt ? new Date(arg.submittedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "",
-            content: arg.content,
-          }));
-          if (isMounted) {
-            setMessages(loadedMsgs);
-          }
-        }
-      }).catch(() => {});
-    }
 
     initOpponent();
     return () => {
       isMounted = false;
     };
-  }, [sessionId, motionParam, learnerSide, aiSide, difficulty]);
+  }, [sessionId, motionParam, learnerSide, aiSide, difficulty, isP2pOr2v2]);
+
+  const handleStartDebateSession = async () => {
+    if (!isBackendSession) return;
+    setIsStarting(true);
+    setRoomFeedback(null);
+    try {
+      const res = await debateApi.startDebateSession(numSessionId);
+      if (res?.success && res.data) {
+        setSessionDetails(res.data);
+        setRoomFeedback({ text: "Trận đấu đã chính thức bắt đầu!", type: "success" });
+      } else {
+        setRoomFeedback({ text: res?.message || "Chưa thể bắt đầu (yêu cầu đủ người tham gia).", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setRoomFeedback({ text: e.message || "Lỗi khi bắt đầu trận đấu.", type: "error" });
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  const handleSwitchSide = async () => {
+    if (!isBackendSession) return;
+    try {
+      const res = await debateApi.switchSide(numSessionId);
+      if (res?.success && res.data) {
+        setSessionDetails(res.data);
+        setRoomFeedback({ text: "Đã đổi phe thành công!", type: "success" });
+      } else {
+        setRoomFeedback({ text: res?.message || "Không thể đổi phe (phe đối diện đã đủ người).", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setRoomFeedback({ text: e.message || "Lỗi khi đổi phe.", type: "error" });
+    }
+  };
+
+  const handleSendSwapRequest = async (targetUserId: number) => {
+    if (!isBackendSession || !targetUserId) return;
+    try {
+      const res = await debateApi.sendSwapRequest(numSessionId, { targetUserId });
+      if (res?.success) {
+        setRoomFeedback({ text: "Đã gửi lời mời tráo phe! Đang chờ phản hồi (60s)...", type: "success" });
+      } else {
+        setRoomFeedback({ text: res?.message || "Không thể gửi yêu cầu tráo phe.", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setRoomFeedback({ text: e.message || "Lỗi khi gửi yêu cầu tráo phe.", type: "error" });
+    }
+  };
+
+  const handleRespondSwapRequest = async (requesterUserId: number, accept: boolean) => {
+    if (!isBackendSession) return;
+    try {
+      const res = await debateApi.respondSwapRequest(numSessionId, { requesterUserId, accept });
+      if (res?.success && res.data) {
+        setSessionDetails(res.data);
+        setPendingSwapRequests((prev) => prev.filter((r) => r.requesterUserId !== requesterUserId));
+        setRoomFeedback({
+          text: accept ? "Đã đổi phe thành công!" : "Đã từ chối lời mời đổi phe.",
+          type: accept ? "success" : "error",
+        });
+      } else {
+        setRoomFeedback({ text: res?.message || "Không thể xử lý yêu cầu đổi phe.", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setRoomFeedback({ text: e.message || "Lỗi phản hồi yêu cầu đổi phe.", type: "error" });
+    }
+  };
 
   const handleSendArgument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!argumentText.trim() || isAiGenerating) return;
+
+    if (isP2pOr2v2 && !isMyTurn) {
+      setRoomFeedback({ text: "Chưa tới lượt phát biểu của bạn hoặc phe của bạn!", type: "error" });
+      return;
+    }
 
     const currentText = argumentText.trim();
     const stage: DebateRoundType = currentRound === 1 ? "opening" : currentRound === 2 ? "rebuttal" : "closing";
@@ -233,18 +472,37 @@ const DebateRoom: React.FC = () => {
 
     setMessages((prev) => [...prev, newLearnerMsg]);
     setArgumentText("");
-    setIsAiGenerating(true);
-    setIsEvaluating(true);
-    setOpponentError(null);
-    setEvaluatorError(null);
-
     // Persist argument to Backend .NET DebateController
     const numSessionId = parseInt(sessionId, 10);
     if (!isNaN(numSessionId) && numSessionId > 0) {
+      if (isP2pOr2v2) {
+        setIsEvaluating(false);
+        setIsAiGenerating(false);
+        try {
+          const res = await debateApi.submitArgument(numSessionId, { content: currentText });
+          if (res?.success && res.data) {
+            setSessionDetails(res.data);
+            setRoomFeedback({ text: "Nộp bài tranh biện thành công!", type: "success" });
+          } else {
+            setRoomFeedback({ text: res?.message || "Lỗi khi nộp bài tranh biện.", type: "error" });
+          }
+          await loadBackendTranscript(numSessionId);
+        } catch (err: unknown) {
+          const e = err as { message?: string };
+          setRoomFeedback({ text: e.message || "Lỗi khi nộp bài tranh biện.", type: "error" });
+        }
+        return;
+      }
+
       debateApi.submitArgument(numSessionId, { content: currentText }).catch((err) => {
         console.warn("Backend submitArgument warning:", err);
       });
     }
+
+    setIsAiGenerating(true);
+    setIsEvaluating(true);
+    setOpponentError(null);
+    setEvaluatorError(null);
 
     // 1. Call AI Evaluator Microservice (POST /evaluate)
     const opponentRecentSpeech = messages
@@ -263,10 +521,11 @@ const DebateRoom: React.FC = () => {
         setEvaluationResult(res);
         setRightPanelTab("evaluation");
       })
-      .catch((err: unknown) => {
-        const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
-        const detail = errorObj.response?.data?.detail || errorObj.message || "Lỗi khi gọi AI Evaluator";
-        setEvaluatorError(`AI Evaluator (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+      .catch(() => {
+        const fallbackEval = getFallbackEvaluation(currentText, currentRound, motionText);
+        setEvaluationResult(fallbackEval);
+        setRightPanelTab("evaluation");
+        setIsAiOfflineMode(true);
       })
       .finally(() => {
         setIsEvaluating(false);
@@ -307,10 +566,25 @@ const DebateRoom: React.FC = () => {
         setCurrentRound((prev) => prev + 1);
         setSecondsRemaining(120);
       }
-    } catch (err: unknown) {
-      const errorObj = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
-      const detail = errorObj.response?.data?.detail || errorObj.message || "Lỗi tạo bài phản biện từ AI";
-      setOpponentError(`AI Opponent (${errorObj.response?.status || "Lỗi"}): ${detail}`);
+    } catch {
+      setIsAiOfflineMode(true);
+      const fallbackSpeech = getFallbackAiSpeech(currentRound, aiSide === "pro" ? "Ủng hộ" : "Phản đối", motionText);
+      const aiResponseMsg: DebateRoomMessage = {
+        id: `msg-${Date.now() + 1}`,
+        speaker: "AI",
+        speakerName: "Đối thủ AI",
+        side: aiSide === "pro" ? "Ủng hộ" : "Phản đối",
+        stage: currentRound === 1 ? "Mở đầu" : currentRound === 2 ? "Phản biện" : "Kết luận",
+        roundNumber: currentRound,
+        timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+        content: fallbackSpeech,
+      };
+      setMessages((prev) => [...prev, aiResponseMsg]);
+
+      if (currentRound < 3) {
+        setCurrentRound((prev) => prev + 1);
+        setSecondsRemaining(120);
+      }
     } finally {
       setIsAiGenerating(false);
     }
@@ -497,32 +771,305 @@ const DebateRoom: React.FC = () => {
         </div>
       </div>
 
-      {/* Error & Status Banners */}
-      {opponentError && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 rounded-2xl text-rose-700 dark:text-rose-300 text-sm flex items-start gap-3">
-          <AlertCircle size={18} className="shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-bold">Lỗi từ AI Opponent Service:</p>
-            <p className="font-mono text-xs">{opponentError}</p>
+      {/* Feedback Banner */}
+      {roomFeedback && (
+        <div
+          className={`p-4 rounded-xl text-xs sm:text-sm flex items-center justify-between gap-3 border animate-fade-in ${
+            roomFeedback.type === "success"
+              ? "bg-[#ECFDF5] border-[#008A64]/30 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {roomFeedback.type === "success" ? (
+              <Check size={18} className="text-[#008A64] shrink-0" />
+            ) : (
+              <AlertCircle size={18} className="text-rose-600 shrink-0" />
+            )}
+            <span className="font-medium">{roomFeedback.text}</span>
           </div>
+          <button
+            type="button"
+            onClick={() => setRoomFeedback(null)}
+            className="text-slate-400 hover:text-slate-600 cursor-pointer"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
-      {evaluatorError && (
-        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-2xl text-amber-800 dark:text-amber-300 text-sm flex items-start gap-3">
-          <AlertCircle size={18} className="shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-bold">Lỗi từ AI Evaluator Service:</p>
-            <p className="font-mono text-xs">{evaluatorError}</p>
+      {/* ── LOBBY / WAITING ROOM (Khi phòng chưa bắt đầu) ── */}
+      {isBackendSession && sessionDetails?.status === 1 ? (
+        <div className="bg-white dark:bg-[#12231C] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
+          {/* Header Phòng Chờ */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Phòng chờ (Waiting)</span>
+                </span>
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {is2v2 ? "Tranh biện 2 vs 2" : "Đối kháng 1 vs 1 P2P"}
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#F8FAFC]">
+                {sessionDetails.title || motionText}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Kiến nghị: <span className="font-semibold text-slate-700 dark:text-slate-300">&ldquo;{sessionDetails.topic || motionText}&rdquo;</span>
+              </p>
+            </div>
+
+            {/* Room ID & Copy Code */}
+            <div className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shrink-0">
+              <div>
+                <p className="text-[11px] text-slate-400 font-medium">Mã phòng tranh biện</p>
+                <p className="text-xl font-black font-mono text-[#008A64] dark:text-[#34D399]">#{sessionDetails.sessionId}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(String(sessionDetails.sessionId));
+                  setCopiedCode(true);
+                  setTimeout(() => setCopiedCode(false), 2000);
+                }}
+                className="px-3 py-1.5 text-xs font-bold bg-white dark:bg-[#12231C] border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                {copiedCode ? <Check size={14} className="text-[#008A64]" /> : <Copy size={14} />}
+                <span>{copiedCode ? "Đã chép!" : "Copy mã"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Pending Swap Requests received by current user */}
+          {pendingSwapRequests.length > 0 && (
+            <div className="space-y-2">
+              {pendingSwapRequests.map((req, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm animate-fade-in"
+                >
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-purple-950 dark:text-purple-200">
+                      Yêu cầu đổi phe từ {req.requesterName} (Phe {req.requesterSide})
+                    </p>
+                    <p className="text-purple-700 dark:text-purple-400 text-xs">
+                      Thời gian còn lại: <strong>{req.expiresInSeconds}s</strong>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRespondSwapRequest(req.requesterUserId, true)}
+                      className="px-3 py-1.5 bg-[#008A64] text-white rounded-lg font-bold text-xs hover:bg-[#007457] transition-colors cursor-pointer"
+                    >
+                      Đồng ý đổi phe
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRespondSwapRequest(req.requesterUserId, false)}
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg font-bold text-xs hover:bg-slate-300 transition-colors cursor-pointer"
+                    >
+                      Từ chối
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Teams Participants Display */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* PRO Team */}
+            <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-[rgba(16,185,129,0.08)] border border-emerald-200/70 dark:border-emerald-800/40 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-emerald-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 font-bold text-[#008A64] dark:text-[#34D399] text-sm">
+                  <Shield size={16} />
+                  <span>Phe Ủng Hộ (PRO)</span>
+                </div>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                  {proParticipants.length}/{is2v2 ? 2 : 1}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {proParticipants.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-white dark:bg-[#12231C] rounded-xl border border-emerald-100 dark:border-slate-800 flex items-center justify-between text-xs sm:text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#008A64] text-white font-bold flex items-center justify-center text-xs">
+                        {p.isAI ? "AI" : p.speakerName?.slice(0, 2).toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">
+                          {p.speakerName} {p.userId === currentUserId && "(Bạn)"}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {p.userId === sessionDetails.createdByUserId ? "Chủ phòng (Host)" : `Thành viên PRO ${idx + 1}`}
+                        </p>
+                      </div>
+                    </div>
+                    {is2v2 && mySide === 2 && p.userId && (
+                      <button
+                        type="button"
+                        onClick={() => handleSendSwapRequest(p.userId!)}
+                        className="text-[11px] px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg font-semibold transition-colors cursor-pointer"
+                      >
+                        Mời tráo phe
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {proParticipants.length < (is2v2 ? 2 : 1) && (
+                  <div className="p-3 rounded-xl border border-dashed border-emerald-300 text-center text-xs text-emerald-700/70 py-4">
+                    Đang chờ người chơi tham gia slot PRO...
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* CON Team */}
+            <div className="p-4 rounded-xl bg-rose-50/60 dark:bg-[rgba(244,63,94,0.08)] border border-rose-200/70 dark:border-rose-800/40 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-rose-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-400 text-sm">
+                  <Flame size={16} />
+                  <span>Phe Phản Đối (CON)</span>
+                </div>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
+                  {conParticipants.length}/{is2v2 ? 2 : 1}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {conParticipants.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-white dark:bg-[#12231C] rounded-xl border border-rose-100 dark:border-slate-800 flex items-center justify-between text-xs sm:text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-rose-600 text-white font-bold flex items-center justify-center text-xs">
+                        {p.isAI ? "AI" : p.speakerName?.slice(0, 2).toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">
+                          {p.speakerName} {p.userId === currentUserId && "(Bạn)"}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {p.userId === sessionDetails.createdByUserId ? "Chủ phòng (Host)" : `Thành viên CON ${idx + 1}`}
+                        </p>
+                      </div>
+                    </div>
+                    {is2v2 && mySide === 1 && p.userId && (
+                      <button
+                        type="button"
+                        onClick={() => handleSendSwapRequest(p.userId!)}
+                        className="text-[11px] px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg font-semibold transition-colors cursor-pointer"
+                      >
+                        Mời tráo phe
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {conParticipants.length < (is2v2 ? 2 : 1) && (
+                  <div className="p-3 rounded-xl border border-dashed border-rose-300 text-center text-xs text-rose-700/70 py-4">
+                    Đang chờ người chơi tham gia slot CON...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {is2v2 && (
+                <button
+                  type="button"
+                  onClick={handleSwitchSide}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-[#CBD5E1] rounded-xl text-xs sm:text-sm font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw size={14} />
+                  <span>Đổi sang phe đối diện</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              {isHost ? (
+                <button
+                  type="button"
+                  onClick={handleStartDebateSession}
+                  disabled={!canHostStart || isStarting}
+                  className="w-full sm:w-auto px-6 py-3 bg-[#008A64] hover:bg-[#007457] text-white rounded-xl font-bold text-sm transition-all shadow-md shadow-[#008A64]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isStarting ? <Loader2 size={16} className="animate-spin" /> : <Swords size={16} />}
+                  <span>
+                    {canHostStart
+                      ? "Bắt đầu trận tranh biện ngay"
+                      : `Chờ đủ người (${sessionDetails.participants.length}/${is2v2 ? 4 : 2})`}
+                  </span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Bạn đã vào phòng. Đang chờ chủ phòng bắt đầu trận đấu...</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      ) : (
+        <>
+          {/* AI Offline Simulation Mode Notice */}
+          {isAiOfflineMode && (
+            <div className="p-4 bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm flex items-start justify-between gap-3 animate-fade-in shadow-xs">
+              <div className="flex items-start gap-2.5">
+                <Sparkles size={17} className="text-[#008A64] dark:text-[#34D399] shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-bold text-sm">Chế độ AI Mô phỏng (AI Simulation Mode) đang hoạt động</p>
+                  <p className="text-xs text-emerald-700/90 dark:text-emerald-300/80 leading-relaxed">
+                    Dịch vụ AI Python (port 8000 &amp; 8002) chưa được khởi động trên máy. Hệ thống tự động tạo bài phản biện và chấm điểm mô phỏng để bạn có thể trải nghiệm toàn bộ tiến trình tranh biện 3 vòng mà không bị gián đoạn.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAiOfflineMode(false)}
+                className="text-emerald-500 hover:text-emerald-700 text-xs cursor-pointer shrink-0 mt-0.5"
+                title="Đóng thông báo"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          )}
 
-      {/* 2. ROUND PROGRESS STEPPER */}
-      <DebateStepper currentRound={currentRound} />
+          {/* Error Banners (chỉ hiện khi có lỗi không phải do offline mô phỏng) */}
+          {!isAiOfflineMode && opponentError && (
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 rounded-2xl text-rose-700 dark:text-rose-300 text-sm flex items-start gap-3">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">Lỗi từ AI Opponent Service:</p>
+                <p className="font-mono text-xs">{opponentError}</p>
+              </div>
+            </div>
+          )}
 
-      {/* 3. MAIN WORKSPACE (3 Columns: Conversation 42%, Diễn biến 24%, AI Assistant 34%) */}
-      <div className="debate-room-grid grid grid-cols-1 lg:grid-cols-[42fr_24fr_34fr] gap-4.5 items-start">
+          {!isAiOfflineMode && evaluatorError && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-2xl text-amber-800 dark:text-amber-300 text-sm flex items-start gap-3">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">Lỗi từ AI Evaluator Service:</p>
+                <p className="font-mono text-xs">{evaluatorError}</p>
+              </div>
+            </div>
+          )}
+
+          {/* 2. ROUND PROGRESS STEPPER */}
+          <DebateStepper currentRound={currentRound} />
+
+          {/* 3. MAIN WORKSPACE (3 Columns: Conversation 42%, Diễn biến 24%, AI Assistant 34%) */}
+          <div className="debate-room-grid grid grid-cols-1 lg:grid-cols-[42fr_24fr_34fr] gap-4.5 items-start">
         {/* LEFT COLUMN: Transcript / Conversation Stream (~42%) */}
         <div className="bg-white debate-panel-main p-5 rounded-2xl border border-slate-200 shadow-xs h-[540px] xl:h-[580px] overflow-y-auto space-y-4">
           <div className="text-[17px] font-bold text-slate-900 dark:text-[#F8FAFC] pb-3 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
@@ -925,6 +1472,8 @@ const DebateRoom: React.FC = () => {
           </div>
         </form>
       </div>
+        </>
+      )}
 
       {/* Exit Confirm Dialog */}
       <ConfirmDialog

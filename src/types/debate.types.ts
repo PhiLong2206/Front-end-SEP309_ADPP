@@ -1,7 +1,23 @@
 export type DebateStage = "Opening" | "Rebuttal" | "Closing";
 export type DebateSide = "Affirmative" | "Negative"; // For / Against
 export type DebateMode = "AI_Opponent" | "Two_Learners";
+export type DebateRoomMode = "ai" | "1v1" | "2v2" | "competition";
+export type DebateRoleInRoom = "Debater" | "Judge" | "Spectator";
 export type AIDifficulty = "Easy" | "Medium" | "Hard";
+
+export interface DebateTeamMember {
+  speakerName: string;
+  isCurrentUser?: boolean;
+  roleTag?: string;
+  hasSpokenInCurrentRound?: boolean;
+  isSpeakingNow?: boolean;
+  isAI?: boolean;
+}
+
+export interface DebateTeamGroup {
+  teamName: string;
+  members: DebateTeamMember[];
+}
 
 export enum SystemDebateSide {
   PRO = 1,
@@ -123,6 +139,39 @@ export interface CreateP2pSessionRequest {
 
 export interface JoinSessionRequest {
   preferredSide?: SystemDebateSide | number;
+}
+
+export interface Create2v2SessionRequest {
+  title: string;
+  topic: string;
+  userSide: SystemDebateSide | number;
+  isAI?: boolean;
+  turnTimeLimitSeconds?: number;
+}
+
+export interface Join2v2SessionRequest {
+  preferredSide?: SystemDebateSide | number;
+}
+
+export interface SendSwapSideRequest {
+  targetUserId: number;
+}
+
+export interface RespondSwapSideRequest {
+  requesterUserId: number;
+  accept: boolean;
+}
+
+export interface SideSwapRequestResponse {
+  sessionId: number;
+  requesterUserId: number;
+  requesterName?: string;
+  requesterSide: string;
+  targetUserId: number;
+  targetName?: string;
+  targetSide: string;
+  createdAt: string;
+  expiresInSeconds: number;
 }
 
 export interface SubmitArgumentRequest {

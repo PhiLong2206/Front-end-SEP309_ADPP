@@ -12,6 +12,7 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
 import { ROLES } from "../../../utils/constants";
@@ -21,12 +22,13 @@ import PasswordStrength from "../../../components/auth/PasswordStrength";
 import PasswordRequirements from "../../../components/auth/PasswordRequirements";
 import ConfirmPasswordInput from "../../../components/auth/ConfirmPasswordInput";
 import authApi from "../../../api/authApi";
+import { getAuthErrorMessage } from "../../../utils/authError";
 
 import natureBg from "../../../assets/images/nature-bg.jpg";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const { login, googleLogin, isAuthenticated, role } = useAuth();
+  const { login, googleLogin, isAuthenticated, role, user, logout } = useAuth();
 
   // Auth Card State
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -52,6 +54,7 @@ const Home: React.FC = () => {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setSuccessMsg("");
 
@@ -66,11 +69,10 @@ const Home: React.FC = () => {
       if (result.success && result.user) {
         handleRoleRedirect(result.user.role);
       } else {
-        setError(result.message || "Email hoặc mật khẩu không chính xác.");
+        setError(getAuthErrorMessage(result, "Email hoặc mật khẩu không chính xác."));
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string };
-      setError(errorObj?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
+      setError(getAuthErrorMessage(err, "Email hoặc mật khẩu không chính xác."));
     } finally {
       setLoading(false);
     }
@@ -78,6 +80,7 @@ const Home: React.FC = () => {
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setSuccessMsg("");
 
@@ -110,17 +113,17 @@ const Home: React.FC = () => {
           navigate("/verify-otp", { state: { email: email.trim(), type: "Registration" } });
         }, 1500);
       } else {
-        setError(res?.message || "Đăng ký không thành công.");
+        setError(getAuthErrorMessage(res, "Đăng ký không thành công."));
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string };
-      setError(errorObj?.message || "Lỗi đăng ký tài khoản.");
+      setError(getAuthErrorMessage(err, "Lỗi đăng ký tài khoản."));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSuccess = async (idToken: string) => {
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
@@ -128,11 +131,10 @@ const Home: React.FC = () => {
       if (result.success && result.user) {
         handleRoleRedirect(result.user.role);
       } else {
-        setError(result.message || "Xác thực Google thất bại.");
+        setError(getAuthErrorMessage(result, "Xác thực Google thất bại."));
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string };
-      setError(errorObj?.message || "Lỗi đăng nhập Google.");
+      setError(getAuthErrorMessage(err, "Lỗi đăng nhập Google."));
     } finally {
       setLoading(false);
     }
@@ -267,7 +269,66 @@ const Home: React.FC = () => {
 
           {/* ================= RIGHT AUTH CARD (col-span-5) ================= */}
           <div className="lg:col-span-5 relative w-full">
-            <div className="bg-[#FFFDF8]/97 dark:bg-[#0F1C17]/98 backdrop-blur-md rounded-3xl border border-white/80 dark:border-[rgba(148,163,184,0.20)] p-6 sm:p-8 shadow-xl shadow-slate-900/5 dark:shadow-black/60 text-[#101828] dark:text-[#F8FAFC] relative z-10 w-full max-w-[430px] mx-auto transition-colors duration-200">
+            {isAuthenticated && user ? (
+              <div className="bg-[#FFFDF8]/97 dark:bg-[#0F1C17]/98 backdrop-blur-md rounded-3xl border border-white/80 dark:border-[rgba(148,163,184,0.20)] p-6 sm:p-8 shadow-xl shadow-slate-900/5 dark:shadow-black/60 text-[#101828] dark:text-[#F8FAFC] relative z-10 w-full max-w-[430px] mx-auto text-center space-y-6 transition-colors duration-200">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="w-20 h-20 rounded-full border-2 border-[#00966F] p-1 shadow-md bg-white dark:bg-[#12231C]">
+                    <img
+                      src={
+                        (user.avatarUrl && user.avatarUrl !== "string" ? user.avatarUrl : null) ||
+                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`
+                      }
+                      alt={user.fullName}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-[#00966F] dark:text-[#34D399] uppercase tracking-wider block mb-1">
+                      BẠN ĐÃ ĐĂNG NHẬP
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-black text-[#101828] dark:text-[#F8FAFC]">
+                      {user.fullName}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{user.email}</p>
+                    <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.12)] text-[#00966F] dark:text-[#34D399] border border-[#00966F]/30">
+                      {user.role === "Administrator" ? "Quản trị viên" : user.role === "Educator" ? "Giảng viên" : "Học viên"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => handleRoleRedirect(user.role)}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-[#00966F] hover:bg-[#007F5F] text-white font-bold text-sm shadow-md shadow-[#00966F]/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Vào Bảng điều khiển (Dashboard)</span>
+                    <ArrowRight size={16} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate(user.role === "Administrator" ? "/admin/settings" : user.role === "Educator" ? "/educator/settings" : "/learner/profile")}
+                    className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Xem Hồ sơ cá nhân</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await logout();
+                      navigate("/");
+                    }}
+                    className="w-full py-2.5 px-4 text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <LogOut size={14} />
+                    <span>Đăng xuất (Đổi tài khoản khác)</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-[#FFFDF8]/97 dark:bg-[#0F1C17]/98 backdrop-blur-md rounded-3xl border border-white/80 dark:border-[rgba(148,163,184,0.20)] p-6 sm:p-8 shadow-xl shadow-slate-900/5 dark:shadow-black/60 text-[#101828] dark:text-[#F8FAFC] relative z-10 w-full max-w-[430px] mx-auto transition-colors duration-200">
               {/* Card Header with Logo */}
               <div className="flex flex-col items-center text-center space-y-1.5 mb-5">
                 <div className="w-11 h-11 rounded-2xl bg-[#00966F] dark:bg-[#10B981] flex items-center justify-center font-black text-xl text-white shadow-md shadow-[#00966F]/25 mb-0.5">
@@ -326,14 +387,6 @@ const Home: React.FC = () => {
                 </button>
               </div>
 
-              {/* Alert Messages */}
-              {error && (
-                <div className="p-3 mb-3.5 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 font-medium animate-fade-in flex items-start gap-2">
-                  <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
-                  <span>{error}</span>
-                </div>
-              )}
-
               {successMsg && (
                 <div className="p-3 mb-3.5 text-xs rounded-xl bg-emerald-50 dark:bg-[rgba(16,185,129,0.12)] border border-emerald-200 dark:border-[rgba(16,185,129,0.25)] text-emerald-700 dark:text-[#34D399] font-medium animate-fade-in flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-emerald-600 dark:text-[#34D399] shrink-0" />
@@ -345,7 +398,7 @@ const Home: React.FC = () => {
               <div className="mb-3.5">
                 <GoogleLoginButton
                   onSuccess={handleGoogleSuccess}
-                  onError={(msg) => setError(msg)}
+                  onError={(msg) => setError(getAuthErrorMessage(msg, "Đăng nhập bằng Google thất bại."))}
                   disabled={loading}
                   text="Đăng nhập bằng Google"
                 />
@@ -377,10 +430,14 @@ const Home: React.FC = () => {
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (error) setError("");
+                        }}
                         placeholder="name@example.com"
                         required
-                        className="w-full pl-9 pr-3.5 py-2.5 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all"
+                        disabled={loading}
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all disabled:opacity-60"
                       />
                     </div>
                   </div>
@@ -388,7 +445,10 @@ const Home: React.FC = () => {
                   <PasswordInput
                     label="Mật khẩu"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (error) setError("");
+                    }}
                     placeholder="••••••••••••"
                     required
                     disabled={loading}
@@ -400,6 +460,7 @@ const Home: React.FC = () => {
                         type="checkbox"
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
+                        disabled={loading}
                         className="w-3.5 h-3.5 rounded border-[#E5E7EB] text-[#00966F] focus:ring-[#00966F]"
                       />
                       <span>Ghi nhớ đăng nhập</span>
@@ -413,10 +474,22 @@ const Home: React.FC = () => {
                     </Link>
                   </div>
 
+                  {/* Error Alert directly above Login button */}
+                  {error && (
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      className="p-3 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 font-medium animate-fade-in flex items-start gap-2 shadow-xs"
+                    >
+                      <AlertCircle size={15} className="text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                      <span className="leading-snug break-words">{error}</span>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] shadow-md shadow-[#00966F]/20 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] shadow-md shadow-[#00966F]/20 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -438,10 +511,14 @@ const Home: React.FC = () => {
                     <input
                       type="text"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      onChange={(e) => {
+                        setFullName(e.target.value);
+                        if (error) setError("");
+                      }}
                       placeholder="Ví dụ: Nguyễn Văn A"
                       required
-                      className="w-full px-3.5 py-2 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all"
+                      disabled={loading}
+                      className="w-full px-3.5 py-2 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all disabled:opacity-60"
                     />
                   </div>
 
@@ -456,10 +533,14 @@ const Home: React.FC = () => {
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (error) setError("");
+                        }}
                         placeholder="your.email@example.com"
                         required
-                        className="w-full pl-9 pr-3.5 py-2 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all"
+                        disabled={loading}
+                        className="w-full pl-9 pr-3.5 py-2 bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-[rgba(148,163,184,0.20)] dark:hover:border-[rgba(148,163,184,0.30)] rounded-xl text-xs sm:text-sm text-[#101828] dark:text-[#F8FAFC] placeholder-[#98A2B3] dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00966F]/15 dark:focus:ring-[#10B981]/20 focus:border-[#00966F] dark:focus:border-[#10B981] transition-all disabled:opacity-60"
                       />
                     </div>
                   </div>
@@ -468,7 +549,10 @@ const Home: React.FC = () => {
                     <PasswordInput
                       label="Mật khẩu"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError("");
+                      }}
                       placeholder="••••••••••••"
                       required
                       disabled={loading}
@@ -481,15 +565,30 @@ const Home: React.FC = () => {
                     label="Xác nhận mật khẩu"
                     value={confirmPassword}
                     originalPassword={password}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (error) setError("");
+                    }}
                     required
                     disabled={loading}
                   />
 
+                  {/* Error Alert directly above Register button */}
+                  {error && (
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      className="p-3 text-xs rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 font-medium animate-fade-in flex items-start gap-2 shadow-xs"
+                    >
+                      <AlertCircle size={15} className="text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                      <span className="leading-snug break-words">{error}</span>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] shadow-md shadow-[#00966F]/20 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] shadow-md shadow-[#00966F]/20 transition-all duration-200 active:scale-[0.99] flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -503,6 +602,7 @@ const Home: React.FC = () => {
                 </form>
               )}
             </div>
+          )}
           </div>
         </div>
       </section>

@@ -9,6 +9,7 @@ import ConfirmPasswordInput from "../../../components/auth/ConfirmPasswordInput"
 import authApi from "../../../api/authApi";
 import { useAuth } from "../../../hooks/useAuth";
 import { ROLES } from "../../../utils/constants";
+import { getAuthErrorMessage } from "../../../utils/authError";
 import {
   Mail,
   User as UserIcon,
@@ -160,6 +161,7 @@ const Register: React.FC = () => {
   };
 
   const handleGoogleSuccess = async (idToken: string) => {
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
@@ -170,11 +172,10 @@ const Register: React.FC = () => {
           handleRoleRedirect(result.user?.role);
         }, 400);
       } else {
-        setError(result.message || "Xác thực tài khoản Google thất bại.");
+        setError(getAuthErrorMessage(result, "Xác thực tài khoản Google thất bại."));
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string };
-      setError(errorObj?.message || "Lỗi xác thực Google.");
+      setError(getAuthErrorMessage(err, "Lỗi xác thực Google."));
     } finally {
       setLoading(false);
     }
@@ -352,7 +353,7 @@ const Register: React.FC = () => {
           <div className="mb-2">
             <GoogleLoginButton
               onSuccess={handleGoogleSuccess}
-              onError={(msg) => setError(msg)}
+              onError={(msg) => setError(getAuthErrorMessage(msg, "Đăng ký với Google thất bại."))}
               disabled={loading}
               text="Đăng ký với Google"
             />

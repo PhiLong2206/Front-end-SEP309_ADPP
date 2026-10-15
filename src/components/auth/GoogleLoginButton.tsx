@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { getAuthErrorMessage } from "../../utils/authError";
 
 interface GoogleLoginButtonProps {
   onSuccess: (idToken: string) => Promise<void> | void;
@@ -32,12 +33,26 @@ declare global {
               locale?: string;
             }
           ) => void;
-          prompt: () => void;
+          prompt: (
+            momentListener?: (notification: {
+              isNotDisplayed: () => boolean;
+              getNotDisplayedReason: () => string;
+              isSkippedMoment: () => boolean;
+              getSkippedReason: () => string;
+              isDismissedMoment: () => boolean;
+              getDismissedReason: () => string;
+            }) => void
+          ) => void;
         };
       };
     };
   }
 }
+
+// Module-level singletons to prevent multiple initialize() calls across re-renders/mounts
+let isGsiGloballyInitialized = false;
+let activeSuccessCallback: ((idToken: string) => Promise<void> | void) | null = null;
+let activeErrorCallback: ((error: string) => void) | null = null;
 
 const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   onSuccess,
@@ -50,15 +65,60 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   const [loading, setLoading] = useState(false);
   const [isGisReady, setIsGisReady] = useState(false);
 
+  const envClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const clientId =
-    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    envClientId ||
     "119895824683-gvfvnu766krikjofaj3fjtfvk6marg30.apps.googleusercontent.com";
 
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
-  const initializedRef = useRef(false);
+
+  // Log origin configuration instructions for developers
+  const logOriginWarning = () => {
+    const origin = window.location.origin;
+    console.warn(
+      `%c[ADPP Google Auth - Origin Configuration]%c\n` +
+      `If you receive "[GSI_LOGGER]: The given origin is not allowed for the given client ID (403)", please configure Authorized JavaScript origins:\n` +
+      `  1. Go to Google Cloud Console: https://console.cloud.google.com/apis/credentials\n` +
+      `  2. Select OAuth 2.0 Client ID: "${clientId}"\n` +
+      `  3. Under "Authorized JavaScript origins", add: "${origin}"\n` +
+      `  4. Save changes and wait a few minutes for propagation.`,
+      "color: #f59e0b; font-weight: bold;",
+      "color: inherit;"
+    );
+  };
+
+  useEffect(() => {
+    if (!envClientId) {
+      console.warn(
+        "[ADPP Google Auth] VITE_GOOGLE_CLIENT_ID is not configured in environment variables. Using fallback Client ID."
+      );
+    }
+
+    // Attach active callbacks to current component instance
+    activeSuccessCallback = async (credential: string) => {
+      setLoading(true);
+      try {
+        await onSuccessRef.current(credential);
+      } catch (err: unknown) {
+        const errorMsg = getAuthErrorMessage(err, "Đăng nhập Google thất bại.");
+        onErrorRef.current?.(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    activeErrorCallback = (err: string) => {
+      onErrorRef.current?.(err);
+    };
+
+    return () => {
+      activeSuccessCallback = null;
+      activeErrorCallback = null;
+    };
+  }, [envClientId]);
 
   useEffect(() => {
     let checkInterval: ReturnType<typeof setInterval> | null = null;
@@ -69,26 +129,23 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
       if (!window.google?.accounts?.id) return false;
 
       try {
-        if (!initializedRef.current) {
+        // Prevent calling google.accounts.id.initialize() multiple times
+        if (!isGsiGloballyInitialized) {
           window.google.accounts.id.initialize({
             client_id: clientId,
             callback: async (response) => {
               if (response?.credential) {
-                setLoading(true);
-                try {
-                  await onSuccessRef.current(response.credential);
-                } catch (err: unknown) {
-                  const errorObj = err as { message?: string };
-                  onErrorRef.current?.(errorObj?.message || "Đăng nhập Google thất bại.");
-                } finally {
-                  if (isMounted) setLoading(false);
+                if (activeSuccessCallback) {
+                  await activeSuccessCallback(response.credential);
                 }
               } else {
-                onErrorRef.current?.("Không nhận được token xác thực từ Google.");
+                activeErrorCallback?.("Không nhận được token xác thực từ Google.");
               }
             },
+            auto_select: false,
+            cancel_on_tap_outside: true,
           });
-          initializedRef.current = true;
+          isGsiGloballyInitialized = true;
         }
 
         if (buttonRef.current && isMounted) {
@@ -108,7 +165,8 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
         if (isMounted) setIsGisReady(true);
         return true;
       } catch (err) {
-        console.error("Error setting up Google Sign-In:", err);
+        console.error("[ADPP Google Auth] Error setting up Google Sign-In:", err);
+        logOriginWarning();
         return false;
       }
     };
@@ -132,18 +190,37 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 
     if (window.google?.accounts?.id) {
       try {
-        window.google.accounts.id.prompt();
+        window.google.accounts.id.prompt((notification) => {
+          if (notification?.isNotDisplayed?.()) {
+            const reason = notification.getNotDisplayedReason();
+            if (reason === "opt_out_or_no_session") {
+              // Expected if user is not signed in to Google in browser
+              console.info("[ADPP Google Auth] User not currently signed in to Google account.");
+            } else {
+              console.warn(`[ADPP Google Auth] Prompt not displayed. Reason: ${reason}`);
+              if (reason?.includes("origin") || reason === "unregistered_origin") {
+                logOriginWarning();
+                onErrorRef.current?.(
+                  "Tên miền hiện tại chưa được cấp phép đăng nhập Google (Origin not allowed). Vui lòng dùng Đăng nhập Email."
+                );
+              }
+            }
+          } else if (notification?.isSkippedMoment?.()) {
+            console.warn(`[ADPP Google Auth] Prompt skipped: ${notification.getSkippedReason()}`);
+          }
+        });
       } catch (e) {
-        console.warn("Prompt failed:", e);
+        console.warn("[ADPP Google Auth] Prompt failed:", e);
+        logOriginWarning();
+        onErrorRef.current?.("Dịch vụ Google chưa sẵn sàng hoặc bị chặn trên trình duyệt.");
       }
     } else {
-      onError?.("Dịch vụ Đăng nhập Google chưa sẵn sàng. Vui lòng thử lại sau giây lát.");
+      onErrorRef.current?.("Dịch vụ Đăng nhập Google chưa sẵn sàng. Vui lòng thử lại sau giây lát.");
     }
   };
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Hidden/Custom fallback wrapper */}
       <div className="relative w-full">
         {/* Render container for official Google button */}
         <div
@@ -153,7 +230,7 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
           }`}
         />
 
-        {/* Custom styled backup button when native GIS is still rendering or if user clicks directly */}
+        {/* Custom styled fallback button */}
         {!isGisReady && (
           <button
             type="button"

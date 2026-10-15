@@ -9,6 +9,11 @@ import {
   CreateAiPracticeSessionRequest,
   CreateP2pSessionRequest,
   JoinSessionRequest,
+  Create2v2SessionRequest,
+  Join2v2SessionRequest,
+  SendSwapSideRequest,
+  RespondSwapSideRequest,
+  SideSwapRequestResponse,
   SubmitArgumentRequest,
   DebateSessionResponse,
   DebateTranscriptResponse,
@@ -46,6 +51,72 @@ const debateApi = {
     data: JoinSessionRequest = {}
   ): Promise<ApiResponse<DebateSessionResponse>> =>
     axiosClient.post(`/debate/${sessionId}/join`, data),
+
+  /**
+   * POST /api/Debate/2v2 [Authorized]
+   * Initiates a 2v2 team debate match.
+   */
+  create2v2Session: (
+    data: Create2v2SessionRequest
+  ): Promise<ApiResponse<DebateSessionResponse>> =>
+    axiosClient.post("/debate/2v2", data),
+
+  /**
+   * POST /api/Debate/{sessionId}/join-2v2 [Authorized]
+   * Joins an existing 2v2 debate session.
+   */
+  join2v2Session: (
+    sessionId: number | string,
+    data: Join2v2SessionRequest = {}
+  ): Promise<ApiResponse<DebateSessionResponse>> =>
+    axiosClient.post(`/debate/${sessionId}/join-2v2`, data),
+
+  /**
+   * POST /api/Debate/{sessionId}/switch-side [Authorized]
+   * Switches user to the opposite side if slot is available (< 2).
+   */
+  switchSide: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateSessionResponse>> =>
+    axiosClient.post(`/debate/${sessionId}/switch-side`),
+
+  /**
+   * POST /api/Debate/{sessionId}/swap-request [Authorized]
+   * Sends a side swap request to an opponent debater (TTL: 60s).
+   */
+  sendSwapRequest: (
+    sessionId: number | string,
+    data: SendSwapSideRequest
+  ): Promise<ApiResponse<boolean>> =>
+    axiosClient.post(`/debate/${sessionId}/swap-request`, data),
+
+  /**
+   * GET /api/Debate/{sessionId}/swap-requests [Authorized]
+   * Retrieves pending side swap requests targeting current user.
+   */
+  getPendingSwapRequests: (
+    sessionId: number | string
+  ): Promise<ApiResponse<SideSwapRequestResponse[]>> =>
+    axiosClient.get(`/debate/${sessionId}/swap-requests`),
+
+  /**
+   * POST /api/Debate/{sessionId}/swap-response [Authorized]
+   * Accepts or rejects a pending side swap request.
+   */
+  respondSwapRequest: (
+    sessionId: number | string,
+    data: RespondSwapSideRequest
+  ): Promise<ApiResponse<DebateSessionResponse>> =>
+    axiosClient.post(`/debate/${sessionId}/swap-response`, data),
+
+  /**
+   * POST /api/Debate/{sessionId}/start [Authorized]
+   * Starts the debate session (Host only).
+   */
+  startDebateSession: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateSessionResponse>> =>
+    axiosClient.post(`/debate/${sessionId}/start`),
 
   /**
    * GET /api/Debate/{sessionId} [Authorized]

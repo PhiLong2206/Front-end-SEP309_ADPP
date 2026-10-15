@@ -147,3 +147,17 @@ export interface CompetitionJudge {
 
 // Backward compatibility alias
 export type Competition = CompetitionDetail;
+
+export interface CompetitionMatchJudge {
+  userId?: number;
+  fullName: string;
+  isCurrentUser?: boolean;
+}
+
+export interface CompetitionMatchDetail {
+  matchId?: number;
+  competitionId?: number;
+  matchCode?: string;
+  roundStage?: string;
+  judges?: CompetitionMatchJudge[];
+}

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import PublicLayout from "../components/layout/PublicLayout";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
+import GuestRoute from "./GuestRoute";
 import { ROLES } from "../utils/constants";
 
 // Public pages
@@ -23,15 +24,29 @@ import AdminRoutes from "./AdminRoutes";
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
+      {/* Direct /profile shortcut: protected, forces login if not authenticated */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/learner/profile" replace />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Public Pages wrapped in PublicLayout */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+
+        {/* Guest Only Routes (Redirects to dashboard if already authenticated) */}
+        <Route element={<GuestRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
+        </Route>
       </Route>
 
       {/* Protected Learner Portal */}

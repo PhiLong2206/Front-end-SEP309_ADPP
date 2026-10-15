@@ -92,6 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           { label: "Chủ đề tranh biện", path: "/learner/topics", icon: BookOpen },
           { label: "Tranh biện với AI", path: "/learner/debate", icon: Bot },
           { label: "Tranh biện 1 vs 1", path: "/learner/debate-1v1", icon: Swords },
+          { label: "Tranh biện 2 vs 2", path: "/learner/debate-2v2", icon: Users },
           { label: "Giải đấu & Cuộc thi", path: "/learner/competitions", icon: Trophy },
           { label: "Sự kiện học tập", path: "/learner/events", icon: Calendar },
         ],

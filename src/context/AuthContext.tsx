@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { User, LoginRequest, AuthContextType, RoleType } from "../types";
 import { getToken, setToken, getRefreshToken, setRefreshToken, getUserData, setUserData, clearAuthStorage } from "../utils/token";
+import { getAuthErrorMessage } from "../utils/authError";
 import authApi from "../api/authApi";
 import userApi from "../api/userApi";
 
@@ -83,7 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.warn("Auth sync error:", error);
         const errObj = error as { status?: number; response?: { status?: number } };
         const statusCode = errObj?.status || errObj?.response?.status;
-        if (statusCode === 401) {
+        if (statusCode === 401 || statusCode === 403) {
           clearAuthStorage();
           if (isMounted) {
             setTokenState(null);
@@ -144,13 +145,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return {
         success: false,
-        message: res?.message || "Email hoặc mật khẩu không chính xác.",
+        message: getAuthErrorMessage(res, "Email hoặc mật khẩu không chính xác."),
       };
     } catch (apiError: unknown) {
-      const errorResponse = apiError as { message?: string; errors?: unknown };
       return {
         success: false,
-        message: errorResponse?.message || "Không thể kết nối đến máy chủ xác thực.",
+        message: getAuthErrorMessage(apiError, "Email hoặc mật khẩu không chính xác."),
       };
     } finally {
       setLoading(false);
@@ -194,13 +194,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return {
         success: false,
-        message: res?.message || "Đăng nhập bằng Google không thành công.",
+        message: getAuthErrorMessage(res, "Xác thực tài khoản Google không thành công."),
       };
     } catch (apiError: unknown) {
-      const errorResponse = apiError as { message?: string };
       return {
         success: false,
-        message: errorResponse?.message || "Không thể xác thực tài khoản Google với máy chủ.",
+        message: getAuthErrorMessage(apiError, "Không thể xác thực tài khoản Google với máy chủ."),
       };
     } finally {
       setLoading(false);
@@ -217,12 +216,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Ignore revoke error on logout
         }
       }
-      // Clear all stored authentication keys
+    } catch (error) {
+      console.error("Error during logout:", error);
+    } finally {
+      // Clear all stored authentication keys unconditionally
       clearAuthStorage();
       setTokenState(null);
       setUser(null);
-    } catch (error) {
-      console.error("Error during logout:", error);
     }
   }, []);
 

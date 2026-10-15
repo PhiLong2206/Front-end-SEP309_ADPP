@@ -37,6 +37,19 @@ const Debate1v1: React.FC = () => {
   const [timeLimit, setTimeLimit] = useState<number>(180);
   const [isSubmittingChallenge, setIsSubmittingChallenge] = useState(false);
 
+  // P2P Direct Room State (POST /api/Debate/p2p)
+  const [showCreateP2pModal, setShowCreateP2pModal] = useState(false);
+  const [p2pTitle, setP2pTitle] = useState<string>("");
+  const [p2pTopic, setP2pTopic] = useState<string>("");
+  const [p2pSide, setP2pSide] = useState<number>(SystemDebateSide.PRO);
+  const [p2pTimeLimit, setP2pTimeLimit] = useState<number>(180);
+  const [isSubmittingP2p, setIsSubmittingP2p] = useState(false);
+
+  // Join P2P Room by ID State (POST /api/Debate/{id}/join)
+  const [showJoinP2pModal, setShowJoinP2pModal] = useState(false);
+  const [joinSessionId, setJoinSessionId] = useState<string>("");
+  const [isSubmittingJoin, setIsSubmittingJoin] = useState(false);
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
@@ -98,6 +111,65 @@ const Debate1v1: React.FC = () => {
       setFeedbackMsg({ text: e.message || "Lỗi khi gửi lời mời thách đấu.", type: "error" });
     } finally {
       setIsSubmittingChallenge(false);
+    }
+  };
+
+  const handleCreateP2pRoom = async () => {
+    if (!p2pTopic.trim()) {
+      setFeedbackMsg({ text: "Vui lòng nhập chủ đề / kiến nghị tranh biện.", type: "error" });
+      return;
+    }
+
+    setIsSubmittingP2p(true);
+    try {
+      const payload = {
+        title: p2pTitle.trim() || `Tranh biện 1 vs 1: ${p2pTopic.trim()}`,
+        topic: p2pTopic.trim(),
+        userSide: p2pSide,
+        turnTimeLimitSeconds: p2pTimeLimit,
+      };
+
+      const res = await debateApi.createP2pSession(payload);
+      if (res?.success && res.data?.sessionId) {
+        setFeedbackMsg({ text: `Đã tạo phòng P2P #${res.data.sessionId}! Đang vào phòng...`, type: "success" });
+        setShowCreateP2pModal(false);
+        setP2pTitle("");
+        setP2pTopic("");
+        navigate(`/learner/debate/${res.data.sessionId}`);
+      } else {
+        setFeedbackMsg({ text: res?.message || "Không thể tạo phòng tranh biện P2P.", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setFeedbackMsg({ text: e.message || "Lỗi khi tạo phòng tranh biện P2P.", type: "error" });
+    } finally {
+      setIsSubmittingP2p(false);
+    }
+  };
+
+  const handleJoinP2pRoom = async () => {
+    const sessionIdNum = parseInt(joinSessionId.trim(), 10);
+    if (isNaN(sessionIdNum) || sessionIdNum <= 0) {
+      setFeedbackMsg({ text: "Vui lòng nhập mã ID phòng hợp lệ (số nguyên dương).", type: "error" });
+      return;
+    }
+
+    setIsSubmittingJoin(true);
+    try {
+      const res = await debateApi.joinP2pSession(sessionIdNum);
+      if (res?.success && res.data?.sessionId) {
+        setFeedbackMsg({ text: `Đã tham gia phòng #${res.data.sessionId}! Đang chuyển hướng...`, type: "success" });
+        setShowJoinP2pModal(false);
+        setJoinSessionId("");
+        navigate(`/learner/debate/${res.data.sessionId}`);
+      } else {
+        setFeedbackMsg({ text: res?.message || "Không thể tham gia phòng này (có thể phòng đã đủ người hoặc không tồn tại).", type: "error" });
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setFeedbackMsg({ text: e.message || "Lỗi khi tham gia phòng P2P.", type: "error" });
+    } finally {
+      setIsSubmittingJoin(false);
     }
   };
 
@@ -193,7 +265,7 @@ const Debate1v1: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Tranh biện 1 vs 1</h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Thách đấu trực tiếp và quản lý lời mời tranh biện với người học khác.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={fetchAllData}
@@ -205,11 +277,27 @@ const Debate1v1: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowJoinP2pModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm rounded-xl border border-slate-300/80 shadow-xs transition-all cursor-pointer"
+          >
+            <Inbox size={15} />
+            <span>Nhập mã vào phòng</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreateP2pModal(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#008A64] hover:bg-[#007457] text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-all cursor-pointer"
           >
-            <Plus size={16} />
-            <span>Gửi lời thách đấu</span>
+            <Swords size={16} />
+            <span>Tạo phòng P2P</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-[#008A64] font-bold text-xs sm:text-sm rounded-xl border border-emerald-300/80 shadow-xs transition-all cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>Thách đấu User</span>
           </button>
         </div>
       </div>
@@ -589,6 +677,135 @@ const Debate1v1: React.FC = () => {
               </select>
             </div>
           </div>
+        </div>
+      </Modal>
+
+      {/* Modal 1: Tạo phòng P2P 1 vs 1 */}
+      <Modal
+        isOpen={showCreateP2pModal}
+        onClose={() => setShowCreateP2pModal(false)}
+        title="Khởi tạo phòng P2P (1 vs 1)"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setShowCreateP2pModal(false)}>Hủy</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={isSubmittingP2p || !p2pTopic.trim()}
+              onClick={handleCreateP2pRoom}
+            >
+              {isSubmittingP2p ? <Loader2 size={16} className="animate-spin" /> : <Swords size={16} />}
+              <span>Tạo phòng ngay</span>
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-xl border border-emerald-200/60 leading-relaxed">
+            Phòng P2P sẽ được khởi tạo với trạng thái <strong>Chờ đối thủ (Waiting)</strong>. Sau khi tạo, bạn có thể gửi Mã phòng cho đối phương để họ tham gia. Khi cả 2 đã sẵn sàng, bạn (Chủ phòng) sẽ bấm bắt đầu!
+          </div>
+
+          <Input
+            label="Tiêu đề phòng (Tùy chọn)"
+            name="p2pTitle"
+            placeholder="Ví dụ: Đại chiến Tranh biện P2P 1v1"
+            value={p2pTitle}
+            onChange={(e) => setP2pTitle(e.target.value)}
+          />
+
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">Chủ đề / Kiến nghị tranh biện *</label>
+            <textarea
+              rows={3}
+              placeholder="Nhập kiến nghị / đề tài tranh luận..."
+              value={p2pTopic}
+              onChange={(e) => setP2pTopic(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64] resize-none"
+            />
+            {/* Gợi ý chủ đề nhanh */}
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {[
+                "Trí tuệ nhân tạo (AI) nên được tích hợp rộng rãi vào giảng dạy học đường.",
+                "Mạng xã hội đang gây hại nhiều hơn mang lại lợi ích cho giới trẻ.",
+                "Nên áp dụng tuần làm việc 4 ngày tại các đô thị lớn.",
+              ].map((preset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setP2pTopic(preset)}
+                  className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-[#008A64] transition-colors cursor-pointer"
+                >
+                  Gợi ý #{idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Phe bạn chọn (Host)</label>
+              <select
+                value={p2pSide}
+                onChange={(e) => setP2pSide(Number(e.target.value))}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
+              >
+                <option value={SystemDebateSide.PRO}>Ủng hộ (PRO)</option>
+                <option value={SystemDebateSide.CON}>Phản đối (CON)</option>
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">Đối thủ tham gia sẽ tự động xếp vào phe đối diện.</p>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Thời gian mỗi lượt</label>
+              <select
+                value={p2pTimeLimit}
+                onChange={(e) => setP2pTimeLimit(Number(e.target.value))}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#008A64]/20 focus:border-[#008A64]"
+              >
+                <option value={60}>1 phút (60s)</option>
+                <option value={120}>2 phút (120s)</option>
+                <option value={180}>3 phút (180s - Tiêu chuẩn)</option>
+                <option value={240}>4 phút (240s)</option>
+                <option value={300}>5 phút (300s)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal 2: Tham gia phòng P2P bằng ID */}
+      <Modal
+        isOpen={showJoinP2pModal}
+        onClose={() => setShowJoinP2pModal(false)}
+        title="Tham gia phòng P2P bằng Mã phòng"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setShowJoinP2pModal(false)}>Hủy</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={isSubmittingJoin || !joinSessionId.trim()}
+              onClick={handleJoinP2pRoom}
+            >
+              {isSubmittingJoin ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+              <span>Tham gia ngay</span>
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Nhập mã ID phòng tranh biện (do người tạo phòng cung cấp). Hệ thống sẽ tự động xếp bạn vào phe đối diện với chủ phòng.
+          </p>
+          <Input
+            label="Mã ID phòng (Session ID) *"
+            name="joinSessionId"
+            type="number"
+            placeholder="Ví dụ: 12"
+            value={joinSessionId}
+            onChange={(e) => setJoinSessionId(e.target.value)}
+            required
+            autoFocus
+          />
         </div>
       </Modal>
     </div>

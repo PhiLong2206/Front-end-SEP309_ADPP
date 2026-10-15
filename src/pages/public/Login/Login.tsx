@@ -5,6 +5,7 @@ import AuthLayout from "../../../components/auth/AuthLayout";
 import PasswordInput from "../../../components/auth/PasswordInput";
 import { useAuth } from "../../../hooks/useAuth";
 import { ROLES } from "../../../utils/constants";
+import { getAuthErrorMessage } from "../../../utils/authError";
 import { Mail, CheckCircle2, AlertCircle } from "lucide-react";
 
 const Login: React.FC = () => {
@@ -64,11 +65,10 @@ const Login: React.FC = () => {
           handleRoleRedirect(result.user?.role);
         }, 400);
       } else {
-        setError(result.message || "Email hoặc mật khẩu không chính xác.");
+        setError(getAuthErrorMessage(result, "Email hoặc mật khẩu không chính xác."));
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string };
-      setError(errorObj?.message || "Email hoặc mật khẩu không chính xác.");
+      setError(getAuthErrorMessage(err, "Email hoặc mật khẩu không chính xác."));
     } finally {
       setLoading(false);
     }
@@ -87,11 +87,10 @@ const Login: React.FC = () => {
           handleRoleRedirect(result.user?.role);
         }, 400);
       } else {
-        setError(result.message || "Xác thực tài khoản Google thất bại.");
+        setError(getAuthErrorMessage(result, "Xác thực tài khoản Google thất bại."));
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string };
-      setError(errorObj?.message || "Lỗi đăng nhập Google.");
+      setError(getAuthErrorMessage(err, "Lỗi đăng nhập Google."));
     } finally {
       setLoading(false);
     }
@@ -112,14 +111,6 @@ const Login: React.FC = () => {
         </div>
       )}
 
-      {/* Error Message */}
-      {error && (
-        <div className="p-3.5 mb-4 text-xs sm:text-sm rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-medium animate-fade-in flex items-start gap-2.5">
-          <AlertCircle size={17} className="text-rose-500 shrink-0 mt-0.5" />
-          <span>{error}</span>
-        </div>
-      )}
-
       {/* Success Notification during redirect */}
       {isSuccess && (
         <div className="p-3.5 mb-4 text-xs sm:text-sm rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium animate-fade-in flex items-center gap-2.5">
@@ -131,7 +122,7 @@ const Login: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Email Field */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="login-email" className="text-xs sm:text-sm font-semibold text-slate-800">
+          <label htmlFor="login-email" className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
             Địa chỉ Email <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
@@ -142,12 +133,15 @@ const Login: React.FC = () => {
               id="login-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError("");
+              }}
               placeholder="your.email@example.com"
               required
               autoFocus
               disabled={loading || isSuccess}
-              className="w-full py-2.5 sm:py-3 pl-10 pr-4 text-sm sm:text-base bg-white border border-[#E5E7EB] hover:border-slate-300 rounded-xl text-[#101828] placeholder:text-[#98A2B3] transition-all duration-200 outline-none focus:border-[#00966F] focus:ring-2 focus:ring-[#00966F]/15 disabled:bg-slate-50 disabled:text-slate-400"
+              className="w-full py-2.5 sm:py-3 pl-10 pr-4 text-sm sm:text-base bg-white dark:bg-[#12231C] border border-[#E5E7EB] hover:border-slate-300 dark:border-slate-700 rounded-xl text-[#101828] dark:text-[#F8FAFC] placeholder:text-[#98A2B3] transition-all duration-200 outline-none focus:border-[#00966F] focus:ring-2 focus:ring-[#00966F]/15 disabled:bg-slate-50 dark:disabled:bg-slate-900 disabled:text-slate-400"
             />
           </div>
         </div>
@@ -157,7 +151,10 @@ const Login: React.FC = () => {
           id="login-password"
           label="Mật khẩu"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (error) setError("");
+          }}
           placeholder="••••••••••••"
           required
           disabled={loading || isSuccess}
@@ -165,7 +162,7 @@ const Login: React.FC = () => {
 
         {/* Remember me & Forgot password */}
         <div className="flex items-center justify-between text-xs sm:text-sm pt-0.5">
-          <label className="flex items-center gap-2 cursor-pointer text-[#667085] select-none">
+          <label className="flex items-center gap-2 cursor-pointer text-[#667085] dark:text-slate-400 select-none">
             <input
               type="checkbox"
               checked={rememberMe}
@@ -178,11 +175,23 @@ const Login: React.FC = () => {
 
           <Link
             to="/forgot-password"
-            className="text-[#00966F] hover:text-[#007F5F] font-semibold transition-colors hover:underline"
+            className="text-[#00966F] hover:text-[#007F5F] dark:text-[#34D399] font-semibold transition-colors hover:underline"
           >
             Quên mật khẩu?
           </Link>
         </div>
+
+        {/* Error Alert - Positioned directly above Login Button */}
+        {error && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-3 sm:p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-300 font-medium animate-fade-in flex items-start gap-2.5 shadow-xs"
+          >
+            <AlertCircle size={17} className="text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+            <span className="text-xs sm:text-sm leading-snug break-words">{error}</span>
+          </div>
+        )}
 
         {/* Submit Button */}
         <button
@@ -209,10 +218,10 @@ const Login: React.FC = () => {
       {/* Divider */}
       <div className="relative my-5">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[#E5E7EB]" />
+          <div className="w-full border-t border-[#E5E7EB] dark:border-slate-800" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-[#FFFDF8] px-3 text-[#98A2B3] font-semibold tracking-wider">
+          <span className="bg-[#FFFDF8] dark:bg-[#0F1C17] px-3 text-[#98A2B3] dark:text-slate-400 font-semibold tracking-wider">
             hoặc
           </span>
         </div>
@@ -222,7 +231,7 @@ const Login: React.FC = () => {
       <div className="mb-4">
         <GoogleLoginButton
           onSuccess={handleGoogleSuccess}
-          onError={(msg) => setError(msg)}
+          onError={(msg) => setError(getAuthErrorMessage(msg, "Đăng nhập Google thất bại."))}
           disabled={loading || isSuccess}
           text="Tiếp tục với Google"
         />

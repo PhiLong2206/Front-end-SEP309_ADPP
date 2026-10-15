@@ -129,20 +129,42 @@ axiosClient.interceptors.response.use(
       }
     }
 
-    if (error.response?.data) {
-      return Promise.reject(error.response.data);
+    if (error.response) {
+      const status = error.response.status;
+      const data = error.response.data;
+
+      if (data && typeof data === "object") {
+        return Promise.reject({
+          ...data,
+          status: (data as { status?: number }).status ?? status,
+          statusCode: (data as { statusCode?: number }).statusCode ?? status,
+        });
+      }
+
+      return Promise.reject({
+        success: false,
+        status,
+        statusCode: status,
+        message: typeof data === "string" && data.trim() ? data : error.message,
+        data,
+      });
     }
 
     // Friendly message when server is down or unreachable
-    if (error.message === "Network Error" || error.code === "ERR_NETWORK") {
+    if (error.message === "Network Error" || error.code === "ERR_NETWORK" || !error.response) {
       return Promise.reject({
         success: false,
-        message: "Không thể kết nối đến máy chủ Backend (Port 5001). Vui lòng đảm bảo SystemService đang chạy.",
+        status: 0,
+        statusCode: 0,
+        isNetworkError: true,
+        message: "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng.",
       });
     }
 
     return Promise.reject({
       success: false,
+      status: 0,
+      statusCode: 0,
       message: error.message || "Đã xảy ra lỗi khi kết nối máy chủ.",
     });
   }

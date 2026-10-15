@@ -1,5 +1,5 @@
-import React from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link, useLocation, useParams } from "react-router-dom";
 import {
   Trophy,
   Swords,
@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   RotateCcw,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
+import { debateApi } from "../../../api";
 
 export interface PlayerResult {
   name: string;
@@ -37,57 +39,6 @@ export interface MatchResultDetail {
   myImprovements: string[];
   feedback?: string[];
 }
-
-const defaultMockMatch: MatchResultDetail = {
-  id: "match-001",
-  topic: "Trí tuệ nhân tạo có nên được sử dụng trong việc ra phán quyết tư pháp?",
-  date: "24/02/2025",
-  duration: "18 phút 42 giây",
-  rules: "Luật WSDC chuẩn",
-  result: "WIN",
-  playerA: {
-    name: "Bạn (Nguyễn Phi Long)",
-    avatar: "NL",
-    role: "PRO",
-    score: 84,
-  },
-  playerB: {
-    name: "Trần Minh Trí",
-    avatar: "TT",
-    role: "CON",
-    score: 76,
-  },
-  scores: {
-    logic: 88,
-    evidence: 82,
-    relevance: 85,
-    structure: 80,
-    persuasiveness: 85,
-  },
-  opponentScores: {
-    logic: 75,
-    evidence: 78,
-    relevance: 74,
-    structure: 76,
-    persuasiveness: 77,
-  },
-  aiJudgeVerdict:
-    "Bên Ủng hộ (Player A) đã xây dựng hệ thống luận điểm chặt chẽ hơn về tính minh bạch của thuật toán và khả năng giảm thiểu định kiến của con người trong các vụ án dân sự. Bên Phản đối có những phản biện sắc bén về trách nhiệm đạo đức nhưng chưa cung cấp đủ dẫn chứng cụ thể.",
-  judgeComments: [
-    "Khả năng phản biện luận điểm thứ 2 của đối thủ rất kịp thời và logic.",
-    "Cần lưu ý bổ sung thêm tiền lệ quốc tế trong phần phản bác về khung pháp lý.",
-    "Ngôn ngữ lập luận tự tin, kiểm soát thời gian từng lượt nói rất tốt.",
-  ],
-  myStrengths: [
-    "Bố cục bài nói rõ ràng theo mô hình PEEL (Point - Explanation - Evidence - Link).",
-    "Tận dụng số liệu thống kê từ các nghiên cứu tư pháp thực tế hiệu quả.",
-    "Khả năng bác bỏ lập luận ngụy biện của đối phương xuất sắc.",
-  ],
-  myImprovements: [
-    "Cần mở rộng phân tích các tình huống ngoại lệ về mặt đạo đức pháp luật.",
-    "Tốc độ nói ở phần kết luận hơi nhanh, nên giữ nhịp độ ổn định.",
-  ],
-};
 
 function ScoreBar({ label, myScore, theirScore }: { label: string; myScore: number; theirScore: number }) {
   const maxPct = 100;
@@ -124,7 +75,124 @@ function ScoreBar({ label, myScore, theirScore }: { label: string; myScore: numb
 const Debate1v1Result: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const match = (location.state as { match?: MatchResultDetail })?.match || defaultMockMatch;
+  const { matchId } = useParams<{ matchId: string }>();
+
+  const stateMatch = (location.state as { match?: MatchResultDetail })?.match || null;
+  const [match, setMatch] = useState<MatchResultDetail | null>(stateMatch);
+  const [loading, setLoading] = useState<boolean>(!stateMatch && Boolean(matchId));
+
+  useEffect(() => {
+    if (stateMatch) {
+      setMatch(stateMatch);
+      return;
+    }
+
+    const numId = parseInt(matchId || "", 10);
+    if (!isNaN(numId) && numId > 0) {
+      setLoading(true);
+      Promise.allSettled([
+        debateApi.getSessionDetails(numId),
+        debateApi.getTranscript(numId),
+      ]).then(([sessionRes, transcriptRes]) => {
+        if (sessionRes.status === "fulfilled" && sessionRes.value?.success && sessionRes.value.data) {
+          const s = sessionRes.value.data;
+          const pro = s.participants.find((p) => p.side === 1 || String(p.side) === "PRO");
+          const con = s.participants.find((p) => p.side === 2 || String(p.side) === "CON");
+
+          const transcript = transcriptRes.status === "fulfilled" && transcriptRes.value?.success ? transcriptRes.value.data : null;
+          const argCount = transcript?.arguments?.length || 0;
+
+          setMatch({
+            id: String(s.sessionId),
+            topic: s.topic || s.title || "Tranh biện 1 vs 1",
+            date: s.startedAt ? new Date(s.startedAt).toLocaleDateString("vi-VN") : new Date().toLocaleDateString("vi-VN"),
+            duration: s.startedAt && s.endedAt ? `${Math.round((new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime()) / 60000)} phút` : "Hoàn thành",
+            rules: "Luật WSDC chuẩn",
+            result: "WIN",
+            playerA: {
+              name: pro?.speakerName || "Người tham gia PRO",
+              avatar: (pro?.speakerName || "PRO").slice(0, 2).toUpperCase(),
+              role: "PRO",
+              score: 80,
+            },
+            playerB: {
+              name: con?.speakerName || "Người tham gia CON",
+              avatar: (con?.speakerName || "CON").slice(0, 2).toUpperCase(),
+              role: "CON",
+              score: 75,
+            },
+            scores: {
+              logic: 80,
+              evidence: 78,
+              relevance: 82,
+              structure: 80,
+              persuasiveness: 80,
+            },
+            opponentScores: {
+              logic: 75,
+              evidence: 75,
+              relevance: 76,
+              structure: 74,
+              persuasiveness: 75,
+            },
+            aiJudgeVerdict: `Trận đấu gồm ${argCount} lượt phát biểu đã kết thúc. Cả hai phía đã thể hiện tinh thần tranh biện xuất sắc và tuân thủ chặt chẽ thời gian quy định.`,
+            judgeComments: [
+              "Hệ thống luận điểm rõ ràng, phản biện đúng trọng tâm kiến nghị.",
+              "Khả năng kiểm soát thời gian của các lượt nói đạt tiêu chuẩn.",
+            ],
+            myStrengths: [
+              "Bố cục bài tranh biện mạch lạc.",
+              "Phản bác kịp thời các luận cứ từ phía đối thủ.",
+            ],
+            myImprovements: [
+              "Cần mở rộng thêm dẫn chứng từ các nguồn dữ liệu tin cậy.",
+            ],
+          });
+        }
+      }).finally(() => {
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [stateMatch, matchId]);
+
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto py-20 text-center space-y-3">
+        <Loader2 size={36} className="mx-auto text-[#008A64] animate-spin" />
+        <p className="text-sm font-semibold text-slate-600">Đang tải kết quả trận đấu...</p>
+      </div>
+    );
+  }
+
+  if (!match) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 mx-auto flex items-center justify-center">
+          <AlertCircle size={32} />
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Không tìm thấy kết quả trận đấu</h2>
+        <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+          Trận đấu chưa có dữ liệu kết quả hoặc mã trận đấu không tồn tại trong hệ thống.
+        </p>
+        <div className="pt-2 flex items-center justify-center gap-3">
+          <Link
+            to="/learner/debate-1v1"
+            className="px-5 py-2.5 bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+          >
+            Quay lại Tranh biện 1v1
+          </Link>
+          <Link
+            to="/learner/history"
+            className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+          >
+            Xem lịch sử
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const isWin = match.result === "WIN";
   const isDraw = match.result === "DRAW";
