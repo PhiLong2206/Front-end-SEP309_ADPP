@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import {
   ResponsiveContainer,
   RadarChart,
@@ -9,7 +10,17 @@ import {
 } from "recharts";
 import { useAuth } from "../../../hooks/useAuth";
 import userApi from "../../../api/userApi";
-import { CheckCircle2, AlertCircle, Edit3, Save, X, Camera } from "lucide-react";
+import { ROLES } from "../../../utils/constants";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Edit3,
+  Save,
+  X,
+  Camera,
+  ShieldCheck,
+  Calendar,
+} from "lucide-react";
 
 const SKILL_DATA = [
   { subject: "Lập luận", A: 85, fullMark: 100 },
@@ -35,6 +46,7 @@ const GENDER_OPTIONS: { value: "Male" | "Female" | "Other"; label: string }[] = 
 
 const LearnerProfile: React.FC = () => {
   const { user, setUser } = useAuth();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user?.fullName || "");
@@ -48,6 +60,15 @@ const LearnerProfile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const roleStr = String(user?.role || "");
+  const isAdmin =
+    location.pathname.startsWith("/admin") ||
+    roleStr === ROLES.ADMIN ||
+    roleStr.toLowerCase() === "admin" ||
+    (user?.roles || []).some(
+      (r) => r.toLowerCase() === "admin" || r.toLowerCase() === "administrator"
+    );
 
   const effectiveAvatar =
     (user?.avatarUrl && user.avatarUrl !== "string" ? user.avatarUrl : null) ||
@@ -151,10 +172,23 @@ const LearnerProfile: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Title */}
-      <div>
-        <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">
-          Hồ sơ cá nhân
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">
+            {isAdmin ? "Hồ sơ quản trị viên" : "Hồ sơ cá nhân"}
+          </h1>
+          {isAdmin && (
+            <p className="text-xs text-slate-500 mt-1">
+              Thông tin tài khoản và quyền hạn quản trị hệ thống ADPP
+            </p>
+          )}
+        </div>
+        {isAdmin && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008A64] border border-emerald-200 text-xs font-bold w-fit">
+            <ShieldCheck size={16} />
+            <span>Quản trị viên hệ thống</span>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -171,50 +205,94 @@ const LearnerProfile: React.FC = () => {
         </div>
       )}
 
-      {/* Main 2-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT COLUMN: Personal Info Form (5 Cols) */}
-        <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-6 flex flex-col justify-between">
-          <div>
-            {/* Header with Avatar & Name & Edit Button */}
-            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
-              <div className="flex items-center gap-3.5">
-                <div className="relative group">
-                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#008A64] text-white font-black text-xl flex items-center justify-center shadow-md shadow-[#008A64]/20 border-2 border-slate-100">
-                    {effectiveAvatar ? (
-                      <img
-                        src={effectiveAvatar}
-                        alt={fullName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span>{fullName ? fullName.charAt(0).toUpperCase() : "L"}</span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Đổi ảnh đại diện"
-                    className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-[#008A64] hover:border-[#008A64] shadow-xs transition-all cursor-pointer"
-                  >
-                    <Camera size={12} />
-                  </button>
+      {/* Main Grid: Tailored for Admin vs Learner */}
+      {isAdmin ? (
+        /* ADMIN PROFILE LAYOUT: Balanced 2-card layout with NO learner stats or radar chart */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LEFT CARD: Admin Identity & System Summary (5 Cols) */}
+          <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="relative group mb-4">
+                <div className="w-24 h-24 rounded-3xl overflow-hidden bg-[#008A64] text-white font-black text-3xl flex items-center justify-center shadow-lg shadow-[#008A64]/20 border-4 border-slate-100">
+                  {effectiveAvatar ? (
+                    <img
+                      src={effectiveAvatar}
+                      alt={fullName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{fullName ? fullName.charAt(0).toUpperCase() : "A"}</span>
+                  )}
                 </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#0F172A] leading-tight">
-                    {fullName || user?.fullName || user?.email?.split("@")[0] || "Người dùng"}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {email || user?.email || ""}
-                  </p>
-                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Đổi ảnh đại diện"
+                  className="absolute -bottom-1 -right-1 p-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-[#008A64] hover:border-[#008A64] shadow-md transition-all cursor-pointer"
+                >
+                  <Camera size={14} />
+                </button>
+              </div>
+
+              <h2 className="text-lg font-bold text-[#0F172A] leading-tight">
+                {fullName || user?.fullName || user?.email?.split("@")[0] || "Quản trị viên"}
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">{email || user?.email || ""}</p>
+
+              <div className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#008A64] border border-emerald-200/80 text-xs font-bold">
+                <ShieldCheck size={14} />
+                <span>Quản trị viên</span>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-5 space-y-3.5 text-xs">
+              <div className="flex items-center justify-between text-slate-600">
+                <span className="flex items-center gap-2 text-slate-500 font-medium">
+                  <ShieldCheck size={15} className="text-[#008A64]" />
+                  Vai trò
+                </span>
+                <span className="font-bold text-[#0F172A]">Quản trị viên</span>
+              </div>
+
+              <div className="flex items-center justify-between text-slate-600">
+                <span className="flex items-center gap-2 text-slate-500 font-medium">
+                  <Calendar size={15} className="text-[#008A64]" />
+                  Ngày tham gia
+                </span>
+                <span className="font-bold text-[#0F172A]">
+                  {joinDate || "Chưa cập nhật"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-slate-600">
+                <span className="flex items-center gap-2 text-slate-500 font-medium">
+                  <CheckCircle2 size={15} className="text-[#008A64]" />
+                  Trạng thái
+                </span>
+                <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/60">
+                  Đang hoạt động
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT CARD: Admin Personal Details Form (7 Cols) */}
+          <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-[#0F172A]">
+                  Thông tin chi tiết
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Thông tin liên hệ và hồ sơ cá nhân quản trị viên
+                </p>
               </div>
 
               <button
@@ -227,8 +305,7 @@ const LearnerProfile: React.FC = () => {
               </button>
             </div>
 
-            {/* Form Fields */}
-            <form onSubmit={handleSaveProfile} className="space-y-4 pt-5">
+            <form onSubmit={handleSaveProfile} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">
                   Họ và tên
@@ -258,7 +335,6 @@ const LearnerProfile: React.FC = () => {
                 />
               </div>
 
-              {/* 2-Column Row for Phone & DOB */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">
@@ -296,36 +372,52 @@ const LearnerProfile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Gender */}
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                  Giới tính
-                </label>
-                {isEditing ? (
-                  <div className="flex items-center gap-2.5">
-                    {GENDER_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setGender(opt.value)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                          gender === opt.value
-                            ? "bg-[#008A64] text-white border-[#008A64] shadow-xs"
-                            : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Giới tính
+                  </label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      {GENDER_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setGender(opt.value)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            gender === opt.value
+                              ? "bg-[#008A64] text-white border-[#008A64] shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={GENDER_OPTIONS.find((o) => o.value === gender)?.label || "Chưa cập nhật"}
+                      disabled
+                      className="w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/80 border border-slate-200 text-slate-700 cursor-not-allowed"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Vai trò
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value="Quản trị viên"
+                      disabled
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50/60 border border-emerald-200 text-[#008A64] cursor-not-allowed"
+                    />
+                    <ShieldCheck size={16} className="absolute left-3 top-3 text-[#008A64]" />
                   </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={GENDER_OPTIONS.find((o) => o.value === gender)?.label || "Chưa cập nhật"}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/80 border border-slate-200 text-slate-700 cursor-not-allowed"
-                  />
-                )}
+                </div>
               </div>
 
               <div>
@@ -355,95 +447,282 @@ const LearnerProfile: React.FC = () => {
             </form>
           </div>
         </div>
-
-        {/* RIGHT COLUMN: Statistics & Skills Radar Chart (7 Cols) */}
-        <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-6">
-          {/* Top: Thống kê */}
-          <div>
-            <h3 className="text-sm font-bold text-[#0F172A] mb-3">
-              Thống kê
-            </h3>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* Stat 1 */}
-              <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
-                <div className="text-xl sm:text-2xl font-black text-[#008A64]">
-                  12
+      ) : (
+        /* LEARNER PROFILE LAYOUT: Original 12-column grid with learner stats and radar chart preserved */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* LEFT COLUMN: Personal Info Form (5 Cols) */}
+          <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-6 flex flex-col justify-between">
+            <div>
+              {/* Header with Avatar & Name & Edit Button */}
+              <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+                <div className="flex items-center gap-3.5">
+                  <div className="relative group">
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#008A64] text-white font-black text-xl flex items-center justify-center shadow-md shadow-[#008A64]/20 border-2 border-slate-100">
+                      {effectiveAvatar ? (
+                        <img
+                          src={effectiveAvatar}
+                          alt={fullName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{fullName ? fullName.charAt(0).toUpperCase() : "L"}</span>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Đổi ảnh đại diện"
+                      className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-[#008A64] hover:border-[#008A64] shadow-xs transition-all cursor-pointer"
+                    >
+                      <Camera size={12} />
+                    </button>
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-[#0F172A] leading-tight">
+                      {fullName || user?.fullName || user?.email?.split("@")[0] || "Người dùng"}
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {email || user?.email || ""}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-[11px] font-medium text-slate-500 mt-0.5">
-                  Phiên hoàn thành
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 hover:border-[#008A64] text-slate-700 hover:text-[#008A64] text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  {isEditing ? <X size={13} /> : <Edit3 size={13} />}
+                  <span>{isEditing ? "Hủy" : "Chỉnh sửa"}</span>
+                </button>
               </div>
 
-              {/* Stat 2 */}
-              <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
-                <div className="text-xl sm:text-2xl font-black text-[#008A64]">
-                  76
+              {/* Form Fields */}
+              <form onSubmit={handleSaveProfile} className="space-y-4 pt-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Họ và tên
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={!isEditing || loading}
+                    className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border transition-all ${
+                      isEditing
+                        ? "bg-white border-[#008A64] text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#008A64]/15"
+                        : "bg-slate-50/80 border-slate-200 text-slate-700"
+                    }`}
+                  />
                 </div>
-                <div className="text-[11px] font-medium text-slate-500 mt-0.5">
-                  Điểm trung bình
-                </div>
-              </div>
 
-              {/* Stat 3 */}
-              <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
-                <div className="text-xl sm:text-2xl font-black text-amber-500">
-                  5
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/80 border border-slate-200 text-slate-500 cursor-not-allowed"
+                  />
                 </div>
-                <div className="text-[11px] font-medium text-slate-500 mt-0.5">
-                  Ngày liên tiếp
-                </div>
-              </div>
 
-              {/* Stat 4 */}
-              <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
-                <div className="text-xl sm:text-2xl font-black text-[#008A64]">
-                  Top 15%
+                {/* 2-Column Row for Phone & DOB */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                      Số điện thoại
+                    </label>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      disabled={!isEditing || loading}
+                      placeholder="Chưa cập nhật"
+                      className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border transition-all ${
+                        isEditing
+                          ? "bg-white border-[#008A64] text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#008A64]/15"
+                          : "bg-slate-50/80 border-slate-200 text-slate-700"
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                      Ngày sinh
+                    </label>
+                    <input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      disabled={!isEditing || loading}
+                      className={`w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border transition-all ${
+                        isEditing
+                          ? "bg-white border-[#008A64] text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#008A64]/15"
+                          : "bg-slate-50/80 border-slate-200 text-slate-700"
+                      }`}
+                    />
+                  </div>
                 </div>
-                <div className="text-[11px] font-medium text-slate-500 mt-0.5">
-                  Xếp hạng
+
+                {/* Gender */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Giới tính
+                  </label>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2.5">
+                      {GENDER_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setGender(opt.value)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            gender === opt.value
+                              ? "bg-[#008A64] text-white border-[#008A64] shadow-xs"
+                              : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={GENDER_OPTIONS.find((o) => o.value === gender)?.label || "Chưa cập nhật"}
+                      disabled
+                      className="w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/80 border border-slate-200 text-slate-700 cursor-not-allowed"
+                    />
+                  )}
                 </div>
-              </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    Ngày tham gia
+                  </label>
+                  <input
+                    type="text"
+                    value={joinDate}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50/80 border border-slate-200 text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+
+                {isEditing && (
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#008A64] hover:bg-[#007457] shadow-sm shadow-[#008A64]/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Save size={15} />
+                      <span>{loading ? "Đang lưu..." : "Lưu thay đổi"}</span>
+                    </button>
+                  </div>
+                )}
+              </form>
             </div>
           </div>
 
-          {/* Bottom: Kỹ năng Radar Chart */}
-          <div>
-            <h3 className="text-sm font-bold text-[#0F172A] mb-2">
-              Kỹ năng
-            </h3>
+          {/* RIGHT COLUMN: Statistics & Skills Radar Chart (7 Cols) */}
+          <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-6">
+            {/* Top: Thống kê */}
+            <div>
+              <h3 className="text-sm font-bold text-[#0F172A] mb-3">
+                Thống kê
+              </h3>
 
-            <div className="w-full h-64 sm:h-72 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={SKILL_DATA} cx="50%" cy="50%" outerRadius="75%">
-                  <PolarGrid stroke="#e2e8f0" strokeDasharray="3 3" />
-                  <PolarAngleAxis
-                    dataKey="subject"
-                    tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
-                  />
-                  <PolarRadiusAxis
-                    angle={30}
-                    domain={[0, 100]}
-                    stroke="#cbd5e1"
-                    tick={{ fill: "#94a3b8", fontSize: 9 }}
-                  />
-                  <Radar
-                    name="Kỹ năng"
-                    dataKey="A"
-                    stroke="#008A64"
-                    fill="#008A64"
-                    fillOpacity={0.25}
-                    strokeWidth={2}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* Stat 1 */}
+                <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                  <div className="text-xl sm:text-2xl font-black text-[#008A64]">
+                    12
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">
+                    Phiên hoàn thành
+                  </div>
+                </div>
+
+                {/* Stat 2 */}
+                <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                  <div className="text-xl sm:text-2xl font-black text-[#008A64]">
+                    76
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">
+                    Điểm trung bình
+                  </div>
+                </div>
+
+                {/* Stat 3 */}
+                <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                  <div className="text-xl sm:text-2xl font-black text-amber-500">
+                    5
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">
+                    Ngày liên tiếp
+                  </div>
+                </div>
+
+                {/* Stat 4 */}
+                <div className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-2xl">
+                  <div className="text-xl sm:text-2xl font-black text-[#008A64]">
+                    Top 15%
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">
+                    Xếp hạng
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom: Kỹ năng Radar Chart */}
+            <div>
+              <h3 className="text-sm font-bold text-[#0F172A] mb-2">
+                Kỹ năng
+              </h3>
+
+              <div className="w-full h-64 sm:h-72 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={SKILL_DATA} cx="50%" cy="50%" outerRadius="75%">
+                    <PolarGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <PolarAngleAxis
+                      dataKey="subject"
+                      tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }}
+                    />
+                    <PolarRadiusAxis
+                      angle={30}
+                      domain={[0, 100]}
+                      stroke="#cbd5e1"
+                      tick={{ fill: "#94a3b8", fontSize: 9 }}
+                    />
+                    <Radar
+                      name="Kỹ năng"
+                      dataKey="A"
+                      stroke="#008A64"
+                      fill="#008A64"
+                      fillOpacity={0.25}
+                      strokeWidth={2}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 export default LearnerProfile;
+
 

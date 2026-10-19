@@ -110,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const sections = getSections();
 
   const getProfilePath = () => {
-    if (role === ROLES.ADMIN) return "/admin/dashboard";
+    if (role === ROLES.ADMIN) return "/admin/profile";
     if (role === ROLES.EDUCATOR) return "/educator/profile";
     return "/learner/profile";
   };

@@ -2,9 +2,11 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import PublicLayout from "../components/layout/PublicLayout";
 import DashboardLayout from "../components/layout/DashboardLayout";
-import ProtectedRoute from "./ProtectedRoute";
+import AdminLayout from "../components/layout/AdminLayout";
+import RoleProtectedRoute from "./RoleProtectedRoute";
 import GuestRoute from "./GuestRoute";
 import { ROLES } from "../utils/constants";
+import { useAuth } from "../hooks/useAuth";
 
 // Public pages
 import Home from "../pages/public/Home/Home";
@@ -16,21 +18,44 @@ import VerifyOtp from "../pages/public/VerifyOtp/VerifyOtp";
 import NotFound from "../pages/public/NotFound/NotFound";
 import Unauthorized from "../pages/public/Unauthorized/Unauthorized";
 
-// Child routes
+// Child portals
 import LearnerRoutes from "./LearnerRoutes";
 import EducatorRoutes from "./EducatorRoutes";
-import AdminRoutes from "./AdminRoutes";
+
+// Admin pages & Reusable Profile/Settings
+import AdminDashboard from "../pages/admin/Dashboard/Dashboard";
+import UserManagement from "../pages/admin/UserManagement/UserManagement";
+import RoleManagement from "../pages/admin/RoleManagement/RoleManagement";
+import AdminTopicManagement from "../pages/admin/TopicManagement/TopicManagement";
+import PaymentManagement from "../pages/admin/PaymentManagement/PaymentManagement";
+import DebateManagement from "../pages/admin/DebateManagement/DebateManagement";
+import ReportManagement from "../pages/admin/ReportManagement/ReportManagement";
+import AdminEventManagement from "../pages/admin/EventManagement/EventManagement";
+import AdminCompetitionManagement from "../pages/admin/CompetitionManagement/CompetitionManagement";
+import SystemManagement from "../pages/admin/SystemManagement/SystemManagement";
+import LearnerProfile from "../pages/learner/Profile/Profile";
+import LearnerSettings from "../pages/learner/Settings/Settings";
+
+/**
+ * Smart redirect for /profile based on authenticated role.
+ */
+const ProfileRedirect: React.FC = () => {
+  const { role } = useAuth();
+  if (role === ROLES.ADMIN) return <Navigate to="/admin/profile" replace />;
+  if (role === ROLES.EDUCATOR) return <Navigate to="/educator/profile" replace />;
+  return <Navigate to="/learner/profile" replace />;
+};
 
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Direct /profile shortcut: protected, forces login if not authenticated */}
+      {/* Direct /profile shortcut: protected, redirects to portal matching user role */}
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
-            <Navigate to="/learner/profile" replace />
-          </ProtectedRoute>
+          <RoleProtectedRoute>
+            <ProfileRedirect />
+          </RoleProtectedRoute>
         }
       />
 
@@ -38,8 +63,9 @@ const AppRoutes: React.FC = () => {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/403" element={<Unauthorized />} />
 
-        {/* Guest Only Routes (Redirects to dashboard if already authenticated) */}
+        {/* Guest Only Routes (Redirects to role dashboard if already authenticated) */}
         <Route element={<GuestRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -49,13 +75,13 @@ const AppRoutes: React.FC = () => {
         </Route>
       </Route>
 
-      {/* Protected Learner Portal */}
+      {/* Protected Learner Portal (Learner & Admin can preview) */}
       <Route
         path="/learner/*"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.LEARNER]}>
+          <RoleProtectedRoute allowedRoles={[ROLES.LEARNER, ROLES.ADMIN]}>
             <DashboardLayout />
-          </ProtectedRoute>
+          </RoleProtectedRoute>
         }
       >
         <Route path="*" element={<LearnerRoutes />} />
@@ -65,24 +91,42 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/educator/*"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.EDUCATOR]}>
+          <RoleProtectedRoute allowedRoles={[ROLES.EDUCATOR]}>
             <DashboardLayout />
-          </ProtectedRoute>
+          </RoleProtectedRoute>
         }
       >
         <Route path="*" element={<EducatorRoutes />} />
       </Route>
 
-      {/* Protected Administrator Portal */}
+      {/* Protected Administrator Portal (Strictly Admin only: Learners redirected to 403) */}
       <Route
-        path="/admin/*"
+        path="/admin"
         element={
-          <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
-            <DashboardLayout />
-          </ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+            <AdminLayout />
+          </RoleProtectedRoute>
         }
       >
-        <Route path="*" element={<AdminRoutes />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="roles" element={<RoleManagement />} />
+        <Route path="topics" element={<AdminTopicManagement />} />
+        <Route path="payments" element={<PaymentManagement />} />
+
+        {/* Reusable Profile & Settings for Admin */}
+        <Route path="profile" element={<LearnerProfile />} />
+        <Route path="settings" element={<LearnerSettings />} />
+
+        {/* Preserved routes (hidden from sidebar but accessible) */}
+        <Route path="debates" element={<DebateManagement />} />
+        <Route path="reports" element={<ReportManagement />} />
+        <Route path="events" element={<AdminEventManagement />} />
+        <Route path="competitions" element={<AdminCompetitionManagement />} />
+        <Route path="system" element={<SystemManagement />} />
+
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
 
       {/* 404 Not Found Page */}

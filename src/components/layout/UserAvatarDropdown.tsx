@@ -30,10 +30,10 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({ className = "" 
   const getProfilePath = () => {
     const userRole = String(role);
     if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) {
-      return "/admin/settings";
+      return "/admin/profile";
     }
     if (userRole === "Educator" || userRole === ROLES.EDUCATOR) {
-      return "/educator/settings";
+      return "/educator/profile";
     }
     return "/learner/profile";
   };
