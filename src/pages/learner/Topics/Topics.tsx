@@ -1,17 +1,19 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, ArrowUpRight, BookOpen } from "lucide-react";
+import { Search, ArrowUpRight, BookOpen, RefreshCw } from "lucide-react";
 import DifficultyBadge from "../../../components/topic/DifficultyBadge";
 import Pagination from "../../../components/common/Pagination";
 import { Topic } from "../../../types";
 import { useDebounce } from "../../../hooks/useDebounce";
+import topicApi from "../../../api/topicApi";
 
 const Topics: React.FC = () => {
-  const [topics] = useState<Topic[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 9;
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -23,16 +25,43 @@ const Topics: React.FC = () => {
     "Môi trường",
     "Kinh tế",
     "Văn hóa",
+    "Triết học",
   ];
+
+  const fetchTopics = async () => {
+    setLoading(true);
+    try {
+      const res = await topicApi.getAll({
+        pageNumber: 1,
+        pageSize: 100,
+        isActive: true,
+      });
+
+      if (res && res.success && res.data) {
+        setTopics(res.data.items || []);
+      }
+    } catch {
+      setTopics([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTopics();
+  }, []);
 
   const filteredTopics = useMemo(() => {
     return topics.filter((topic) => {
+      const title = topic.title || "";
+      const motion = topic.motion || topic.description || "";
       const matchSearch =
-        topic.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        topic.motion?.toLowerCase().includes(debouncedSearch.toLowerCase());
+        title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        motion.toLowerCase().includes(debouncedSearch.toLowerCase());
 
       const matchCategory =
-        selectedCategory === "Tất cả" || topic.category === selectedCategory;
+        selectedCategory === "Tất cả" ||
+        (topic.category && topic.category.toLowerCase() === selectedCategory.toLowerCase());
 
       return matchSearch && matchCategory;
     });
@@ -45,7 +74,7 @@ const Topics: React.FC = () => {
   }, [filteredTopics, currentPage, pageSize]);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto animate-fade-in pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight">
@@ -101,56 +130,65 @@ const Topics: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid of Cards */}
-      {paginatedTopics.length === 0 ? (
+      {/* Loading state */}
+      {loading ? (
+        <div className="bg-white p-16 rounded-3xl border border-slate-200 text-center text-slate-400 shadow-xs space-y-3">
+          <RefreshCw size={28} className="animate-spin text-[#008A64] mx-auto mb-2" />
+          <p className="text-xs font-bold text-slate-600">Đang tải danh sách chủ đề tranh biện từ máy chủ...</p>
+        </div>
+      ) : paginatedTopics.length === 0 ? (
         <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 shadow-xs space-y-3">
           <BookOpen size={36} className="mx-auto text-slate-300" />
-          <p className="text-sm font-semibold">Chưa có chủ đề tranh biện nào trên hệ thống.</p>
-          <p className="text-xs text-slate-400">Chủ đề từ máy chủ sẽ được hiển thị tại đây khi được thêm vào cơ sở dữ liệu.</p>
+          <p className="text-sm font-semibold">Chưa có chủ đề tranh biện nào phù hợp.</p>
+          <p className="text-xs text-slate-400">
+            Hãy thử tìm kiếm với từ khóa khác hoặc chuyển sang danh mục "Tất cả".
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {paginatedTopics.map((topic) => (
-            <Link
-              key={topic.id}
-              to={`/learner/topics/${topic.id}`}
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-[#008A64]/40 transition-all duration-300 flex flex-col overflow-hidden group"
-            >
-              {topic.imageUrl && (
-                <div className="h-40 w-full overflow-hidden relative bg-slate-100">
-                  <img
-                    src={topic.imageUrl}
-                    alt={topic.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity shadow-xs">
-                    <ArrowUpRight size={14} className="text-[#008A64]" />
+          {paginatedTopics.map((topic) => {
+            const topicId = topic.topicId ?? topic.id;
+            return (
+              <Link
+                key={String(topicId)}
+                to={`/learner/topics/${topicId}`}
+                state={{ topic }}
+                className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-[#008A64]/40 transition-all duration-300 flex flex-col justify-between overflow-hidden group p-5 space-y-4"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 border border-emerald-200/80 text-[#008A64]">
+                      {topic.category || "Chung"}
+                    </span>
+                    <DifficultyBadge difficulty={topic.difficulty} />
                   </div>
-                </div>
-              )}
 
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                <div className="space-y-2">
                   <h3 className="font-bold text-[#0F172A] text-sm sm:text-base line-clamp-2 leading-snug group-hover:text-[#008A64] transition-colors">
                     {topic.title}
                   </h3>
+
+                  {topic.description && (
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {topic.description}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 border border-blue-200 text-blue-700">
-                    {topic.category}
-                  </span>
-                  <DifficultyBadge difficulty={topic.difficulty} />
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                  <span className="font-mono">#{topicId}</span>
+                  <div className="flex items-center gap-1 font-bold text-[#008A64] group-hover:translate-x-1 transition-transform">
+                    <span>Chi tiết</span>
+                    <ArrowUpRight size={14} />
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div className="flex justify-end pt-2">
           <Pagination
             currentPage={currentPage}

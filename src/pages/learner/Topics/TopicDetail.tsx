@@ -1,20 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { Topic } from "../../../types";
 import Badge from "../../../components/common/Badge";
 import DifficultyBadge from "../../../components/topic/DifficultyBadge";
-import { ArrowLeft, BookOpen, FileText, Play } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Play, RefreshCw } from "lucide-react";
+import topicApi from "../../../api/topicApi";
 
 const TopicDetail: React.FC = () => {
-  const { id: _id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const topic: Topic | null = (location.state as { topic?: Topic })?.topic || null;
+  const [topic, setTopic] = useState<Topic | null>(
+    (location.state as { topic?: Topic })?.topic || null
+  );
+  const [loading, setLoading] = useState<boolean>(!topic);
 
   const [activeTab, setActiveTab] = useState<"overview" | "materials">("overview");
   const [selectedSide, setSelectedSide] = useState<"Ủng hộ" | "Phản đối">("Ủng hộ");
   const [selectedDifficulty, setSelectedDifficulty] = useState<"Dễ" | "Trung bình" | "Khó">("Trung bình");
+
+  useEffect(() => {
+    if (!topic && id) {
+      setLoading(true);
+      topicApi
+        .getById(id)
+        .then((res) => {
+          if (res && res.success && res.data) {
+            setTopic(res.data);
+          }
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [id, topic]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto py-20 text-center">
+        <RefreshCw size={28} className="animate-spin text-[#008A64] mx-auto mb-2" />
+        <p className="text-xs font-bold text-slate-600">Đang tải thông tin chi tiết chủ đề...</p>
+      </div>
+    );
+  }
 
   if (!topic) {
     return (
@@ -31,8 +58,10 @@ const TopicDetail: React.FC = () => {
     );
   }
 
+  const topicId = topic.topicId ?? topic.id;
+
   const handleStartDebate = () => {
-    navigate(`/learner/debate/session-${topic.id}`);
+    navigate(`/learner/debate/session-${topicId}`);
   };
 
   return (
@@ -51,7 +80,7 @@ const TopicDetail: React.FC = () => {
       {/* Main Topic Header Card */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
         <div className="flex items-center gap-2">
-          <Badge variant="primary" size="sm">{topic.category}</Badge>
+          <Badge variant="primary" size="sm">{topic.category || "Chung"}</Badge>
           <DifficultyBadge difficulty={topic.difficulty} />
         </div>
 
@@ -59,9 +88,11 @@ const TopicDetail: React.FC = () => {
           {topic.title}
         </h1>
 
-        <p className="text-xs sm:text-sm text-slate-600 italic">
-          Kiến nghị: &ldquo;{topic.motion}&rdquo;
-        </p>
+        {(topic.motion || topic.description) && (
+          <p className="text-xs sm:text-sm text-slate-600 italic">
+            Kiến nghị: &ldquo;{topic.motion || topic.title}&rdquo;
+          </p>
+        )}
       </div>
 
       {/* Tabs */}

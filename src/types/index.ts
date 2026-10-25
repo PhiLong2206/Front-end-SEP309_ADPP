@@ -6,3 +6,4 @@ export * from "./ai.types";
 export * from "./event.types";
 export * from "./competition.types";
 export * from "./payment.types";
+export * from "./admin.types";

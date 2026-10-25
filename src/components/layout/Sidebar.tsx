@@ -98,8 +98,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         ],
       },
       {
-        title: "PHÂN TÍCH & TIẾN ĐỘ",
+        title: "TÀI CHÍNH & CÁ NHÂN",
         items: [
+          { label: "Nạp điểm tín chỉ", path: "/learner/payments", icon: CreditCard },
           { label: "Hồ sơ cá nhân", path: "/learner/profile", icon: UserIcon },
           { label: "Cài đặt & Tùy chọn", path: "/learner/settings", icon: Settings },
         ],

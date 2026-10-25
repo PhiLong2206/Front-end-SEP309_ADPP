@@ -10,10 +10,18 @@ import {
 } from "../types";
 
 const topicApi = {
-  getAll: (params?: TopicFilterParams): Promise<ApiResponse<PaginatedResponse<Topic>>> =>
-    axiosClient.get("/topics", { params }),
+  getAll: (params?: TopicFilterParams): Promise<ApiResponse<PaginatedResponse<Topic>>> => {
+    // Map page -> pageNumber, search -> searchTerm for backend compatibility
+    const queryParams: Record<string, unknown> = {
+      ...params,
+      pageNumber: params?.pageNumber ?? params?.page ?? 1,
+      pageSize: params?.pageSize ?? 20,
+      searchTerm: params?.searchTerm ?? params?.search,
+    };
+    return axiosClient.get("/topics", { params: queryParams });
+  },
 
-  getById: (id: string): Promise<ApiResponse<Topic>> =>
+  getById: (id: string | number): Promise<ApiResponse<Topic>> =>
     axiosClient.get(`/topics/${id}`),
 
   getCategories: (): Promise<ApiResponse<string[]>> =>
@@ -22,23 +30,23 @@ const topicApi = {
   create: (data: CreateTopicDto): Promise<ApiResponse<Topic>> =>
     axiosClient.post("/topics", data),
 
-  update: (id: string, data: UpdateTopicDto): Promise<ApiResponse<Topic>> =>
-    axiosClient.put(`/topics/${id}`, data),
+  update: (id: string | number, data: UpdateTopicDto): Promise<ApiResponse<Topic>> =>
+    axiosClient.patch(`/topics/${id}`, data),
 
-  delete: (id: string): Promise<ApiResponse<void>> =>
+  delete: (id: string | number): Promise<ApiResponse<void>> =>
     axiosClient.delete(`/topics/${id}`),
 
   // Materials
-  getMaterials: (topicId: string): Promise<ApiResponse<TopicMaterial[]>> =>
+  getMaterials: (topicId: string | number): Promise<ApiResponse<TopicMaterial[]>> =>
     axiosClient.get(`/topics/${topicId}/materials`),
 
   addMaterial: (
-    topicId: string,
+    topicId: string | number,
     data: { title: string; content: string; sourceUrl?: string }
   ): Promise<ApiResponse<TopicMaterial>> =>
     axiosClient.post(`/topics/${topicId}/materials`, data),
 
-  deleteMaterial: (topicId: string, materialId: string): Promise<ApiResponse<void>> =>
+  deleteMaterial: (topicId: string | number, materialId: string | number): Promise<ApiResponse<void>> =>
     axiosClient.delete(`/topics/${topicId}/materials/${materialId}`),
 };
 

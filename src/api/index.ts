@@ -7,3 +7,4 @@ export { default as topicApi } from "./topicApi";
 export { default as eventApi } from "./eventApi";
 export { default as competitionApi } from "./competitionApi";
 export { default as paymentApi } from "./paymentApi";
+export { default as adminApi } from "./adminApi";

@@ -1,407 +1,546 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
-  CreditCard, Zap, Bot, Mic, FileText, Gavel,
-  CheckCircle2, Clock, AlertCircle, ArrowRight,
-  Receipt, Wallet, ChevronDown, ChevronUp, X
+  Coins,
+  CreditCard,
+  Gift,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ExternalLink,
+  RefreshCw,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
+  X,
+  QrCode,
+  ShieldCheck,
+  Check,
 } from "lucide-react";
-export interface PaymentTransaction {
-  id: string;
-  amount: number;
-  method: "MoMo" | "VNPay" | "BankTransfer";
-  status: "SUCCESS" | "FAILED" | "PENDING";
-  createdAt: string;
-  description: string;
-}
+import paymentApi from "../../../api/paymentApi";
+import {
+  LearnerCreditPackage,
+  WalletInfo,
+  WalletTransactionItem,
+  PaymentLinkResponse,
+} from "../../../types";
 
-export interface AIUsageRecord {
-  id: string;
-  service: "AI_COACHING" | "REBUTTAL_HINT" | "AI_EVALUATION" | "AI_JUDGE_1V1" | "SPEECH_TO_TEXT";
-  serviceLabel: string;
-  sessionTopic: string;
-  usedAt: string;
-  quantity: number;
-  totalCost: number;
-  status: "pending" | "paid" | "free";
-}
-
-export const AI_SERVICE_PRICE: Record<string, { label: string; price: number; unitLabel: string }> = {
-  AI_COACHING: { label: "AI Debate Coach (1v1)", price: 5000, unitLabel: "lượt" },
-  REBUTTAL_HINT: { label: "Gợi ý phản biện tức thì", price: 2000, unitLabel: "lượt" },
-  AI_EVALUATION: { label: "Chấm điểm & Phân tích chi tiết", price: 10000, unitLabel: "bài" },
-  AI_JUDGE_1V1: { label: "AI Trọng tài chấm trận đấu", price: 15000, unitLabel: "trận" },
-  SPEECH_TO_TEXT: { label: "Chuyển giọng nói thành văn bản", price: 1000, unitLabel: "phút" },
-};
-
-// ── Service icon map ──────────────────────────────────────────
-const SERVICE_ICONS: Record<string, React.ElementType> = {
-  AI_COACHING: Bot,
-  REBUTTAL_HINT: Zap,
-  AI_EVALUATION: FileText,
-  AI_JUDGE_1V1: Gavel,
-  SPEECH_TO_TEXT: Mic,
-};
-
-const SERVICE_COLORS: Record<string, string> = {
-  AI_COACHING: "bg-violet-50 text-violet-600 border-violet-200",
-  REBUTTAL_HINT: "bg-amber-50 text-amber-600 border-amber-200",
-  AI_EVALUATION: "bg-blue-50 text-blue-600 border-blue-200",
-  AI_JUDGE_1V1: "bg-[#ECFDF5] text-[#008A64] border-[#008A64]/30",
-  SPEECH_TO_TEXT: "bg-rose-50 text-rose-600 border-rose-200",
-};
-
-// ── Payment Checkout Modal ────────────────────────────────────
-function PaymentModal({
-  amount,
-  onClose,
-  onSuccess,
-}: {
-  amount: number;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const [method, setMethod] = useState<"momo" | "vnpay" | "bank">("momo");
-  const [loading, setLoading] = useState(false);
-
-  const handlePay = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      onSuccess();
-    }, 1800);
-  };
-
-  const methods = [
-    { id: "momo" as const, label: "MoMo", desc: "Ví điện tử MoMo", color: "bg-pink-600 text-white" },
-    { id: "vnpay" as const, label: "VNPay", desc: "Cổng thanh toán VNPay", color: "bg-blue-700 text-white" },
-    { id: "bank" as const, label: "Ngân hàng", desc: "Chuyển khoản ngân hàng", color: "bg-slate-700 text-white" },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#008A64] to-emerald-500 p-5 flex items-center justify-between">
-          <div>
-            <h2 className="font-black text-white text-lg">Thanh toán AI Usage</h2>
-            <p className="text-emerald-100 text-xs mt-0.5">Chọn phương thức thanh toán</p>
-          </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-5">
-          {/* Amount */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center">
-            <p className="text-xs text-slate-500 mb-1">Tổng số tiền cần thanh toán</p>
-            <p className="text-3xl font-black text-slate-900 font-mono">{amount.toLocaleString("vi-VN")}<span className="text-base font-bold text-slate-500 ml-1">đ</span></p>
-          </div>
-
-          {/* Method selection */}
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Phương thức</p>
-            {methods.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setMethod(m.id)}
-                className={`w-full p-3.5 rounded-xl border flex items-center gap-3 transition-all ${
-                  method === m.id
-                    ? "border-[#008A64] bg-[#ECFDF5]/60 ring-1 ring-[#008A64]"
-                    : "border-slate-200 bg-white hover:bg-slate-50"
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-lg ${m.color} flex items-center justify-center text-xs font-black shrink-0`}>
-                  {m.label.slice(0, 2)}
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-bold text-slate-900">{m.label}</p>
-                  <p className="text-xs text-slate-500">{m.desc}</p>
-                </div>
-                <div className={`ml-auto w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${method === m.id ? "border-[#008A64] bg-[#008A64]" : "border-slate-300"}`}>
-                  {method === m.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Pay button */}
-          <button
-            type="button"
-            onClick={handlePay}
-            disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-[#008A64] hover:bg-[#007457] text-white font-bold text-sm transition-all shadow-md shadow-[#008A64]/25 flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                <span>Đang xử lý...</span>
-              </>
-            ) : (
-              <>
-                <CreditCard size={16} />
-                <span>Thanh toán {amount.toLocaleString("vi-VN")}đ</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Usage Record Row ──────────────────────────────────────────
-function UsageRow({ record }: { record: AIUsageRecord }) {
-  const Icon = SERVICE_ICONS[record.service] ?? Zap;
-  const colorCls = SERVICE_COLORS[record.service] ?? "bg-slate-50 text-slate-600 border-slate-200";
-
-  return (
-    <tr className="hover:bg-slate-50/60 transition-colors">
-      <td className="px-5 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <div className={`p-1.5 rounded-lg border ${colorCls}`}>
-            <Icon size={13} />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-900">{record.serviceLabel}</p>
-            <p className="text-[11px] text-slate-400 line-clamp-1">{record.sessionTopic}</p>
-          </div>
-        </div>
-      </td>
-      <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap font-mono">{record.usedAt}</td>
-      <td className="px-5 py-3.5 text-xs text-center font-bold text-slate-700 font-mono">{record.quantity}</td>
-      <td className="px-5 py-3.5 text-xs text-right font-bold text-slate-900 font-mono">{record.totalCost.toLocaleString("vi-VN")}đ</td>
-      <td className="px-5 py-3.5 text-right">
-        {record.status === "paid" ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#ECFDF5] text-[#008A64] border border-[#008A64]/30">
-            <CheckCircle2 size={11} />Đã thanh toán
-          </span>
-        ) : record.status === "pending" ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <Clock size={11} />Chờ thanh toán
-          </span>
-        ) : (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
-            Miễn phí
-          </span>
-        )}
-      </td>
-    </tr>
-  );
-}
-
-// ── Main Payments Page ────────────────────────────────────────
 const Payments: React.FC = () => {
-  const [showPricing, setShowPricing] = useState(false);
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [paySuccess, setPaySuccess] = useState(false);
-  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
-  const [aiUsage] = useState<AIUsageRecord[]>([]);
+  // Data states
+  const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const [packages, setPackages] = useState<LearnerCreditPackage[]>([]);
+  const [transactions, setTransactions] = useState<WalletTransactionItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
+  const [checkingStatus, setCheckingStatus] = useState<boolean>(false);
 
-  const pendingUsage = aiUsage.filter((u) => u.status === "pending");
-  const paidUsage = aiUsage.filter((u) => u.status === "paid");
-  const pendingTotal = pendingUsage.reduce((s, u) => s + u.totalCost, 0);
-  const totalPaidAll = paidUsage.reduce((s, u) => s + u.totalCost, 0);
+  // Messages
+  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [successMsg, setSuccessMsg] = useState<string>("");
 
-  const handlePaySuccess = () => {
-    setShowPayModal(false);
-    setPaySuccess(true);
-    const newTxn: PaymentTransaction = {
-      id: `txn-${Date.now()}`,
-      amount: pendingTotal,
-      method: "MoMo",
-      status: "SUCCESS",
-      createdAt: new Date().toLocaleString("vi-VN"),
-      description: `Thanh toán AI Usage – ${new Date().toLocaleDateString("vi-VN")}`,
-    };
-    setTransactions((prev) => [newTxn, ...prev]);
-    setTimeout(() => setPaySuccess(false), 5000);
+  // PayOS Checkout Modal State
+  const [selectedPackage, setSelectedPackage] = useState<LearnerCreditPackage | null>(null);
+  const [paymentLink, setPaymentLink] = useState<PaymentLinkResponse | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  // Active Tab: Gói nạp vs Lịch sử giao dịch
+  const [activeTab, setActiveTab] = useState<"PACKAGES" | "HISTORY">("PACKAGES");
+
+  // Fetch Wallet & Active Packages
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const [walletRes, packagesRes, txnsRes] = await Promise.all([
+        paymentApi.getMyWallet().catch(() => null),
+        paymentApi.getActivePackages().catch(() => null),
+        paymentApi.getMyWalletTransactions({ page: 1, pageSize: 20 }).catch(() => null),
+      ]);
+
+      if (walletRes && walletRes.success && walletRes.data) {
+        setWallet(walletRes.data);
+      }
+
+      if (packagesRes && packagesRes.success && packagesRes.data) {
+        setPackages(packagesRes.data);
+      }
+
+      if (txnsRes && txnsRes.success && txnsRes.data) {
+        setTransactions(txnsRes.data);
+      }
+    } catch (err: unknown) {
+      const errObj = err as { message?: string };
+      setErrorMsg(errObj?.message || "Lỗi khi tải thông tin ví và gói nạp.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Handle Select Package to Top Up: POST /api/payments/top-up
+  const handleSelectPackage = async (pkg: LearnerCreditPackage) => {
+    setSelectedPackage(pkg);
+    setPaymentLink(null);
+    setIsModalOpen(true);
+    setActionLoading(true);
+    setErrorMsg("");
+
+    try {
+      const res = await paymentApi.createTopUpPayment({ packageId: pkg.packageId });
+      if (res && res.success && res.data) {
+        setPaymentLink(res.data);
+      } else {
+        setErrorMsg(res?.message || "Không thể tạo liên kết thanh toán PayOS.");
+        setIsModalOpen(false);
+      }
+    } catch (err: unknown) {
+      const errObj = err as { message?: string };
+      setErrorMsg(errObj?.message || "Lỗi khi khởi tạo thanh toán.");
+      setIsModalOpen(false);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Check Payment Status: GET /api/payments/{id}
+  const handleCheckStatus = async () => {
+    if (!paymentLink) return;
+    setCheckingStatus(true);
+    setErrorMsg("");
+    try {
+      const res = await paymentApi.getPaymentStatus(paymentLink.paymentId);
+      if (res && res.success && res.data) {
+        if (res.data.isCompleted || res.data.status?.toLowerCase() === "paid" || res.data.status?.toLowerCase() === "success") {
+          setSuccessMsg("Thanh toán thành công! Điểm tín chỉ đã được cộng vào ví của bạn.");
+          setIsModalOpen(false);
+          // Refresh wallet balance and transactions
+          fetchData();
+        } else {
+          setErrorMsg("Giao dịch đang chờ thanh toán qua cổng PayOS. Vui lòng quét mã QR hoặc mở trang thanh toán.");
+        }
+      } else {
+        setErrorMsg(res?.message || "Chưa nhận được xác nhận thanh toán.");
+      }
+    } catch {
+      setErrorMsg("Chưa tìm thấy trạng thái thanh toán thành công. Vui lòng thử lại sau giây lát.");
+    } finally {
+      setCheckingStatus(false);
+    }
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto pb-12 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">Thanh toán & Sử dụng AI</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Lịch sử sử dụng dịch vụ AI, số tiền phát sinh và quản lý giao dịch thanh toán.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
+            <Coins className="text-amber-500" size={26} />
+            <span>Ví điểm tín chỉ & Nạp Credit</span>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Nạp điểm tín chỉ để tham gia luyện tập đối kháng với AI, thi đấu giải đấu và nhận phản hồi chấm điểm chuyên sâu.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchData}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#1A2E26] hover:bg-slate-100 dark:hover:bg-[#233F34] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[rgba(148,163,184,0.18)] text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 self-start sm:self-auto"
+        >
+          <RefreshCw size={13} className={loading ? "animate-spin text-[#008A64]" : ""} />
+          <span>Làm mới số dư</span>
+        </button>
       </div>
 
-      {/* Success toast */}
-      {paySuccess && (
-        <div className="p-4 bg-[#ECFDF5] border border-[#008A64]/30 rounded-2xl flex items-center gap-3">
-          <CheckCircle2 size={20} className="text-[#008A64] shrink-0" />
-          <div>
-            <p className="text-sm font-bold text-emerald-900">Thanh toán thành công!</p>
-            <p className="text-xs text-emerald-700 mt-0.5">Giao dịch đã được ghi nhận. Bạn tiếp tục sử dụng đầy đủ dịch vụ AI.</p>
+      {/* Alerts */}
+      {errorMsg && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300 text-xs font-medium flex items-center justify-between gap-2 shadow-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-rose-500 shrink-0" />
+            <span>{errorMsg}</span>
           </div>
+          <button type="button" onClick={() => setErrorMsg("")} className="text-rose-400 hover:text-rose-600">
+            <X size={14} />
+          </button>
         </div>
       )}
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Pending amount */}
-        <div className={`rounded-2xl border p-5 space-y-3 shadow-xs ${pendingTotal > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-slate-200"}`}>
+      {successMsg && (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center justify-between gap-2 shadow-xs">
           <div className="flex items-center gap-2">
-            <Clock size={16} className="text-amber-500" />
-            <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">Chờ thanh toán</span>
+            <CheckCircle2 size={16} className="text-[#008A64] shrink-0" />
+            <span>{successMsg}</span>
           </div>
-          <p className="text-3xl font-black text-slate-900 font-mono">
-            {pendingTotal.toLocaleString("vi-VN")}<span className="text-sm text-slate-500 ml-1">đ</span>
-          </p>
-          <p className="text-xs text-slate-500">{pendingUsage.length} lần sử dụng AI chưa thanh toán</p>
-          {pendingTotal > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowPayModal(true)}
-              className="w-full py-2.5 rounded-xl bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
-            >
-              <CreditCard size={13} />
-              Thanh toán ngay
-            </button>
-          )}
+          <button type="button" onClick={() => setSuccessMsg("")} className="text-emerald-500 hover:text-emerald-700">
+            <X size={14} />
+          </button>
         </div>
+      )}
 
-        {/* Total paid */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-[#008A64]" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Đã thanh toán</span>
-          </div>
-          <p className="text-3xl font-black text-slate-900 font-mono">
-            {totalPaidAll.toLocaleString("vi-VN")}<span className="text-sm text-slate-500 ml-1">đ</span>
-          </p>
-          <p className="text-xs text-slate-500">{paidUsage.length} lần sử dụng AI đã thanh toán</p>
-          <p className="text-xs text-slate-400">{transactions.length} giao dịch thành công</p>
-        </div>
-
-        {/* Pricing info */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-3">
+      {/* Wallet Balance Card Banner */}
+      <div className="bg-gradient-to-br from-[#008A64] via-[#007454] to-[#014D38] rounded-3xl p-6 sm:p-7 text-white shadow-xl shadow-[#008A64]/15 relative overflow-hidden">
+        <div className="absolute -right-8 -bottom-8 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Wallet size={16} className="text-violet-500" />
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bảng giá AI</span>
+              <span className="p-2 rounded-xl bg-white/15 backdrop-blur-xs text-amber-300">
+                <Wallet size={20} />
+              </span>
+              <span className="text-xs uppercase tracking-wider font-bold text-emerald-100">
+                Ví tín chỉ học viên
+              </span>
             </div>
-            <button type="button" onClick={() => setShowPricing(!showPricing)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors">
-              {showPricing ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
+
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl sm:text-5xl font-black tracking-tight font-mono">
+                {wallet ? wallet.balance.toLocaleString("vi-VN") : "--"}
+              </span>
+              <span className="text-base font-bold text-emerald-200">Credit khả dụng</span>
+            </div>
+
+            <p className="text-xs text-emerald-100/80 max-w-lg leading-relaxed">
+              Điểm tín chỉ dùng để chi trả cho các buổi luyện tập tranh biện cùng AI Coach, chấm điểm tự động và tham gia các giải đấu có thưởng.
+            </p>
           </div>
-          {showPricing ? (
-            <ul className="space-y-2">
-              {Object.entries(AI_SERVICE_PRICE).map(([key, val]) => {
-                const Icon = SERVICE_ICONS[key] ?? Zap;
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15 text-xs text-emerald-50 space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-emerald-200">Cổng thanh toán:</span>
+                <span className="font-bold flex items-center gap-1">
+                  <ShieldCheck size={13} className="text-emerald-300" /> PayOS / VietQR
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-emerald-200">Xử lý tự động:</span>
+                <span className="font-bold text-amber-300">Cộng điểm tức thì</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Selection: Packages vs History */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[rgba(148,163,184,0.18)] pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("PACKAGES")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+            activeTab === "PACKAGES"
+              ? "bg-[#008A64] text-white shadow-xs"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#12231C]"
+          }`}
+        >
+          <Coins size={14} />
+          <span>Danh sách gói nạp ({packages.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("HISTORY")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+            activeTab === "HISTORY"
+              ? "bg-[#008A64] text-white shadow-xs"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#12231C]"
+          }`}
+        >
+          <Clock size={14} />
+          <span>Lịch sử biến động ví ({transactions.length})</span>
+        </button>
+      </div>
+
+      {/* Tab 1: Packages List */}
+      {activeTab === "PACKAGES" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Chọn gói nạp điểm phù hợp với bạn
+            </h2>
+            <span className="text-xs text-[#008A64] font-bold">
+              Thanh toán an toàn qua quét mã VietQR ngân hàng
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="p-12 text-center text-xs text-slate-400 bg-white dark:bg-[#12231C] rounded-3xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.18)]">
+              <RefreshCw size={24} className="animate-spin text-[#008A64] mx-auto mb-2" />
+              <span>Đang tải danh sách gói nạp khả dụng...</span>
+            </div>
+          ) : packages.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 text-xs bg-white dark:bg-[#12231C] rounded-3xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.18)]">
+              Hiện tại chưa có gói nạp nào được mở bán. Vui lòng quay lại sau!
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {packages.map((pkg) => {
+                const totalCredits = pkg.creditAmount + (pkg.bonusCredit || 0);
+
                 return (
-                  <li key={key} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-slate-600">
-                      <Icon size={11} className="text-slate-400" />
-                      {val.label}
-                    </span>
-                    <span className="font-bold text-slate-800 font-mono">{val.price.toLocaleString()}đ/{val.unitLabel}</span>
-                  </li>
+                  <div
+                    key={pkg.packageId}
+                    className="bg-white dark:bg-[#12231C] rounded-3xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.18)] p-6 shadow-xs flex flex-col justify-between transition-all hover:border-[#008A64] hover:shadow-lg hover:shadow-[#008A64]/5 group relative"
+                  >
+                    <div className="space-y-4">
+                      {/* Top Bar */}
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-black px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          #{pkg.packageCode}
+                        </span>
+
+                        {pkg.bonusCredit > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/60 dark:text-rose-300 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800/40">
+                            <Gift size={11} /> Tặng +{pkg.bonusCredit}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Package Name & Price */}
+                      <div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                          {pkg.packageName}
+                        </h3>
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="text-3xl font-black text-[#008A64]">
+                            {pkg.price.toLocaleString("vi-VN")}
+                          </span>
+                          <span className="text-xs font-bold text-slate-400">
+                            {pkg.currency || "VNĐ"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Credit Breakdown */}
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0B1713] space-y-2 border border-slate-100 dark:border-slate-800/80 text-xs">
+                        <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                          <span className="flex items-center gap-1.5">
+                            <Coins size={14} className="text-amber-500" />
+                            Credit cơ bản:
+                          </span>
+                          <span className="font-bold">{pkg.creditAmount.toLocaleString()} Credit</span>
+                        </div>
+
+                        {pkg.bonusCredit > 0 && (
+                          <div className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                            <span className="flex items-center gap-1.5">
+                              <Gift size={14} className="text-rose-500" />
+                              Khuyến mãi thêm:
+                            </span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                              +{pkg.bonusCredit.toLocaleString()} Credit
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between font-bold">
+                          <span className="text-slate-800 dark:text-slate-200">Tổng nhận về ví:</span>
+                          <span className="text-sm font-black text-[#008A64]">
+                            {totalCredits.toLocaleString()} Credit
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPackage(pkg)}
+                      className="mt-5 w-full py-2.5 rounded-xl bg-[#008A64] hover:bg-[#007454] text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 group-hover:shadow-md group-hover:shadow-[#008A64]/20"
+                    >
+                      <CreditCard size={14} />
+                      <span>Nạp ngay gói này</span>
+                    </button>
+                  </div>
                 );
               })}
-            </ul>
-          ) : (
-            <p className="text-xs text-slate-500">Nhấn để xem chi tiết bảng giá từng dịch vụ AI.</p>
-          )}
-        </div>
-      </div>
-
-      {/* AI Usage table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-sm font-black text-slate-900">Lịch sử sử dụng AI</h2>
-          <span className="text-xs text-slate-400">{aiUsage.length} bản ghi</span>
-        </div>
-        <div className="overflow-x-auto">
-          {aiUsage.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-xs">
-              Chưa có lịch sử sử dụng dịch vụ AI tính phí.
             </div>
-          ) : (
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                <tr>
-                  <th className="px-5 py-3">Dịch vụ</th>
-                  <th className="px-5 py-3">Thời gian</th>
-                  <th className="px-5 py-3 text-center">Số lần</th>
-                  <th className="px-5 py-3 text-right">Chi phí</th>
-                  <th className="px-5 py-3 text-right">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {aiUsage.map((record) => (
-                  <UsageRow key={record.id} record={record} />
-                ))}
-              </tbody>
-            </table>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Transaction history */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Receipt size={16} className="text-slate-500" />
-          <h2 className="text-sm font-black text-slate-900">Lịch sử giao dịch</h2>
-        </div>
-        <div className="divide-y divide-slate-100">
+      {/* Tab 2: Wallet Transactions History */}
+      {activeTab === "HISTORY" && (
+        <div className="bg-white dark:bg-[#12231C] rounded-2xl border border-slate-200/80 dark:border-[rgba(148,163,184,0.18)] shadow-xs overflow-hidden">
           {transactions.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-xs">
-              Chưa có giao dịch thanh toán nào.
+            <div className="p-12 text-center text-xs text-slate-400">
+              Bạn chưa có biến động số dư nào trong ví điểm tín chỉ.
             </div>
           ) : (
-            transactions.map((txn) => (
-              <div key={txn.id} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50/60 transition-colors">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${txn.status === "SUCCESS" ? "bg-[#ECFDF5]" : txn.status === "FAILED" ? "bg-rose-50" : "bg-amber-50"}`}>
-                {txn.status === "SUCCESS" ? (
-                   <CheckCircle2 size={18} className="text-[#008A64]" />
-                ) : txn.status === "FAILED" ? (
-                   <AlertCircle size={18} className="text-rose-500" />
-                ) : (
-                   <Clock size={18} className="text-amber-500" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-slate-900">{txn.description}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{txn.method} • {txn.createdAt}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="font-black text-slate-900 font-mono">{txn.amount.toLocaleString("vi-VN")}đ</p>
-                <p className={`text-[11px] font-bold mt-0.5 ${txn.status === "SUCCESS" ? "text-[#008A64]" : txn.status === "FAILED" ? "text-rose-600" : "text-amber-600"}`}>
-                  {txn.status === "SUCCESS" ? "Thành công" : txn.status === "FAILED" ? "Thất bại" : "Đang xử lý"}
-                </p>
-              </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-[#0B1713] text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+                  <tr>
+                    <th className="px-5 py-3.5">Mã GD</th>
+                    <th className="px-5 py-3.5">Loại giao dịch</th>
+                    <th className="px-5 py-3.5">Số lượng</th>
+                    <th className="px-5 py-3.5">Số dư sau</th>
+                    <th className="px-5 py-3.5">Thời gian</th>
+                    <th className="px-5 py-3.5">Nội dung</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-[rgba(148,163,184,0.12)]">
+                  {transactions.map((tx) => {
+                    const isCredit = tx.amount > 0 || tx.transactionType?.toLowerCase().includes("topup") || tx.transactionType?.toLowerCase().includes("credit");
+
+                    return (
+                      <tr key={tx.walletTransactionId} className="hover:bg-slate-50/60 dark:hover:bg-[#1A2E26]/40 transition-colors">
+                        <td className="px-5 py-3.5 font-mono text-slate-400">
+                          #{tx.walletTransactionId}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md font-bold text-[11px] ${
+                              isCredit
+                                ? "bg-emerald-50 dark:bg-emerald-950/60 text-[#008A64] dark:text-emerald-300"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            {isCredit ? <ArrowDownLeft size={11} /> : <ArrowUpRight size={11} />}
+                            {tx.transactionType === "TopUp" ? "Nạp điểm tín chỉ" : tx.transactionType}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 font-bold font-mono">
+                          <span className={isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600"}>
+                            {isCredit ? `+${tx.amount.toLocaleString()}` : `-${Math.abs(tx.amount).toLocaleString()}`} Credit
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 font-bold font-mono text-slate-700 dark:text-slate-300">
+                          {tx.balanceAfter.toLocaleString()} Credit
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">
+                          {new Date(tx.createdAt).toLocaleString("vi-VN")}
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400 max-w-xs truncate">
+                          {tx.description || "Giao dịch nạp điểm tín chỉ"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            ))
           )}
         </div>
+      )}
 
-        {pendingTotal > 0 && (
-          <div className="px-5 py-4 bg-amber-50/60 border-t border-amber-100 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-amber-700">
-              <AlertCircle size={15} />
-              <span className="font-semibold">Còn <strong>{pendingTotal.toLocaleString("vi-VN")}đ</strong> chưa thanh toán</span>
+      {/* PayOS Checkout Modal */}
+      {isModalOpen && selectedPackage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-[#12231C] w-full max-w-md rounded-3xl border border-slate-200 dark:border-[rgba(148,163,184,0.18)] shadow-2xl p-6 space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[rgba(148,163,184,0.12)]">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-[#008A64] flex items-center justify-center">
+                  <QrCode size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Thanh toán qua PayOS
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Quét mã VietQR chuyển khoản tự động</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowPayModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#008A64] hover:bg-[#007457] text-white text-xs font-bold transition-all shadow-sm"
-            >
-              Thanh toán <ArrowRight size={13} />
-            </button>
-          </div>
-        )}
-      </div>
 
-      {/* Payment modal */}
-      {showPayModal && (
-        <PaymentModal
-          amount={pendingTotal}
-          onClose={() => setShowPayModal(false)}
-          onSuccess={handlePaySuccess}
-        />
+            {actionLoading ? (
+              <div className="p-8 text-center space-y-3">
+                <RefreshCw size={28} className="animate-spin text-[#008A64] mx-auto" />
+                <p className="text-xs text-slate-500">Đang khởi tạo liên kết thanh toán PayOS...</p>
+              </div>
+            ) : paymentLink ? (
+              <div className="space-y-4 text-xs">
+                {/* Package Recap */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0B1713] border border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Gói nạp:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {selectedPackage.packageName}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Số điểm nhận được:</span>
+                    <span className="font-bold text-[#008A64]">
+                      {(selectedPackage.creditAmount + selectedPackage.bonusCredit).toLocaleString()} Credit
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Tổng thanh toán:</span>
+                    <span className="text-base font-black text-rose-600 font-mono">
+                      {paymentLink.amount.toLocaleString("vi-VN")} VNĐ
+                    </span>
+                  </div>
+                </div>
+
+                {/* QR Code Display (if QrCode is an image link or available) */}
+                <div className="text-center p-3 bg-white dark:bg-[#0B1713] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+                  <p className="font-bold text-slate-700 dark:text-slate-300">
+                    Quét mã QR bằng ứng dụng Ngân hàng (VietQR)
+                  </p>
+
+                  <div className="flex justify-center p-2">
+                    {paymentLink.qrCode?.startsWith("http") ? (
+                      <img
+                        src={paymentLink.qrCode}
+                        alt="PayOS VietQR"
+                        className="w-48 h-48 object-contain rounded-xl border border-slate-100"
+                      />
+                    ) : (
+                      // VietQR fallback image using quick qr API
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                          paymentLink.checkoutUrl || paymentLink.qrCode || "https://pay.payos.vn"
+                        )}`}
+                        alt="PayOS QR"
+                        className="w-44 h-44 object-contain rounded-xl"
+                      />
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-slate-400">
+                    Mã đơn hàng: <span className="font-mono font-bold text-slate-600 dark:text-slate-300">#{paymentLink.providerOrderCode}</span>
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-2 pt-1">
+                  {paymentLink.checkoutUrl && (
+                    <a
+                      href={paymentLink.checkoutUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 rounded-xl bg-[#008A64] hover:bg-[#007454] text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 text-center cursor-pointer"
+                    >
+                      <span>Mở trang thanh toán bảo mật PayOS</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleCheckStatus}
+                    disabled={checkingStatus}
+                    className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {checkingStatus ? (
+                      <RefreshCw size={13} className="animate-spin text-[#008A64]" />
+                    ) : (
+                      <Check size={14} className="text-[#008A64]" />
+                    )}
+                    <span>Tôi đã chuyển khoản xong (Kiểm tra ngay)</span>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -43,24 +43,30 @@ const userApi = {
     axiosClient.get("/admin/test"),
 
   // -------------------------------------------------------------
-  // Admin Management Endpoints (Pending Backend Microservice Implementation)
+  // Admin Management Endpoints
   // -------------------------------------------------------------
-  getAllUsers: (params?: PaginationParams): Promise<ApiResponse<PaginatedResponse<User>>> =>
-    axiosClient.get("/admin/users", { params }),
+  getAllUsers: (params?: PaginationParams): Promise<ApiResponse<PaginatedResponse<User>>> => {
+    const queryParams: Record<string, unknown> = {
+      searchTerm: params?.search,
+      pageNumber: params?.page ?? 1,
+      pageSize: params?.pageSize ?? 10,
+    };
+    return axiosClient.get("/admin/users", { params: queryParams });
+  },
 
-  getUserById: (id: string): Promise<ApiResponse<User>> =>
+  getUserById: (id: string | number): Promise<ApiResponse<User>> =>
     axiosClient.get(`/admin/users/${id}`),
 
   createUser: (data: Partial<User>): Promise<ApiResponse<User>> =>
     axiosClient.post("/admin/users", data),
 
-  updateUser: (id: string, data: Partial<User>): Promise<ApiResponse<User>> =>
+  updateUser: (id: string | number, data: Partial<User>): Promise<ApiResponse<User>> =>
     axiosClient.put(`/admin/users/${id}`, data),
 
-  deleteUser: (id: string): Promise<ApiResponse<void>> =>
+  deleteUser: (id: string | number): Promise<ApiResponse<void>> =>
     axiosClient.delete(`/admin/users/${id}`),
 
-  updateUserStatus: (id: string, isActive: boolean): Promise<ApiResponse<User>> =>
+  updateUserStatus: (id: string | number, isActive: boolean): Promise<ApiResponse<User>> =>
     axiosClient.patch(`/admin/users/${id}/status`, { isActive }),
 };
 

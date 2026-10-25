@@ -1,7 +1,10 @@
-import React from "react";
-import { Bell, Sparkles, Menu, Sun, Moon } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Bell, Sparkles, Menu, Sun, Moon, Coins } from "lucide-react";
 import UserAvatarDropdown from "./UserAvatarDropdown";
 import { useTheme } from "../../hooks/useTheme";
+import { useAuth } from "../../hooks/useAuth";
+import paymentApi from "../../api/paymentApi";
 
 export interface DashboardHeaderProps {
   title?: string;
@@ -17,6 +20,25 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onMenuClick,
 }) => {
   const { resolvedTheme, toggleTheme } = useTheme();
+  const { user } = useAuth();
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+    paymentApi
+      .getMyWallet()
+      .then((res) => {
+        if (isMounted && res && res.success && res.data) {
+          setWalletBalance(res.data.balance);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   return (
     <header className="h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs transition-colors duration-200">
@@ -49,6 +71,21 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
       <div className="flex items-center gap-3">
         {action && <div>{action}</div>}
+
+        {/* Credit Wallet Badge */}
+        {user && (
+          <Link
+            to="/learner/payments"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/40 text-amber-800 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all shadow-2xs group"
+            title="Số dư điểm tín chỉ trong ví của bạn. Nhấn để nạp thêm."
+          >
+            <Coins size={15} className="text-amber-500 group-hover:rotate-12 transition-transform" />
+            <span>{walletBalance !== null ? `${walletBalance.toLocaleString()} Credit` : "Ví điểm"}</span>
+            <span className="hidden sm:inline-block text-[10px] font-black bg-amber-200/80 dark:bg-amber-800/60 px-1.5 py-0.5 rounded-md text-amber-900 dark:text-amber-100">
+              + Nạp
+            </span>
+          </Link>
+        )}
 
         {/* Theme Toggle Button */}
         <button

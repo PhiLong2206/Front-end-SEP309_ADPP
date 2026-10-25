@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { ROLES } from "../../utils/constants";
-import { User, Settings, LogOut, ChevronDown, ShieldCheck, Loader2 } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, ShieldCheck, Loader2, Coins } from "lucide-react";
 
 export interface UserAvatarDropdownProps {
   className?: string;
@@ -153,6 +153,15 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({ className = "" 
 
           {/* Nav Items */}
           <div className="py-1">
+            <Link
+              to="/learner/payments"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172C23] hover:text-[#008A64] dark:hover:text-[#34D399] transition-colors"
+            >
+              <Coins size={16} className="text-amber-500" />
+              <span>Nạp điểm tín chỉ</span>
+            </Link>
+
             <Link
               to={getProfilePath()}
               onClick={() => setIsOpen(false)}

@@ -40,3 +40,57 @@ export interface PaymentFilterParams extends PaginationParams {
   startDate?: string;
   endDate?: string;
 }
+
+export interface LearnerCreditPackage {
+  packageId: number;
+  packageCode: string;
+  packageName: string;
+  price: number;
+  currency: string;
+  creditAmount: number;
+  bonusCredit: number;
+}
+
+export interface WalletInfo {
+  walletId: number;
+  balance: number;
+  updatedAt?: string | null;
+}
+
+export interface WalletTransactionItem {
+  walletTransactionId: number;
+  transactionType: string;
+  sourceType: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  referenceType?: string | null;
+  referenceId?: number | null;
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface CreateTopUpPaymentRequest {
+  packageId: number;
+}
+
+export interface PaymentLinkResponse {
+  paymentId: number;
+  providerOrderCode: number;
+  amount: number;
+  currency: string;
+  creditAmount: number;
+  provider: string;
+  status: string;
+  checkoutUrl?: string;
+  qrCode?: string;
+}
+
+export interface PaymentStatusResponse {
+  paymentId: number;
+  packageCode?: string;
+  packageName?: string;
+  amount: number;
+  status: string;
+  isCompleted: boolean;
+}
