@@ -36,10 +36,10 @@ const Login: React.FC = () => {
     const userRole = String(role);
     if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) {
       navigate("/admin/dashboard");
-    } else if (userRole === "Educator" || userRole === ROLES.EDUCATOR) {
-      navigate("/educator/dashboard");
+    } else if (userRole === "Organizer" || userRole === ROLES.ORGANIZER) {
+      navigate("/organizer/dashboard");
     } else {
-      navigate("/learner/dashboard");
+      navigate("/debater/dashboard");
     }
   };
 

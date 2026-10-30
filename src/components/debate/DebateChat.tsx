@@ -1,195 +1,282 @@
-import React, { useRef, useEffect } from "react";
-import { Bot, Users, Trophy, Lightbulb, BookOpen } from "lucide-react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
+import { Bot, ArrowDown, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 import DebateMessageItem, { DebateMessageData } from "./DebateMessageItem";
 import { DebateRoomMode } from "../../types";
 
 export interface DebateChatProps {
   messages: DebateMessageData[];
   mode: DebateRoomMode;
-  learnerSide: "pro" | "con";
+  debaterSide: "pro" | "con";
   currentRound: number;
   isAiGenerating?: boolean;
   aiSide?: "pro" | "con";
-  statusText?: string;
-  onOpenSidebarTab?: (tab: "coach" | "evaluator" | "caseplan" | "members" | "judge") => void;
+  timedOutRounds?: number[];
+  isTurnExpired?: boolean;
+  isDebateCompleted?: boolean;
+  canSubmitDebate?: boolean;
+  isP2pOr2v2?: boolean;
+  onAdvanceTimedOutRound?: () => void;
+  onSubmitDebate?: () => void;
 }
 
 const DebateChat: React.FC<DebateChatProps> = ({
   messages,
   mode,
-  learnerSide,
+  debaterSide,
   currentRound,
   isAiGenerating = false,
   aiSide = "con",
-  statusText,
-  onOpenSidebarTab,
+  timedOutRounds = [],
+  isTurnExpired = false,
+  isDebateCompleted = false,
+  canSubmitDebate = false,
+  isP2pOr2v2 = false,
+  onAdvanceTimedOutRound,
+  onSubmitDebate,
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isAiGenerating]);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [hasUnreadBelow, setHasUnreadBelow] = useState(false);
+  const prevMsgCountRef = useRef(messages.length);
 
-  // Group messages by round
+  const checkIfNearBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return true;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distanceFromBottom <= 140;
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const nearBottom = checkIfNearBottom();
+    setIsNearBottom(nearBottom);
+    if (nearBottom) {
+      setHasUnreadBelow(false);
+    }
+  }, [checkIfNearBottom]);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+    setHasUnreadBelow(false);
+    setIsNearBottom(true);
+  }, []);
+
+  useEffect(() => {
+    const latestMsg = messages[messages.length - 1];
+    const isNewMessage = messages.length > prevMsgCountRef.current;
+    prevMsgCountRef.current = messages.length;
+
+    const sentByDebater =
+      latestMsg &&
+      (latestMsg.isCurrentUser ??
+        (latestMsg.speaker === "Debater" || latestMsg.speaker === "Learner"));
+
+    if (isNearBottom || (isNewMessage && sentByDebater) || isTurnExpired || isDebateCompleted) {
+      scrollToBottom("smooth");
+    } else if (isNewMessage || isAiGenerating) {
+      setHasUnreadBelow(true);
+    }
+  }, [messages, isAiGenerating, isTurnExpired, isDebateCompleted, isNearBottom, scrollToBottom]);
+
   const round1Messages = messages.filter((m) => m.roundNumber === 1);
   const round2Messages = messages.filter((m) => m.roundNumber === 2);
   const round3Messages = messages.filter((m) => m.roundNumber === 3);
 
-  const renderEmptyState = () => {
-    switch (mode) {
-      case "ai":
-        return (
-          <div className="max-w-2xl mx-auto my-auto text-center py-10 px-6 bg-white dark:bg-[#12231C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.12)] text-[#008A64] dark:text-[#34D399] flex items-center justify-center mx-auto shadow-xs">
-              <Bot size={28} />
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-[18px] font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Phòng tranh biện AI đã kết nối {statusText ? `(${statusText})` : ""}
-              </h2>
-              <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] max-w-lg mx-auto leading-relaxed">
-                Bạn đang ở vị trí{" "}
-                <span className="font-bold text-[#008A64] dark:text-[#34D399]">
-                  {learnerSide === "pro" ? "Ủng hộ (PRO)" : "Phản đối (CON)"}
-                </span>{" "}
-                · Vòng 1 (Mở đầu). Hãy nêu rõ định nghĩa và những luận cứ trọng tâm đầu tiên của bạn ở khung nhập bên dưới.
-              </p>
-            </div>
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => onOpenSidebarTab?.("coach")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-[rgba(16,185,129,0.10)] text-[#008A64] dark:text-[#34D399] border border-[#008A64]/20 hover:bg-emerald-100 transition-colors cursor-pointer"
-              >
-                <Lightbulb size={13} />
-                <span>Xem gợi ý phản biện</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenSidebarTab?.("caseplan")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-[#091713] text-slate-700 dark:text-[#CBD5E1] border border-slate-200 dark:border-slate-800 hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                <BookOpen size={13} />
-                <span>Xem Case Plan</span>
-              </button>
-            </div>
-          </div>
-        );
-
-      case "1v1":
-        return (
-          <div className="max-w-2xl mx-auto my-auto text-center py-10 px-6 bg-white dark:bg-[#12231C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto shadow-xs">
-              <Users size={28} />
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-[18px] font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Trận đấu đối kháng 1 vs 1
-              </h2>
-              <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] max-w-lg mx-auto leading-relaxed">
-                Trận tranh biện trực tiếp giữa hai bên PRO và CON. Người ở lượt phát biểu đầu tiên sẽ bắt đầu tại Vòng 1: Mở đầu.
-              </p>
-            </div>
-          </div>
-        );
-
-      case "2v2":
-        return (
-          <div className="max-w-2xl mx-auto my-auto text-center py-10 px-6 bg-white dark:bg-[#12231C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto shadow-xs">
-              <Users size={28} />
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-[18px] font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Trận đấu đồng đội 2 vs 2
-              </h2>
-              <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] max-w-lg mx-auto leading-relaxed">
-                Cuộc so tài giữa Team PRO (2 người) và Team CON (2 người). Các thành viên phát biểu luân phiên theo lượt thực tế của hệ thống.
-              </p>
-            </div>
-          </div>
-        );
-
-      case "competition":
-        return (
-          <div className="max-w-2xl mx-auto my-auto text-center py-10 px-6 bg-white dark:bg-[#12231C] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto shadow-xs">
-              <Trophy size={28} />
-            </div>
-            <div className="space-y-1">
-              <h2 className="text-[18px] font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Trận đấu thuộc Giải đấu chính thức
-              </h2>
-              <p className="text-[14px] text-slate-600 dark:text-[#94A3B8] max-w-lg mx-auto leading-relaxed">
-                Trận đấu được giám sát bởi Hội đồng Giám khảo. Điểm số và phán quyết sẽ được cập nhật sau khi các vòng tranh biện kết thúc.
-              </p>
-            </div>
-          </div>
-        );
+  const renderRoundSection = (
+    roundNum: number,
+    roundMsgs: DebateMessageData[],
+    label: string
+  ) => {
+    const isRoundTimedOut = timedOutRounds.includes(roundNum);
+    if (roundMsgs.length === 0 && currentRound < roundNum && !isRoundTimedOut) {
+      return null;
     }
-  };
 
-  const renderRoundSection = (roundNum: number, roundMsgs: DebateMessageData[], label: string) => {
-    if (roundMsgs.length === 0 && currentRound < roundNum) return null;
+    const showWelcomeInRound1 =
+      roundNum === 1 && roundMsgs.length === 0 && !isAiGenerating;
+
+    const nextRoundLabel = roundNum === 1 ? "Phản biện" : "Kết luận";
 
     return (
       <div key={roundNum} className="space-y-4">
-        {/* Round Divider */}
-        <div className="flex items-center gap-3 my-4">
-          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-[#10231C] text-slate-600 dark:text-[#94A3B8] border border-slate-200 dark:border-slate-800">
-            Vòng {roundNum}: {label} {currentRound === roundNum && "(Đang diễn ra)"}
+        {/* Compact System Round Transition */}
+        <div
+          className="flex items-center justify-center gap-3 py-1"
+          role="separator"
+          aria-label={`Vòng ${roundNum}: ${label}`}
+        >
+          <div className="w-12 sm:w-20 h-px bg-slate-200 dark:bg-slate-800" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Vòng {roundNum} · {label}
           </span>
-          <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+          <div className="w-12 sm:w-20 h-px bg-slate-200 dark:bg-slate-800" />
         </div>
+
+        {/* Minimal AI Welcome Message in Round 1 when no messages exist yet */}
+        {showWelcomeInRound1 && (
+          <div className="flex items-start gap-3 justify-start">
+            <div className="w-8 h-8 rounded-full bg-[#008A64] text-white flex items-center justify-center shrink-0 mt-0.5">
+              <Bot size={16} />
+            </div>
+            <div className="px-4 py-3 rounded-2xl rounded-tl-xs bg-white dark:bg-[#12231C] border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-sm leading-relaxed max-w-[85%] sm:max-w-[75%] shadow-2xs">
+              {mode === "ai" ? (
+                <p>
+                  Chào bạn! Bạn đang ở phe{" "}
+                  <strong className="text-[#008A64] dark:text-[#34D399]">
+                    {debaterSide === "pro" ? "Ủng hộ (PRO)" : "Phản đối (CON)"}
+                  </strong>
+                  . Hãy trình bày lập luận mở đầu của bạn ở khung nhập bên dưới để bắt đầu Vòng 1.
+                </p>
+              ) : (
+                <p>
+                  Phiên tranh biện đã sẵn sàng. Hãy nhập lập luận mở đầu khi đến lượt phát biểu của bạn.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Messages in this round */}
         {roundMsgs.map((msg) => (
           <DebateMessageItem key={msg.id} message={msg} />
         ))}
+
+        {/* System Timeout Notice for this Round */}
+        {isRoundTimedOut && (
+          <div
+            data-testid={`round-${roundNum}-timeout-notice`}
+            className="mx-auto max-w-xl rounded-2xl bg-rose-50/90 dark:bg-rose-950/35 border border-rose-200/90 dark:border-rose-800/60 px-4 py-3 text-xs sm:text-sm text-rose-800 dark:text-rose-200 shadow-2xs animate-fade-in"
+            role="status"
+            aria-live="assertive"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <Clock size={16} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-rose-900 dark:text-rose-100">
+                    Đã hết thời gian phát biểu — Vòng {roundNum} ({label})
+                  </p>
+                  <p className="text-xs text-rose-700/90 dark:text-rose-300/90 mt-0.5">
+                    {isP2pOr2v2
+                      ? "Thời gian của lượt hiện tại đã kết thúc (00:00). Đang chờ máy chủ đồng bộ trạng thái lượt tiếp theo."
+                      : roundNum < 3
+                      ? "Lượt phát biểu của bạn ở vòng này đã kết thúc khi đồng hồ về 00:00."
+                      : "Thời gian phát biểu Vòng 3 (Kết luận) đã kết thúc. Phiên tranh biện đã hoàn tất."}
+                  </p>
+                </div>
+              </div>
+
+              {!isP2pOr2v2 &&
+                roundNum === currentRound &&
+                roundNum < 3 &&
+                isTurnExpired &&
+                !isDebateCompleted &&
+                onAdvanceTimedOutRound && (
+                  <button
+                    type="button"
+                    data-testid="advance-round-after-timeout-btn"
+                    onClick={onAdvanceTimedOutRound}
+                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <span>
+                      Sang Vòng {roundNum + 1} ({nextRoundLabel})
+                    </span>
+                    <ArrowRight size={14} />
+                  </button>
+                )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-5 scroll-smooth">
-      {messages.length === 0 ? (
-        renderEmptyState()
-      ) : (
-        <div className="max-w-3xl mx-auto space-y-4 w-full">
-          {renderRoundSection(1, round1Messages, "Mở đầu")}
-          {renderRoundSection(2, round2Messages, "Phản biện")}
-          {renderRoundSection(3, round3Messages, "Kết luận")}
+    <div
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+      className="relative flex-1 overflow-y-auto px-3 sm:px-6 py-4 scroll-smooth bg-slate-50/40 dark:bg-[#091511]"
+    >
+      <div className="max-w-[880px] mx-auto w-full space-y-4 pb-2">
+        {/* Conversation Rounds (1: Opening, 2: Rebuttal, 3: Conclusion) */}
+        {renderRoundSection(1, round1Messages, "Mở đầu")}
+        {renderRoundSection(2, round2Messages, "Phản biện")}
+        {renderRoundSection(3, round3Messages, "Kết luận")}
 
-          {/* AI Thinking / Generating state */}
-          {isAiGenerating && (
-            <div className="flex items-start gap-3 mr-auto max-w-[90%] sm:max-w-[85%] animate-fade-in pt-2">
-              <div className="w-9 h-9 rounded-xl bg-[#008A64] text-white flex items-center justify-center shrink-0 shadow-xs ring-4 ring-[#ECFDF5] dark:ring-emerald-950/60 mt-1">
-                <Bot size={18} />
-              </div>
-              <div className="bg-white dark:bg-[#12231C] border border-[#008A64]/30 dark:border-emerald-800/40 rounded-2xl rounded-tl-sm p-4 sm:p-5 shadow-xs space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-semibold text-[#008A64] dark:text-[#34D399]">
-                    Đối thủ AI ({aiSide === "pro" ? "Ủng hộ" : "Phản đối"})
-                  </span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.15)] text-[#008A64] dark:text-[#34D399] font-medium animate-pulse">
-                    Đang phân tích...
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 py-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#008A64] animate-bounce [animation-delay:-0.3s]" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#008A64] animate-bounce [animation-delay:-0.15s]" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#008A64] animate-bounce" />
-                  <span className="text-[14px] text-slate-500 dark:text-[#94A3B8] ml-2 font-medium">
-                    AI Opponent đang chuẩn bị luận điểm phản biện...
-                  </span>
-                </div>
-              </div>
+        {/* Typing Indicator while AI Responds */}
+        {isAiGenerating && (
+          <div
+            data-testid="ai-typing-indicator"
+            className="flex items-start gap-3 justify-start animate-fade-in"
+            aria-live="polite"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#008A64] text-white flex items-center justify-center shrink-0 mt-0.5">
+              <Bot size={16} />
             </div>
-          )}
+            <div className="px-4 py-3 rounded-2xl rounded-tl-xs bg-white dark:bg-[#12231C] border border-slate-200/80 dark:border-slate-800 shadow-2xs inline-flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                Đối thủ AI ({aiSide === "pro" ? "PRO" : "CON"})
+              </span>
+              <span className="flex items-center gap-1 ml-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#008A64] animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#008A64] animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#008A64] animate-bounce" />
+              </span>
+            </div>
+          </div>
+        )}
 
-          {/* Scroll anchor */}
-          <div ref={messagesEndRef} className="h-2" />
+        {/* Final Debate Completion Card */}
+        {isDebateCompleted && (
+          <div
+            data-testid="debate-completed-banner"
+            className="mx-auto max-w-xl rounded-2xl bg-[#ECFDF5]/90 dark:bg-emerald-950/40 border border-[#A7F3D0] dark:border-emerald-800/70 px-4 py-3.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-2xs animate-fade-in"
+            role="status"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 size={17} className="text-[#008A64] dark:text-[#34D399] shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    Đã hoàn thành 3 vòng tranh biện
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                    Phiên tranh biện đã khép lại. Bạn có thể nộp bài để xem báo cáo đánh giá tổng hợp.
+                  </p>
+                </div>
+              </div>
+
+              {onSubmitDebate && (
+                <button
+                  type="button"
+                  data-testid="submit-and-view-result-btn"
+                  disabled={!canSubmitDebate || isAiGenerating}
+                  onClick={onSubmitDebate}
+                  className="px-4 py-2 rounded-xl bg-[#008A64] hover:bg-[#007457] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>Nộp bài & Xem kết quả</span>
+                  <ArrowRight size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} className="h-1" />
+      </div>
+
+      {/* Floating Scroll-to-Bottom Pill when reading earlier messages */}
+      {(!isNearBottom || hasUnreadBelow) && messages.length > 0 && (
+        <div className="sticky bottom-2 flex justify-center pointer-events-none z-10">
+          <button
+            type="button"
+            onClick={() => scrollToBottom("smooth")}
+            className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/85 dark:bg-[#008A64] text-white text-xs font-medium shadow-md hover:bg-slate-800 transition-all cursor-pointer"
+          >
+            <ArrowDown size={13} />
+            <span>{hasUnreadBelow ? "Tin nhắn mới" : "Cuộn xuống"}</span>
+          </button>
         </div>
       )}
     </div>

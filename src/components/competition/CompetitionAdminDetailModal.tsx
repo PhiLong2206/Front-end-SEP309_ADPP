@@ -545,7 +545,7 @@ const CompetitionAdminDetailModal: React.FC<Props> = ({
                         size="sm"
                         onClick={() => {
                           onClose();
-                          navigate(`/learner/debate/session-comp-${competition.competitionId}`);
+                          navigate(`/debater/debate/session-comp-${competition.competitionId}`);
                         }}
                         className="text-xs border-[#008A64] text-[#008A64] hover:bg-emerald-50 font-bold"
                       >

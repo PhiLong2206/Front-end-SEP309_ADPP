@@ -57,7 +57,7 @@ const AdminDashboard: React.FC = () => {
       name: "Danh mục Vai trò (Roles Master)",
       endpoint: "GET /api/admin/roles",
       status: "loading",
-      note: "Danh sách 4 vai trò chuẩn hệ thống (Admin, Educator, Learner, Guest)",
+      note: "Danh sách 4 vai trò chuẩn hệ thống (Admin, Organizer, Debater, Guest)",
     },
     {
       name: "Quản lý Chủ đề tranh biện (Debate)",
@@ -405,7 +405,7 @@ const AdminDashboard: React.FC = () => {
                 Phân quyền vai trò
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                Ma trận quyền hạn RBAC giữa Administrator, Educator và Learner. Quản trị chính sách bảo mật hệ thống.
+                Ma trận quyền hạn RBAC giữa Administrator, Organizer và Debater. Quản trị chính sách bảo mật hệ thống.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between text-[11px]">
@@ -635,7 +635,7 @@ const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
-                          to={`/learner/topics/${topicId}`}
+                          to={`/debater/topics/${topicId}`}
                           className="inline-flex items-center gap-1 text-[11px] font-bold text-[#008A64] hover:underline"
                         >
                           <span>Chi tiết</span>

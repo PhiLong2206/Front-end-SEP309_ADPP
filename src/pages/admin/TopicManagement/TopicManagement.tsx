@@ -444,13 +444,13 @@ const AdminTopicManagement: React.FC = () => {
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-slate-500">
-                        {topic.createdByUserName || topic.educatorName || "Hệ thống"}
+                        {topic.createdByUserName || topic.organizerName || topic.educatorName || "Hệ thống"}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Xem chi tiết trang learner */}
+                          {/* Xem chi tiết trang debater */}
                           <Link
-                            to={`/learner/topics/${topicId}`}
+                            to={`/debater/topics/${topicId}`}
                             className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-600 dark:text-slate-300 transition-colors"
                             title="Xem trang chi tiết"
                           >

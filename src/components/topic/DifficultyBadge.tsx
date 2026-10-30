@@ -3,7 +3,7 @@ import Badge from "../common/Badge";
 import { TopicDifficulty } from "../../types";
 
 export interface DifficultyBadgeProps {
-  difficulty: TopicDifficulty | string;
+  difficulty?: TopicDifficulty | string;
   className?: string;
 }
 
@@ -33,7 +33,7 @@ const DifficultyBadge: React.FC<DifficultyBadgeProps> = ({ difficulty, className
       case "Hard":
         return "Khó";
       default:
-        return difficulty;
+        return difficulty || "Trung bình";
     }
   };
 

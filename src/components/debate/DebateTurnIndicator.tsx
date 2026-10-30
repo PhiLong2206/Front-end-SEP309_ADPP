@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Mic, User as UserIcon, Bot, AlertCircle } from "lucide-react";
+import { Check, Mic, User as UserIcon, Bot, AlertCircle, Clock } from "lucide-react";
 import { SystemDebateSide } from "../../types";
 
 export interface DebateTurnIndicatorProps {
@@ -7,6 +7,8 @@ export interface DebateTurnIndicatorProps {
   currentTurnSide?: SystemDebateSide | number;
   currentSpeakerName?: string;
   isMyTurn?: boolean;
+  isTurnExpired?: boolean;
+  isDebateCompleted?: boolean;
   waitingForOpponent?: boolean;
 }
 
@@ -15,6 +17,8 @@ const DebateTurnIndicator: React.FC<DebateTurnIndicatorProps> = ({
   currentTurnSide,
   currentSpeakerName,
   isMyTurn = false,
+  isTurnExpired = false,
+  isDebateCompleted = false,
   waitingForOpponent = false,
 }) => {
   const rounds = [
@@ -30,8 +34,8 @@ const DebateTurnIndicator: React.FC<DebateTurnIndicatorProps> = ({
       {/* Left: 3-round progress line */}
       <div className="flex items-center gap-2 sm:gap-4 max-w-xl w-full sm:w-auto">
         {rounds.map((item, idx) => {
-          const isPast = currentRound > item.round;
-          const isCurrent = currentRound === item.round;
+          const isPast = currentRound > item.round || isDebateCompleted;
+          const isCurrent = currentRound === item.round && !isDebateCompleted;
 
           return (
             <React.Fragment key={item.round}>
@@ -64,7 +68,7 @@ const DebateTurnIndicator: React.FC<DebateTurnIndicatorProps> = ({
               {idx < rounds.length - 1 && (
                 <div
                   className={`flex-1 sm:w-8 h-0.5 rounded-full transition-colors ${
-                    item.round < currentRound
+                    item.round < currentRound || isDebateCompleted
                       ? "bg-[#008A64]"
                       : "bg-slate-200 dark:bg-slate-800"
                   }`}
@@ -77,7 +81,17 @@ const DebateTurnIndicator: React.FC<DebateTurnIndicatorProps> = ({
 
       {/* Right: Active Speaker Banner */}
       <div className="flex items-center gap-2 text-xs">
-        {waitingForOpponent ? (
+        {isDebateCompleted ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-[#008A64] dark:text-[#34D399] border border-emerald-300 dark:border-emerald-700 font-bold">
+            <Check size={13} />
+            <span>Đã hoàn thành 3 vòng tranh biện</span>
+          </span>
+        ) : isTurnExpired ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-700 font-bold">
+            <Clock size={13} />
+            <span>Đã hết thời gian phát biểu</span>
+          </span>
+        ) : waitingForOpponent ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 font-medium">
             <AlertCircle size={13} className="animate-pulse" />
             <span>Đang chờ đối thủ tham gia phòng đấu...</span>

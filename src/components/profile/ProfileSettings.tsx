@@ -297,10 +297,10 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ portalTitle: _portalT
                 </h1>
                 <span className="px-3 py-1 rounded-full bg-[#ECFDF5] border border-[#008A64]/30 text-[#008A64] text-xs font-bold uppercase tracking-wider">
                   {profileData.roles?.length
-                    ? profileData.roles.map((r) => (r === "Admin" || r === "Administrator" ? "Quản trị viên" : r === "Educator" ? "Giảng viên" : "Học viên")).join(", ")
+                    ? profileData.roles.map((r) => (r === "Admin" || r === "Administrator" ? "Quản trị viên" : r === "Organizer" || r === "Educator" || r === "Lecturer" ? "Giảng viên" : "Học viên")).join(", ")
                     : authUser?.role === "Administrator" || authUser?.role === "Admin"
                     ? "Quản trị viên"
-                    : authUser?.role === "Educator"
+                    : authUser?.role === "Organizer" || authUser?.role === "Educator" || authUser?.role === "Lecturer"
                     ? "Giảng viên"
                     : "Học viên"}
                 </span>

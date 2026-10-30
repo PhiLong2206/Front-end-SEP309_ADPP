@@ -10,6 +10,8 @@ export interface DebateEvent {
   topicTitle?: string;
   educatorId: string;
   educatorName: string;
+  organizerId?: string;
+  organizerName?: string;
   startDate: string;
   endDate: string;
   location?: string;
@@ -47,4 +49,5 @@ export interface UpdateEventDto extends Partial<CreateEventDto> {
 export interface EventFilterParams extends PaginationParams {
   status?: EventStatus;
   educatorId?: string;
+  organizerId?: string;
 }

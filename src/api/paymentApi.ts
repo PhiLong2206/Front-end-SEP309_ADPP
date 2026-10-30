@@ -6,7 +6,7 @@ import {
   PaymentFilterParams,
   ApiResponse,
   PaginatedResponse,
-  LearnerCreditPackage,
+  DebaterCreditPackage,
   WalletInfo,
   WalletTransactionItem,
   CreateTopUpPaymentRequest,
@@ -20,7 +20,7 @@ const paymentApi = {
    * GET /api/credit-packages
    * Lấy danh sách các gói nạp credit đang mở bán cho học viên
    */
-  getActivePackages: (): Promise<ApiResponse<LearnerCreditPackage[]>> =>
+  getActivePackages: (): Promise<ApiResponse<DebaterCreditPackage[]>> =>
     axiosClient.get("/credit-packages"),
 
   /**
@@ -56,7 +56,7 @@ const paymentApi = {
   }): Promise<ApiResponse<WalletTransactionItem[]>> =>
     axiosClient.get("/wallets/me/transactions", { params }),
 
-  // Learner payments legacy
+  // Debater payments legacy
   createPaymentUrl: (data: CreatePaymentDto): Promise<ApiResponse<{ paymentUrl: string }>> =>
     axiosClient.post("/payments/create-url", data),
 

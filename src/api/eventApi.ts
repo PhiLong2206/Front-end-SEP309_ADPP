@@ -9,7 +9,7 @@ import {
 } from "../types";
 
 const eventApi = {
-  // Public & Learner
+  // Public & Debater
   getAllEvents: (params?: EventFilterParams): Promise<ApiResponse<PaginatedResponse<DebateEvent>>> =>
     axiosClient.get("/events", { params }),
 
@@ -25,7 +25,7 @@ const eventApi = {
   getMyEvents: (): Promise<ApiResponse<DebateEvent[]>> =>
     axiosClient.get("/events/my-events"),
 
-  // Educator & Admin Management
+  // Organizer & Admin Management
   createEvent: (data: CreateEventDto): Promise<ApiResponse<DebateEvent>> =>
     axiosClient.post("/events", data),
 

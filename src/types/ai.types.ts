@@ -99,7 +99,8 @@ export interface SessionResponse {
   case_file?: CaseFileResponse | null;
 }
 
-export interface LearnerSpeechInput {
+export type LearnerSpeechInput = DebaterSpeechInput;
+export interface DebaterSpeechInput {
   turn_index: number;
   round_type: DebateRoundType;
   text: string;
@@ -107,7 +108,7 @@ export interface LearnerSpeechInput {
 
 export interface CreateTurnRequest {
   turn_index: number;
-  new_learner_speeches?: LearnerSpeechInput[];
+  new_learner_speeches?: DebaterSpeechInput[];
 }
 
 export interface TurnResponse {

@@ -12,10 +12,8 @@ import {
   AlertCircle,
   Coins,
   Gift,
-  Tag,
   ToggleLeft,
   ToggleRight,
-  TrendingUp,
   Layers,
 } from "lucide-react";
 import adminApi from "../../../api/adminApi";

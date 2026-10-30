@@ -75,7 +75,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         {/* Credit Wallet Badge */}
         {user && (
           <Link
-            to="/learner/payments"
+            to="/debater/payments"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/40 text-amber-800 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all shadow-2xs group"
             title="Số dư điểm tín chỉ trong ví của bạn. Nhấn để nạp thêm."
           >

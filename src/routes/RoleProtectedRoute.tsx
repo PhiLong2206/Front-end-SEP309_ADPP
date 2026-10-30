@@ -12,8 +12,8 @@ export interface RoleProtectedRouteProps {
 
 /**
  * Validates if the authenticated user has at least one of the allowed roles.
- * Matches normalized roles (Administrator, Educator, Learner) as well as
- * raw backend claims (Admin, Member, Educator, etc.).
+ * Matches normalized roles (Administrator, Organizer, Debater) as well as
+ * raw backend claims (Admin, Member, Organizer, Debater, etc.).
  */
 export const checkUserHasRole = (user: User | null, allowedRoles?: RoleType[]): boolean => {
   if (!allowedRoles || allowedRoles.length === 0) return true;
@@ -34,16 +34,37 @@ export const checkUserHasRole = (user: User | null, allowedRoles?: RoleType[]): 
       if (userRolesList.includes("admin") || userRolesList.includes("administrator")) return true;
     }
 
-    // 3. Learner / Member checks
-    if (target === "learner" || target === "member" || target === ROLES.LEARNER.toLowerCase()) {
-      if (currentRole === "learner" || currentRole === "member") return true;
-      if (userRolesList.includes("learner") || userRolesList.includes("member")) return true;
+    // 3. Debater / Learner / Member checks
+    if (
+      target === "debater" ||
+      target === "learner" ||
+      target === "member" ||
+      target === ROLES.DEBATER.toLowerCase()
+    ) {
+      if (currentRole === "debater" || currentRole === "learner" || currentRole === "member") return true;
+      if (
+        userRolesList.includes("debater") ||
+        userRolesList.includes("learner") ||
+        userRolesList.includes("member")
+      )
+        return true;
     }
 
-    // 4. Educator / Lecturer checks
-    if (target === "educator" || target === "lecturer" || target === ROLES.EDUCATOR.toLowerCase()) {
-      if (currentRole === "educator" || currentRole === "lecturer") return true;
-      if (userRolesList.includes("educator") || userRolesList.includes("lecturer")) return true;
+    // 4. Organizer / Educator / Lecturer checks
+    if (
+      target === "organizer" ||
+      target === "educator" ||
+      target === "lecturer" ||
+      target === ROLES.ORGANIZER.toLowerCase()
+    ) {
+      if (currentRole === "organizer" || currentRole === "educator" || currentRole === "lecturer")
+        return true;
+      if (
+        userRolesList.includes("organizer") ||
+        userRolesList.includes("educator") ||
+        userRolesList.includes("lecturer")
+      )
+        return true;
     }
 
     return false;

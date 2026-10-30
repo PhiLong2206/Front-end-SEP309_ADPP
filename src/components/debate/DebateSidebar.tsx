@@ -554,34 +554,140 @@ const DebateSidebar: React.FC<DebateSidebarProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3 text-xs">
-                  {casePlan.content?.motion_reading && (
+                  {(casePlan.content?.motion_reading || (casePlan.content as any)?.case_summary) && (
                     <div className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1">
-                      <p className="font-bold text-slate-800 dark:text-slate-200">Định nghĩa phạm vi:</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Định nghĩa phạm vi &amp; Bối cảnh:</p>
                       <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                        {casePlan.content.motion_reading}
+                        {casePlan.content?.motion_reading || (casePlan.content as any)?.case_summary}
                       </p>
                     </div>
                   )}
 
-                  {casePlan.content?.arguments?.map((arg) => (
-                    <div
-                      key={arg.id}
-                      className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1.5"
-                    >
-                      <p className="font-bold text-[#008A64]">
-                        {arg.id}: {arg.title}
-                      </p>
-                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                        <span className="font-semibold">Luận điểm:</span> {arg.claim}
-                      </p>
+                  {casePlan.content?.definitions && casePlan.content.definitions.length > 0 && (
+                    <div className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-2">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Thuật ngữ cốt lõi:</p>
+                      <div className="space-y-1.5">
+                        {casePlan.content.definitions.map((def, idx) => (
+                          <p key={idx} className="text-slate-600 dark:text-slate-400">
+                            <span className="font-semibold text-[#008A64]">{def.term}:</span> {def.meaning}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {casePlan.content?.arguments && casePlan.content.arguments.length > 0 && (
+                    <div className="space-y-2.5">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Các luận điểm chính của AI:</p>
+                      {casePlan.content.arguments.map((arg) => (
+                        <div
+                          key={arg.id}
+                          className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1.5"
+                        >
+                          <p className="font-bold text-[#008A64]">
+                            {arg.id}: {arg.title}
+                          </p>
+                          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                            <span className="font-semibold">Luận điểm:</span> {arg.claim}
+                          </p>
+                          <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                            <span className="font-semibold">Lý lẽ:</span> {arg.reasoning}
+                          </p>
+                          {arg.example && (
+                            <p className="italic text-slate-500 dark:text-slate-400 leading-relaxed">
+                              <span className="font-semibold">Ví dụ:</span> {arg.example}
+                            </p>
+                          )}
+                          {arg.impact && (
+                            <p className="text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                              <span className="font-semibold">Tác động:</span> {arg.impact}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!casePlan.content?.arguments &&
+                    Array.isArray((casePlan.content as any)?.main_points) && (
+                      <div className="space-y-2.5">
+                        <p className="font-bold text-slate-800 dark:text-slate-200">Các luận điểm chính của AI:</p>
+                        {(casePlan.content as any).main_points.map(
+                          (pt: { title: string; description: string }, idx: number) => (
+                            <div
+                              key={idx}
+                              className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1"
+                            >
+                              <p className="font-bold text-[#008A64]">{pt.title}</p>
+                              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                {pt.description}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                  {casePlan.content?.anticipated_opponent_arguments &&
+                    casePlan.content.anticipated_opponent_arguments.length > 0 && (
+                      <div className="space-y-2.5">
+                        <p className="font-bold text-slate-800 dark:text-slate-200">
+                          Dự đoán phản biện của đối phương:
+                        </p>
+                        {casePlan.content.anticipated_opponent_arguments.map((item) => (
+                          <div
+                            key={item.id}
+                            className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-800/40 space-y-1.5"
+                          >
+                            <p className="font-semibold text-amber-800 dark:text-amber-300">
+                              <span className="font-bold">Dự đoán bạn sẽ nói:</span> {item.learner_claim}
+                            </p>
+                            <p className="text-slate-600 dark:text-slate-300">
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                AI chuẩn bị phản bác:
+                              </span>{" "}
+                              {item.planned_response}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                  {!casePlan.content?.anticipated_opponent_arguments &&
+                    Array.isArray((casePlan.content as any)?.predicted_learner_arguments) && (
+                      <div className="space-y-2.5">
+                        <p className="font-bold text-slate-800 dark:text-slate-200">
+                          Dự đoán phản biện của đối phương:
+                        </p>
+                        {(casePlan.content as any).predicted_learner_arguments.map(
+                          (item: { point: string; planned_rebuttal: string }, idx: number) => (
+                            <div
+                              key={idx}
+                              className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-800/40 space-y-1.5"
+                            >
+                              <p className="font-semibold text-amber-800 dark:text-amber-300">
+                                <span className="font-bold">Dự đoán bạn sẽ nói:</span> {item.point}
+                              </p>
+                              <p className="text-slate-600 dark:text-slate-300">
+                                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                  AI chuẩn bị phản bác:
+                                </span>{" "}
+                                {item.planned_rebuttal}
+                              </p>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                  {casePlan.content?.weighing && (
+                    <div className="p-3.5 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 space-y-1">
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Cân nhắc tác động (Weighing):</p>
                       <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                        <span className="font-semibold">Lý lẽ:</span> {arg.reasoning}
-                      </p>
-                      <p className="italic text-slate-500 dark:text-slate-400 leading-relaxed">
-                        <span className="font-semibold">Ví dụ:</span> {arg.example}
+                        {casePlan.content.weighing}
                       </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>

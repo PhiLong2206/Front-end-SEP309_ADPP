@@ -1,6 +1,6 @@
 export type DebateStage = "Opening" | "Rebuttal" | "Closing";
 export type DebateSide = "Affirmative" | "Negative"; // For / Against
-export type DebateMode = "AI_Opponent" | "Two_Learners";
+export type DebateMode = "AI_Opponent" | "Two_Learners" | "Two_Debaters";
 export type DebateRoomMode = "ai" | "1v1" | "2v2" | "competition";
 export type DebateRoleInRoom = "Debater" | "Judge" | "Spectator";
 export type AIDifficulty = "Easy" | "Medium" | "Hard";
@@ -73,7 +73,7 @@ export interface ArgumentScore {
 export interface DebateTurn {
   id: string;
   sessionId: string;
-  speakerRole: "Learner" | "AI" | "OpponentLearner";
+  speakerRole: "Learner" | "AI" | "OpponentLearner" | "Debater" | "OpponentDebater";
   speakerId?: string;
   stage: DebateStage;
   roundNumber: number;
@@ -91,7 +91,9 @@ export interface DebateSession {
   topicTitle: string;
   motion: string;
   learnerId: string;
+  debaterId?: string;
   learnerName: string;
+  debaterName?: string;
   mode: DebateMode;
   userSide: DebateSide;
   aiDifficulty: AIDifficulty;
@@ -121,6 +123,7 @@ export interface SubmitTurnDto {
 
 // ── Backend DTOs ──────────────────────────────────────────
 export interface CreateAiPracticeSessionRequest {
+  topicId?: number;
   title: string;
   topic: string;
   userSide: SystemDebateSide | number;
@@ -130,6 +133,7 @@ export interface CreateAiPracticeSessionRequest {
 }
 
 export interface CreateP2pSessionRequest {
+  topicId?: number;
   title: string;
   topic: string;
   userSide: SystemDebateSide | number;
@@ -142,6 +146,7 @@ export interface JoinSessionRequest {
 }
 
 export interface Create2v2SessionRequest {
+  topicId?: number;
   title: string;
   topic: string;
   userSide: SystemDebateSide | number;
@@ -247,6 +252,7 @@ export interface DebateHistoryItemDto {
 // ── Debate Challenge DTOs ──────────────────────────────────
 export interface CreateChallengeRequest {
   challengedUserId: number;
+  topicId?: number;
   topic: string;
   challengerPreferredSide: SystemDebateSide | number;
   turnTimeLimitSeconds?: number;

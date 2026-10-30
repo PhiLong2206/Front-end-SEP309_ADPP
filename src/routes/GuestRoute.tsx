@@ -25,10 +25,15 @@ const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
     if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) {
       return <Navigate to="/admin/dashboard" replace />;
     }
-    if (userRole === "Educator" || userRole === ROLES.EDUCATOR) {
-      return <Navigate to="/educator/dashboard" replace />;
+    if (
+      userRole === "Organizer" ||
+      userRole === "Educator" ||
+      userRole === "Lecturer" ||
+      userRole === ROLES.ORGANIZER
+    ) {
+      return <Navigate to="/organizer/dashboard" replace />;
     }
-    return <Navigate to="/learner/dashboard" replace />;
+    return <Navigate to="/debater/dashboard" replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;

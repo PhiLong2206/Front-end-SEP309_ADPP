@@ -6,19 +6,32 @@ import authApi from "../api/authApi";
 import userApi from "../api/userApi";
 
 const mapRoleFromRoles = (roles: string[] = []): RoleType => {
-  if (roles.includes("Admin") || roles.includes("Administrator")) {
+  const lowerRoles = roles.map((r) => r.toLowerCase());
+  if (lowerRoles.includes("admin") || lowerRoles.includes("administrator")) {
     return "Administrator";
-  } else if (roles.includes("Educator") || roles.includes("Lecturer")) {
-    return "Educator";
+  } else if (
+    lowerRoles.includes("organizer") ||
+    lowerRoles.includes("educator") ||
+    lowerRoles.includes("lecturer")
+  ) {
+    return "Organizer";
   }
-  return "Learner";
+  return "Debater";
+};
+
+const normalizeUser = (u: User | null): User | null => {
+  if (!u) return null;
+  const normalizedRole = mapRoleFromRoles(
+    u.roles && u.roles.length > 0 ? u.roles : u.role ? [String(u.role)] : []
+  );
+  return { ...u, role: normalizedRole };
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [tokenState, setTokenState] = useState<string | null>(getToken());
-  const [user, setUser] = useState<User | null>(getUserData());
+  const [user, setUser] = useState<User | null>(() => normalizeUser(getUserData()));
   const [loading, setLoading] = useState<boolean>(true);
 
   const role: RoleType | null = user?.role || null;
@@ -29,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const initializeAuth = async () => {
       const currentToken = getToken();
-      const currentUser = getUserData();
+      const currentUser = normalizeUser(getUserData());
 
       if (!currentToken) {
         clearAuthStorage();

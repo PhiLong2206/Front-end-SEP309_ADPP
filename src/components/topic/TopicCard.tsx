@@ -13,7 +13,7 @@ export interface TopicCardProps {
 const TopicCard: React.FC<TopicCardProps> = ({ topic, showImage = true }) => {
   return (
     <Link
-      to={`/learner/topics/${topic.id}`}
+      to={`/debater/topics/${topic.id}`}
       className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-lg hover:border-[#008A64]/40 transition-all duration-300 flex flex-col overflow-hidden group relative"
     >
       {showImage && topic.imageUrl && (

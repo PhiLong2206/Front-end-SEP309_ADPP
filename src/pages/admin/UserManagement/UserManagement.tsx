@@ -376,7 +376,9 @@ const UserManagement: React.FC = () => {
                         <div className="flex items-center gap-1.5">
                           <span>{u.email}</span>
                           {u.isEmailVerified && (
-                            <CheckCircle size={12} className="text-[#008A64]" title="Email đã xác thực" />
+                            <span title="Email đã xác thực" className="inline-flex">
+                              <CheckCircle size={12} className="text-[#008A64]" />
+                            </span>
                           )}
                         </div>
                       </td>
@@ -388,9 +390,9 @@ const UserManagement: React.FC = () => {
                               const badgeText =
                                 rLower === "admin"
                                   ? "Quản trị viên"
-                                  : rLower === "lecturer" || rLower === "educator"
+                                  : rLower === "lecturer" || rLower === "educator" || rLower === "organizer"
                                   ? "Giảng viên"
-                                  : rLower === "member" || rLower === "learner"
+                                  : rLower === "member" || rLower === "learner" || rLower === "debater"
                                   ? "Học viên"
                                   : rLower === "moderator"
                                   ? "Kiểm duyệt viên"
@@ -401,7 +403,7 @@ const UserManagement: React.FC = () => {
                                   className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
                                     rLower === "admin"
                                       ? "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200"
-                                      : rLower === "lecturer" || rLower === "educator"
+                                      : rLower === "lecturer" || rLower === "educator" || rLower === "organizer"
                                       ? "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200"
                                       : rLower === "moderator"
                                       ? "bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200"
@@ -437,7 +439,8 @@ const UserManagement: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleViewDetail(u.userId)}
-                            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                            disabled={detailLoading}
+                            className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-40"
                             title="Xem chi tiết người dùng"
                           >
                             <Eye size={13} />
@@ -458,7 +461,7 @@ const UserManagement: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setStatusModalUser(u)}
-                            disabled={isCurrentAdmin && u.isActive}
+                            disabled={Boolean(isCurrentAdmin && u.isActive)}
                             className={`p-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                               u.isActive
                                 ? "bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-100 border border-rose-200/80"
@@ -599,9 +602,9 @@ const UserManagement: React.FC = () => {
                   const badgeText =
                     rLower === "admin"
                       ? "Quản trị viên"
-                      : rLower === "lecturer" || rLower === "educator"
+                      : rLower === "lecturer" || rLower === "educator" || rLower === "organizer"
                       ? "Giảng viên"
-                      : rLower === "member" || rLower === "learner"
+                      : rLower === "member" || rLower === "learner" || rLower === "debater"
                       ? "Học viên"
                       : rLower === "moderator"
                       ? "Kiểm duyệt viên"
@@ -663,9 +666,9 @@ const UserManagement: React.FC = () => {
                 const roleLabel =
                   roleNameLower === "admin"
                     ? "Quản trị viên"
-                    : roleNameLower === "lecturer" || roleNameLower === "educator"
+                    : roleNameLower === "lecturer" || roleNameLower === "educator" || roleNameLower === "organizer"
                     ? "Giảng viên"
-                    : roleNameLower === "member" || roleNameLower === "learner"
+                    : roleNameLower === "member" || roleNameLower === "learner" || roleNameLower === "debater"
                     ? "Học viên"
                     : roleNameLower === "moderator"
                     ? "Kiểm duyệt viên"
@@ -674,9 +677,9 @@ const UserManagement: React.FC = () => {
                 const roleDesc =
                   roleNameLower === "admin"
                     ? "Toàn quyền quản lý hệ thống, kiểm soát người dùng và thiết lập bảo mật nền tảng."
-                    : roleNameLower === "lecturer" || roleNameLower === "educator"
+                    : roleNameLower === "lecturer" || roleNameLower === "educator" || roleNameLower === "organizer"
                     ? "Tạo đề tài, tổ chức và chấm điểm các giải đấu, cuộc thi tranh biện."
-                    : roleNameLower === "member" || roleNameLower === "learner"
+                    : roleNameLower === "member" || roleNameLower === "learner" || roleNameLower === "debater"
                     ? "Học viên tham gia luyện tập cùng AI, thi đấu 1v1, 2v2 và tích lũy điểm số."
                     : roleNameLower === "moderator"
                     ? "Giám sát nội dung, kiểm duyệt các chủ đề và báo cáo vi phạm."

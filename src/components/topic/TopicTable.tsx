@@ -51,13 +51,13 @@ const TopicTable: React.FC<TopicTableProps> = ({ topics }) => {
                 <td className="px-5 py-4 whitespace-nowrap text-right">
                   <div className="inline-flex items-center gap-2">
                     <Link
-                      to={`/learner/topics/${topic.id}`}
+                      to={`/debater/topics/${topic.id}`}
                       className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 hover:text-slate-900 border border-slate-200 rounded-xl transition-colors shadow-xs"
                     >
                       Chi tiết
                     </Link>
                     <Link
-                      to={`/learner/topics/${topic.id}`}
+                      to={`/debater/topics/${topic.id}`}
                       className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#008A64] hover:bg-[#007457] rounded-xl transition-all shadow-sm shadow-[#008A64]/20 hover:scale-102"
                     >
                       Bắt đầu

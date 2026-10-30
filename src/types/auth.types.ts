@@ -1,4 +1,12 @@
-export type RoleType = "Learner" | "Educator" | "Administrator" | "Member" | "Admin";
+export type RoleType =
+  | "Debater"
+  | "Organizer"
+  | "Administrator"
+  | "Learner"
+  | "Educator"
+  | "Lecturer"
+  | "Member"
+  | "Admin";
 
 export interface UserInfoDto {
   userId: number;
@@ -39,7 +47,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirmPassword?: string;
-  role?: "Learner" | "Educator" | "Member" | "Administrator" | "Admin";
+  role?: "Debater" | "Organizer" | "Learner" | "Educator" | "Lecturer" | "Member" | "Administrator" | "Admin";
 }
 
 export interface VerifyRegisterOtpRequest {

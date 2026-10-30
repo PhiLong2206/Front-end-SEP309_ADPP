@@ -1,12 +1,12 @@
 import React from "react";
-import { Bot, User as UserIcon, Shield, Flame } from "lucide-react";
+import { Bot, User as UserIcon } from "lucide-react";
 
 export interface DebateMessageData {
   id: string;
-  speaker: "Learner" | "AI" | "OpponentLearner" | "Teammate";
+  speaker: "Debater" | "Learner" | "AI" | "OpponentDebater" | "OpponentLearner" | "Teammate";
   speakerName: string;
   side: "Ủng hộ" | "Phản đối";
-  teamRole?: string; // e.g. "PRO 1", "PRO 2", "CON 1", "CON 2"
+  teamRole?: string;
   stage: "Mở đầu" | "Phản biện" | "Kết luận";
   roundNumber: number;
   timestamp: string;
@@ -19,7 +19,9 @@ export interface DebateMessageItemProps {
 }
 
 const DebateMessageItem: React.FC<DebateMessageItemProps> = ({ message }) => {
-  const isUser = message.isCurrentUser ?? message.speaker === "Learner";
+  const isUser =
+    message.isCurrentUser ??
+    (message.speaker === "Debater" || message.speaker === "Learner");
   const isAI = message.speaker === "AI";
   const isPro = message.side === "Ủng hộ";
 
@@ -29,86 +31,68 @@ const DebateMessageItem: React.FC<DebateMessageItemProps> = ({ message }) => {
         isUser ? "justify-end" : "justify-start"
       }`}
     >
-      {/* Left Avatar for other participants or AI */}
+      {/* Left Avatar for AI Opponent or Other Participant */}
       {!isUser && (
         <div
-          className={`w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs mt-1 ${
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
             isAI
-              ? "bg-[#008A64]"
-              : isPro
-              ? "bg-emerald-600"
-              : "bg-rose-600"
+              ? "bg-[#008A64] text-white"
+              : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
           }`}
         >
-          {isAI ? <Bot size={18} /> : <UserIcon size={17} />}
+          {isAI ? <Bot size={16} /> : <UserIcon size={15} />}
         </div>
       )}
 
       {/* Message Bubble */}
       <div
-        className={`p-4 sm:p-5 rounded-2xl transition-all ${
+        className={`px-4 py-3 rounded-2xl transition-all ${
           isUser
-            ? "debate-msg-user bg-[#ECFDF5]/80 dark:bg-[rgba(16,185,129,0.12)] border border-[#008A64]/30 dark:border-[rgba(16,185,129,0.30)] rounded-tr-sm max-w-[85%] sm:max-w-[78%] ml-auto text-slate-800 dark:text-[#F8FAFC]"
-            : "debate-msg-ai bg-white dark:bg-[#12231C] border border-slate-200/90 dark:border-[rgba(148,163,184,0.16)] rounded-tl-sm max-w-[90%] sm:max-w-[85%] mr-auto text-slate-800 dark:text-[#DCE7E3]"
+            ? "bg-[#ECFDF5] dark:bg-[#112A21] border border-[#008A64]/20 dark:border-[#008A64]/35 rounded-tr-xs max-w-[82%] sm:max-w-[75%] text-slate-900 dark:text-[#F8FAFC]"
+            : "bg-white dark:bg-[#12231C] border border-slate-200/80 dark:border-slate-800 rounded-tl-xs max-w-[88%] sm:max-w-[80%] text-slate-800 dark:text-[#E2E8F0] shadow-2xs"
         }`}
       >
-        {/* Header Metadata */}
-        <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-slate-100 dark:border-slate-800/60 text-xs">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Speaker Name */}
+        {/* Compact Metadata Line */}
+        <div className="flex items-center justify-between gap-3 mb-1 text-xs">
+          <div className="flex items-center gap-1.5">
             <span
-              className={`font-bold ${
+              className={`font-semibold ${
                 isUser
                   ? "text-[#008A64] dark:text-[#34D399]"
-                  : isPro
-                  ? "text-emerald-700 dark:text-emerald-400"
-                  : "text-rose-700 dark:text-rose-400"
+                  : "text-slate-900 dark:text-slate-100"
               }`}
             >
-              {message.speakerName}
+              {isUser ? "Bạn" : message.speakerName}
             </span>
-
-            {/* Side tag */}
             <span
-              className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded font-semibold text-[11px] ${
+              className={`text-[11px] px-1.5 py-0.2 rounded font-medium ${
                 isPro
-                  ? "bg-emerald-100/70 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                  : "bg-rose-100/70 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                  ? "bg-emerald-100/80 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                  : "bg-rose-100/80 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
               }`}
             >
-              {isPro ? <Shield size={10} /> : <Flame size={10} />}
-              <span>{message.side}</span>
-              {message.teamRole && <span className="opacity-80">({message.teamRole})</span>}
-            </span>
-
-            {/* Round & Stage */}
-            <span className="px-2 py-0.2 rounded-full bg-slate-100 dark:bg-[#091713] text-slate-600 dark:text-[#94A3B8] font-medium text-[11px]">
-              Vòng {message.roundNumber} · {message.stage}
+              {isPro ? "PRO" : "CON"}
+              {message.teamRole ? ` · ${message.teamRole}` : ""}
             </span>
           </div>
 
-          {/* Timestamp */}
-          <span className="text-slate-400 dark:text-[#94A3B8] text-[12px] font-mono shrink-0">
-            {message.timestamp}
-          </span>
+          {message.timestamp && (
+            <span className="text-slate-400 dark:text-slate-500 text-[11px] font-mono shrink-0">
+              {message.timestamp}
+            </span>
+          )}
         </div>
 
-        {/* Content */}
-        <p
-          className={`text-[15px] sm:text-[16px] leading-[1.7] whitespace-pre-line ${
-            isUser
-              ? "debate-user-body text-slate-800 dark:text-[#E2E8F0]"
-              : "debate-ai-body text-slate-800 dark:text-[#DCE7E3]"
-          }`}
-        >
+        {/* Message Body */}
+        <p className="text-[15px] leading-[1.65] whitespace-pre-line break-words">
           {message.content}
         </p>
       </div>
 
-      {/* Right Avatar for Current User */}
+      {/* Right Avatar for Debater */}
       {isUser && (
-        <div className="w-9 h-9 rounded-xl bg-slate-800 dark:bg-[#123326] text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
-          <UserIcon size={17} />
+        <div className="w-8 h-8 rounded-full bg-slate-800 dark:bg-[#17352A] text-white flex items-center justify-center shrink-0 mt-0.5">
+          <UserIcon size={15} />
         </div>
       )}
     </div>

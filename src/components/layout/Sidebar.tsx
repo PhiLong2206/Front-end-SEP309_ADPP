@@ -69,40 +69,40 @@ const Sidebar: React.FC<SidebarProps> = ({
       ];
     }
 
-    if (role === ROLES.EDUCATOR) {
+    if (role === ROLES.ORGANIZER) {
       return [
         {
           title: "GIẢNG DẠY & HUẤN LUYỆN",
           items: [
-            { label: "Bảng điều khiển", path: "/educator/dashboard", icon: LayoutDashboard },
-            { label: "Quản lý chủ đề", path: "/educator/topics", icon: BookOpen },
-            { label: "Sự kiện & Hội thảo", path: "/educator/events", icon: Calendar },
-            { label: "Cuộc thi & Giải đấu", path: "/educator/competitions", icon: Trophy },
+            { label: "Bảng điều khiển", path: "/organizer/dashboard", icon: LayoutDashboard },
+            { label: "Quản lý chủ đề", path: "/organizer/topics", icon: BookOpen },
+            { label: "Sự kiện & Hội thảo", path: "/organizer/events", icon: Calendar },
+            { label: "Cuộc thi & Giải đấu", path: "/organizer/competitions", icon: Trophy },
           ],
         },
       ];
     }
 
-    // Default Learner
+    // Default Debater
     return [
       {
         title: "LUYỆN TẬP & THI ĐẤU",
         items: [
-          { label: "Bảng điều khiển", path: "/learner/dashboard", icon: LayoutDashboard },
-          { label: "Chủ đề tranh biện", path: "/learner/topics", icon: BookOpen },
-          { label: "Tranh biện với AI", path: "/learner/debate", icon: Bot },
-          { label: "Tranh biện 1 vs 1", path: "/learner/debate-1v1", icon: Swords },
-          { label: "Tranh biện 2 vs 2", path: "/learner/debate-2v2", icon: Users },
-          { label: "Giải đấu & Cuộc thi", path: "/learner/competitions", icon: Trophy },
-          { label: "Sự kiện học tập", path: "/learner/events", icon: Calendar },
+          { label: "Bảng điều khiển", path: "/debater/dashboard", icon: LayoutDashboard },
+          { label: "Chủ đề tranh biện", path: "/debater/topics", icon: BookOpen },
+          { label: "Tranh biện với AI", path: "/debater/debate", icon: Bot },
+          { label: "Tranh biện 1 vs 1", path: "/debater/debate-1v1", icon: Swords },
+          { label: "Tranh biện 2 vs 2", path: "/debater/debate-2v2", icon: Users },
+          { label: "Giải đấu & Cuộc thi", path: "/debater/competitions", icon: Trophy },
+          { label: "Sự kiện học tập", path: "/debater/events", icon: Calendar },
         ],
       },
       {
         title: "TÀI CHÍNH & CÁ NHÂN",
         items: [
-          { label: "Nạp điểm tín chỉ", path: "/learner/payments", icon: CreditCard },
-          { label: "Hồ sơ cá nhân", path: "/learner/profile", icon: UserIcon },
-          { label: "Cài đặt & Tùy chọn", path: "/learner/settings", icon: Settings },
+          { label: "Nạp điểm tín chỉ", path: "/debater/payments", icon: CreditCard },
+          { label: "Hồ sơ cá nhân", path: "/debater/profile", icon: UserIcon },
+          { label: "Cài đặt & Tùy chọn", path: "/debater/settings", icon: Settings },
         ],
       },
     ];
@@ -112,8 +112,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const getProfilePath = () => {
     if (role === ROLES.ADMIN) return "/admin/profile";
-    if (role === ROLES.EDUCATOR) return "/educator/profile";
-    return "/learner/profile";
+    if (role === ROLES.ORGANIZER) return "/organizer/profile";
+    return "/debater/profile";
   };
 
   return (

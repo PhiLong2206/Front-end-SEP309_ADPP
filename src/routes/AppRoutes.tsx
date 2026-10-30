@@ -19,8 +19,8 @@ import NotFound from "../pages/public/NotFound/NotFound";
 import Unauthorized from "../pages/public/Unauthorized/Unauthorized";
 
 // Child portals
-import LearnerRoutes from "./LearnerRoutes";
-import EducatorRoutes from "./EducatorRoutes";
+import DebaterRoutes from "./DebaterRoutes";
+import OrganizerRoutes from "./OrganizerRoutes";
 
 // Admin pages & Reusable Profile/Settings
 import AdminDashboard from "../pages/admin/Dashboard/Dashboard";
@@ -33,8 +33,8 @@ import ReportManagement from "../pages/admin/ReportManagement/ReportManagement";
 import AdminEventManagement from "../pages/admin/EventManagement/EventManagement";
 import AdminCompetitionManagement from "../pages/admin/CompetitionManagement/CompetitionManagement";
 import SystemManagement from "../pages/admin/SystemManagement/SystemManagement";
-import LearnerProfile from "../pages/learner/Profile/Profile";
-import LearnerSettings from "../pages/learner/Settings/Settings";
+import DebaterProfile from "../pages/debater/Profile/Profile";
+import DebaterSettings from "../pages/debater/Settings/Settings";
 
 /**
  * Smart redirect for /profile based on authenticated role.
@@ -42,8 +42,8 @@ import LearnerSettings from "../pages/learner/Settings/Settings";
 const ProfileRedirect: React.FC = () => {
   const { role } = useAuth();
   if (role === ROLES.ADMIN) return <Navigate to="/admin/profile" replace />;
-  if (role === ROLES.EDUCATOR) return <Navigate to="/educator/profile" replace />;
-  return <Navigate to="/learner/profile" replace />;
+  if (role === ROLES.ORGANIZER) return <Navigate to="/organizer/profile" replace />;
+  return <Navigate to="/debater/profile" replace />;
 };
 
 const AppRoutes: React.FC = () => {
@@ -75,31 +75,31 @@ const AppRoutes: React.FC = () => {
         </Route>
       </Route>
 
-      {/* Protected Learner Portal (Learner & Admin can preview) */}
+      {/* Protected Debater Portal (Debater & Admin can preview) */}
       <Route
-        path="/learner/*"
+        path="/debater/*"
         element={
-          <RoleProtectedRoute allowedRoles={[ROLES.LEARNER, ROLES.ADMIN]}>
+          <RoleProtectedRoute allowedRoles={[ROLES.DEBATER, ROLES.ADMIN]}>
             <DashboardLayout />
           </RoleProtectedRoute>
         }
       >
-        <Route path="*" element={<LearnerRoutes />} />
+        <Route path="*" element={<DebaterRoutes />} />
       </Route>
 
-      {/* Protected Educator Portal */}
+      {/* Protected Organizer Portal */}
       <Route
-        path="/educator/*"
+        path="/organizer/*"
         element={
-          <RoleProtectedRoute allowedRoles={[ROLES.EDUCATOR]}>
+          <RoleProtectedRoute allowedRoles={[ROLES.ORGANIZER]}>
             <DashboardLayout />
           </RoleProtectedRoute>
         }
       >
-        <Route path="*" element={<EducatorRoutes />} />
+        <Route path="*" element={<OrganizerRoutes />} />
       </Route>
 
-      {/* Protected Administrator Portal (Strictly Admin only: Learners redirected to 403) */}
+      {/* Protected Administrator Portal (Strictly Admin only: Debaters redirected to 403) */}
       <Route
         path="/admin"
         element={
@@ -116,8 +116,8 @@ const AppRoutes: React.FC = () => {
         <Route path="payments" element={<PaymentManagement />} />
 
         {/* Reusable Profile & Settings for Admin */}
-        <Route path="profile" element={<LearnerProfile />} />
-        <Route path="settings" element={<LearnerSettings />} />
+        <Route path="profile" element={<DebaterProfile />} />
+        <Route path="settings" element={<DebaterSettings />} />
 
         {/* Preserved routes (hidden from sidebar but accessible) */}
         <Route path="debates" element={<DebateManagement />} />

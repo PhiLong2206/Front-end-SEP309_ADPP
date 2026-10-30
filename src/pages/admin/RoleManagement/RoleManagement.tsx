@@ -17,8 +17,8 @@ interface RolePermission {
   module: string;
   description: string;
   admin: boolean;
-  educator: boolean;
-  learner: boolean;
+  organizer: boolean;
+  debater: boolean;
 }
 
 const getRoleDisplayName = (roleName: string) => {
@@ -27,9 +27,11 @@ const getRoleDisplayName = (roleName: string) => {
       return "Quản trị viên";
     case "lecturer":
     case "educator":
+    case "organizer":
       return "Giảng viên";
     case "member":
     case "learner":
+    case "debater":
       return "Học viên";
     case "moderator":
       return "Kiểm duyệt viên";
@@ -43,10 +45,10 @@ const getRoleDescription = (role: AdminRoleItem) => {
   if (name === "admin") {
     return "Quản trị viên có toàn quyền quản lý hệ thống, kiểm soát người dùng và thiết lập bảo mật nền tảng.";
   }
-  if (name === "lecturer" || name === "educator") {
+  if (name === "lecturer" || name === "educator" || name === "organizer") {
     return "Giảng viên có quyền tạo đề tài, tổ chức và chấm điểm các giải đấu, cuộc thi tranh biện.";
   }
-  if (name === "member" || name === "learner") {
+  if (name === "member" || name === "learner" || name === "debater") {
     return "Học viên tiêu chuẩn có quyền tham gia luyện tập với AI, thi đấu 1v1, 2v2 và tích lũy điểm số.";
   }
   if (name === "moderator") {
@@ -87,57 +89,57 @@ const RoleManagement: React.FC = () => {
       module: "Truy cập Cổng Quản trị hệ thống",
       description: "Xem bảng điều khiển tổng quan, quản lý hạ tầng và kiểm soát hệ thống",
       admin: true,
-      educator: false,
-      learner: false,
+      organizer: false,
+      debater: false,
     },
     {
       module: "Kiểm duyệt & Quản lý Chủ đề tranh biện",
       description: "Thêm mới, chỉnh sửa, xóa và xuất bản các chủ đề kiến nghị toàn nền tảng",
       admin: true,
-      educator: true,
-      learner: false,
+      organizer: true,
+      debater: false,
     },
     {
       module: "Quản lý Người dùng & Phân quyền",
       description: "Khóa hoặc mở khóa tài khoản người dùng, gán các vai trò hệ thống",
       admin: true,
-      educator: false,
-      learner: false,
+      organizer: false,
+      debater: false,
     },
     {
       module: "Quản lý Gói nạp & Giao dịch điểm tín chỉ",
       description: "Thiết lập danh mục gói nạp và kiểm tra lịch sử thanh toán",
       admin: true,
-      educator: false,
-      learner: false,
+      organizer: false,
+      debater: false,
     },
     {
       module: "Tổ chức Giải đấu & Cuộc thi tranh biện",
       description: "Khởi tạo cuộc thi tranh biện, xét duyệt đội thi và ban giám khảo chấm điểm",
       admin: true,
-      educator: true,
-      learner: false,
+      organizer: true,
+      debater: false,
     },
     {
       module: "Luyện tập Tranh biện cùng Trí tuệ Nhân tạo",
       description: "Khởi tạo phòng đấu luyện tập với đối thủ AI và nhận đánh giá tự động",
       admin: true,
-      educator: true,
-      learner: true,
+      organizer: true,
+      debater: true,
     },
     {
       module: "Tham gia Tranh biện Đối kháng 1 vs 1 & 2 vs 2",
       description: "Thi đấu trực tiếp cùng các học viên khác trong thời gian thực",
       admin: true,
-      educator: true,
-      learner: true,
+      organizer: true,
+      debater: true,
     },
     {
       module: "Tự ý thay đổi vai trò cá nhân",
       description: "Nghiêm cấm tự nâng quyền từ giao diện người dùng nhằm bảo vệ an toàn hệ thống",
       admin: false,
-      educator: false,
-      learner: false,
+      organizer: false,
+      debater: false,
     },
   ];
 
@@ -202,10 +204,14 @@ const RoleManagement: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {roles.map((r) => {
               const isAdmin = r.roleName.toLowerCase() === "admin";
-              const isEducator =
-                r.roleName.toLowerCase() === "educator" || r.roleName.toLowerCase() === "lecturer";
-              const isLearner =
-                r.roleName.toLowerCase() === "learner" || r.roleName.toLowerCase() === "member";
+              const isOrganizer =
+                r.roleName.toLowerCase() === "organizer" ||
+                r.roleName.toLowerCase() === "educator" ||
+                r.roleName.toLowerCase() === "lecturer";
+              const isDebater =
+                r.roleName.toLowerCase() === "debater" ||
+                r.roleName.toLowerCase() === "learner" ||
+                r.roleName.toLowerCase() === "member";
 
               return (
                 <div
@@ -222,9 +228,9 @@ const RoleManagement: React.FC = () => {
                         className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black ${
                           isAdmin
                             ? "bg-rose-50 text-rose-600 dark:bg-rose-950/60"
-                            : isEducator
+                            : isOrganizer
                             ? "bg-amber-50 text-amber-600 dark:bg-amber-950/60"
-                            : isLearner
+                            : isDebater
                             ? "bg-emerald-50 text-[#008A64] dark:bg-emerald-950/60"
                             : "bg-slate-100 text-slate-600 dark:bg-slate-800"
                         }`}
@@ -305,7 +311,7 @@ const RoleManagement: React.FC = () => {
                     )}
                   </td>
                   <td className="px-4 py-3.5 text-center">
-                    {p.educator ? (
+                    {p.organizer ? (
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-[#008A64]">
                         <Check size={14} />
                       </span>
@@ -316,7 +322,7 @@ const RoleManagement: React.FC = () => {
                     )}
                   </td>
                   <td className="px-4 py-3.5 text-center">
-                    {p.learner ? (
+                    {p.debater ? (
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-[#008A64]">
                         <Check size={14} />
                       </span>

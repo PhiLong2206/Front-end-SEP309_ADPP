@@ -10,15 +10,15 @@ const Unauthorized: React.FC = () => {
 
   const getFallbackPath = () => {
     if (role === ROLES.ADMIN) return "/admin/dashboard";
-    if (role === ROLES.EDUCATOR) return "/educator/dashboard";
-    if (role === ROLES.LEARNER) return "/learner/dashboard";
+    if (role === ROLES.ORGANIZER) return "/organizer/dashboard";
+    if (role === ROLES.DEBATER) return "/debater/dashboard";
     return "/";
   };
 
   const getRoleLabel = () => {
     if (role === ROLES.ADMIN) return "Quản trị viên (Administrator)";
-    if (role === ROLES.EDUCATOR) return "Giảng viên (Educator)";
-    if (role === ROLES.LEARNER) return "Học viên (Learner)";
+    if (role === ROLES.ORGANIZER) return "Giảng viên (Organizer)";
+    if (role === ROLES.DEBATER) return "Học viên (Debater)";
     return "Chưa xác định";
   };
 

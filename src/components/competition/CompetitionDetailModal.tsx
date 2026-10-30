@@ -611,7 +611,7 @@ const CompetitionDetailModal: React.FC<Props> = ({
                         type="button"
                         onClick={() => {
                           onClose();
-                          navigate(`/learner/debate/session-comp-${competition.competitionId}`);
+                          navigate(`/debater/debate/session-comp-${competition.competitionId}`);
                         }}
                         className="px-5 py-2.5 bg-white text-[#008A64] hover:bg-emerald-50 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
                       >
@@ -640,7 +640,7 @@ const CompetitionDetailModal: React.FC<Props> = ({
                           type="button"
                           onClick={() => {
                             onClose();
-                            navigate(`/learner/debate/session-comp-${competition.competitionId}`);
+                            navigate(`/debater/debate/session-comp-${competition.competitionId}`);
                           }}
                           className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
                         >
@@ -872,7 +872,7 @@ const CompetitionDetailModal: React.FC<Props> = ({
                             size="sm"
                             onClick={() => {
                               onClose();
-                              navigate(`/learner/debate/session-comp-${competition.competitionId}`);
+                              navigate(`/debater/debate/session-comp-${competition.competitionId}`);
                             }}
                             className="bg-[#008A64] hover:bg-[#007457] font-bold text-xs"
                           >
@@ -1106,7 +1106,7 @@ const CompetitionDetailModal: React.FC<Props> = ({
                             size="sm"
                             onClick={() => {
                               onClose();
-                              navigate(`/learner/debate/session-comp-${competition.competitionId}`);
+                              navigate(`/debater/debate/session-comp-${competition.competitionId}`);
                             }}
                             className="bg-[#008A64] hover:bg-[#007457] font-bold text-xs"
                           >

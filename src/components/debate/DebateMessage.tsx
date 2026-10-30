@@ -1,6 +1,6 @@
 export interface DebateMessageItem {
   id: string;
-  speaker: "AI" | "Learner";
+  speaker: "AI" | "Debater";
   speakerName: string;
   side: "Ủng hộ" | "Phản đối";
   stage: string;

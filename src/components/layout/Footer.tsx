@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center gap-6 text-xs text-slate-400">
           <div className="flex items-center gap-5 font-medium">
             <Link to="/" className="hover:text-[#1DB881] transition-colors">Trang chủ</Link>
-            <Link to="/learner/topics" className="hover:text-[#1DB881] transition-colors">Chủ đề</Link>
+            <Link to="/debater/topics" className="hover:text-[#1DB881] transition-colors">Chủ đề</Link>
             <a href="#methods" className="hover:text-[#1DB881] transition-colors">Phương pháp</a>
             <a href="#about" className="hover:text-[#1DB881] transition-colors">Về chúng tôi</a>
           </div>

@@ -41,7 +41,8 @@ export interface PaymentFilterParams extends PaginationParams {
   endDate?: string;
 }
 
-export interface LearnerCreditPackage {
+export type LearnerCreditPackage = DebaterCreditPackage;
+export interface DebaterCreditPackage {
   packageId: number;
   packageCode: string;
   packageName: string;

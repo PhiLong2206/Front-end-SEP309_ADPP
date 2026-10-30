@@ -22,6 +22,8 @@ export interface Topic {
   difficulty?: TopicDifficulty | string;
   educatorId?: string;
   educatorName?: string;
+  organizerId?: string;
+  organizerName?: string;
   createdBy?: number;
   createdByUserName?: string;
   materials?: TopicMaterial[];

@@ -16,7 +16,7 @@ const PublicLayout: React.FC = () => {
     { label: "Trang chủ", path: "/" },
     { label: "Phương pháp", path: "/#methods", hash: "methods" },
     { label: "Chủ đề nổi bật", path: "/#featured-topics", hash: "featured-topics" },
-    { label: "Kho đề tài", path: "/learner/topics" },
+    { label: "Kho đề tài", path: "/debater/topics" },
     { label: "Bảng xếp hạng", path: "/#leaderboard", hash: "leaderboard" },
   ];
 

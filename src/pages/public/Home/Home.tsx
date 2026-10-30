@@ -45,10 +45,10 @@ const Home: React.FC = () => {
     const r = String(userRole || role);
     if (r === "Administrator" || r === "Admin" || r === ROLES.ADMIN) {
       navigate("/admin/dashboard");
-    } else if (r === "Educator" || r === ROLES.EDUCATOR) {
-      navigate("/educator/dashboard");
+    } else if (r === "Organizer" || r === ROLES.ORGANIZER) {
+      navigate("/organizer/dashboard");
     } else {
-      navigate("/learner/dashboard");
+      navigate("/debater/dashboard");
     }
   };
 
@@ -197,7 +197,7 @@ const Home: React.FC = () => {
             {/* 4. Action Buttons */}
             <div className="flex flex-wrap items-center gap-4 pt-1">
               <Link
-                to={isAuthenticated ? "/learner/dashboard" : "/learner/topics"}
+                to={isAuthenticated ? "/debater/dashboard" : "/debater/topics"}
                 className="px-8 py-3.5 text-sm sm:text-base font-bold text-white bg-[#00966F] hover:bg-[#007F5F] active:bg-[#006e52] rounded-full shadow-lg shadow-[#00966F]/25 transition-all duration-300 hover:scale-102 inline-flex items-center gap-2.5 group cursor-pointer"
               >
                 <span>Bắt đầu luyện tập ngay</span>
@@ -291,7 +291,7 @@ const Home: React.FC = () => {
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{user.email}</p>
                     <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-[#ECFDF5] dark:bg-[rgba(16,185,129,0.12)] text-[#00966F] dark:text-[#34D399] border border-[#00966F]/30">
-                      {user.role === "Administrator" ? "Quản trị viên" : user.role === "Educator" ? "Giảng viên" : "Học viên"}
+                      {user.role === "Administrator" ? "Quản trị viên" : user.role === "Organizer" ? "Giảng viên" : "Học viên"}
                     </span>
                   </div>
                 </div>
@@ -308,7 +308,7 @@ const Home: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => navigate(user.role === "Administrator" ? "/admin/settings" : user.role === "Educator" ? "/educator/settings" : "/learner/profile")}
+                    onClick={() => navigate(user.role === "Administrator" ? "/admin/settings" : user.role === "Organizer" ? "/organizer/settings" : "/debater/profile")}
                     className="w-full py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Xem Hồ sơ cá nhân</span>

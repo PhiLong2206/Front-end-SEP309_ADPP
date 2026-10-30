@@ -32,10 +32,10 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({ className = "" 
     if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) {
       return "/admin/profile";
     }
-    if (userRole === "Educator" || userRole === ROLES.EDUCATOR) {
-      return "/educator/profile";
+    if (userRole === "Organizer" || userRole === ROLES.ORGANIZER) {
+      return "/organizer/profile";
     }
-    return "/learner/profile";
+    return "/debater/profile";
   };
 
   const getSettingsPath = () => {
@@ -43,10 +43,10 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({ className = "" 
     if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) {
       return "/admin/settings";
     }
-    if (userRole === "Educator" || userRole === ROLES.EDUCATOR) {
-      return "/educator/settings";
+    if (userRole === "Organizer" || userRole === ROLES.ORGANIZER) {
+      return "/organizer/settings";
     }
-    return "/learner/settings";
+    return "/debater/settings";
   };
 
   const getRoleLabel = () => {
@@ -54,7 +54,7 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({ className = "" 
     if (userRole === "Administrator" || userRole === "Admin" || userRole === ROLES.ADMIN) {
       return "Quản trị viên";
     }
-    if (userRole === "Educator" || userRole === ROLES.EDUCATOR) {
+    if (userRole === "Organizer" || userRole === ROLES.ORGANIZER) {
       return "Giảng viên";
     }
     return "Học viên";
@@ -154,7 +154,7 @@ const UserAvatarDropdown: React.FC<UserAvatarDropdownProps> = ({ className = "" 
           {/* Nav Items */}
           <div className="py-1">
             <Link
-              to="/learner/payments"
+              to="/debater/payments"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#172C23] hover:text-[#008A64] dark:hover:text-[#34D399] transition-colors"
             >
