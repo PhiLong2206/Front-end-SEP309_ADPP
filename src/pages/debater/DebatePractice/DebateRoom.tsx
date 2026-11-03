@@ -790,8 +790,9 @@ const DebateRoom: React.FC = () => {
     confirmLeave,
     cancelLeave,
   } = useDebateNavigationGuard({
-    // Leaving a waiting room cancels it too, once the Backend can: then it needs the same confirmation
-    when: isDebateActivelyInProgress || (isDebateLeaveEnabled() && isWaitingInLobby),
+    // Leaving a waiting room cancels it too, once the Backend can: then it needs the same confirmation.
+    // Not while the session is loading: it may be a running AI debate, which the user did not choose to cancel.
+    when: isDebateActivelyInProgress || (isDebateLeaveEnabled() && isWaitingInLobby && !isLoadingBackendSession),
     defaultExitPath: "/debater/dashboard",
     onBeforeLeave: async () => {
       clearedOnLeaveRef.current = await leaveDebateRoom(sessionId, isBackendSession ? numSessionId : null);
@@ -836,7 +837,7 @@ const DebateRoom: React.FC = () => {
       setIsReconnecting(false);
       if (isBackendSession) {
         loadBackendSession(numSessionId);
-        if (isP2pOr2v2) {
+        if (isP2pOr2v2 && !isLoadingBackendSession) {
           loadBackendTranscript(numSessionId);
         }
       }
@@ -852,6 +853,7 @@ const DebateRoom: React.FC = () => {
     isBackendSession,
     isDebateActivelyInProgress,
     isP2pOr2v2,
+    isLoadingBackendSession,
     loadBackendSession,
     loadBackendTranscript,
     numSessionId,

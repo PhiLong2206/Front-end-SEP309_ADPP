@@ -197,6 +197,23 @@ describe("DebateRoom: leaving", () => {
     expect(roomKeys("42")).toEqual([]);
   });
 
+  it("while the session is loading, leaving asks nothing and cancels nothing: it may be a running AI debate", async () => {
+    vi.stubEnv("VITE_DEBATE_LEAVE_ENABLED", "true");
+    mockGetSessionDetails.mockReturnValue(new Promise(() => {})); // never resolves
+    sessionStorage.setItem("adpp_messages_42", '[{"id":"kept"}]');
+    await renderRoom("/debater/debate/42");
+    expect(screen.getByTestId("debate-lobby-loading")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText("Rời phòng tranh biện"));
+    });
+
+    expect(screen.queryByRole("button", { name: "Rời trận" })).not.toBeInTheDocument();
+    expect(mockLeaveSession).not.toHaveBeenCalled();
+    expect(screen.getByTestId("dashboard-page")).toBeInTheDocument();
+    expect(sessionStorage.getItem("adpp_messages_42")).toBe('[{"id":"kept"}]');
+  });
+
   it("state saved between the clear and the room unmounting does not survive", async () => {
     vi.stubEnv("VITE_DEBATE_LEAVE_ENABLED", "true");
     mockGetSessionDetails.mockResolvedValue(session({ status: 2 }));

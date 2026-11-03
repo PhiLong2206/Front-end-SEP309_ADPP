@@ -231,6 +231,12 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
     expect(mockCreateOpponentSession).not.toHaveBeenCalled();
     expect(screen.getByTestId("debate-lobby-loading")).toBeInTheDocument();
     expect(mockGetTranscript).not.toHaveBeenCalled(); // the session type is not known yet
+
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+    });
+    await flush();
+    expect(mockGetTranscript).not.toHaveBeenCalled();
   });
 
   it("with an AI query string, keeps the input locked and creates nothing until the Backend session has loaded", async () => {
