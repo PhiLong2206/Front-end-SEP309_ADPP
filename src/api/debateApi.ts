@@ -122,6 +122,15 @@ const debateApi = {
     axiosClient.post(`/debate/${sessionId}/start`),
 
   /**
+   * POST /api/Debate/{sessionId}/leave [Authorized]
+   * Cancels the session for every participant. The timeout keeps a slow server from trapping the user in the room.
+   */
+  leaveSession: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateSessionResponse>> =>
+    axiosClient.post(`/debate/${sessionId}/leave`, undefined, { timeout: 5000 }),
+
+  /**
    * GET /api/Debate/{sessionId} [Authorized]
    * Retrieves debate session details, participants and turns.
    */

@@ -28,6 +28,17 @@ import {
   clearActiveDebateSession,
 } from "../../../hooks/useDebateNavigationGuard";
 import {
+  COMPLETED_STORAGE_PREFIX,
+  CURRENT_ROUND_PREFIX,
+  DEADLINE_STORAGE_PREFIX,
+  EXPIRED_STORAGE_PREFIX,
+  MESSAGES_STORAGE_PREFIX,
+  TIMED_OUT_ROUNDS_PREFIX,
+  clearDebateRoomStorage,
+  isDebateLeaveEnabled,
+  leaveDebateRoom,
+} from "../../../utils/debateLeave";
+import {
   CaseFileResponse,
   ArgumentEvaluationResult,
   BackendDebateSide,
@@ -123,12 +134,6 @@ export interface DebateRoomMessage {
 
 const ROUND_1_DEFAULT_SECONDS = 135; // 02:15
 const SUBSEQUENT_ROUND_SECONDS = 120; // 02:00
-const DEADLINE_STORAGE_PREFIX = "adpp_turn_deadline_";
-const EXPIRED_STORAGE_PREFIX = "adpp_turn_expired_";
-const TIMED_OUT_ROUNDS_PREFIX = "adpp_timed_out_rounds_";
-const CURRENT_ROUND_PREFIX = "adpp_current_round_";
-const COMPLETED_STORAGE_PREFIX = "adpp_debate_completed_";
-const MESSAGES_STORAGE_PREFIX = "adpp_messages_";
 
 const readStoredNumber = (key: string): number | null => {
   try {
@@ -241,6 +246,7 @@ const DebateRoom: React.FC = () => {
   const opponentReadyRef = useRef<{ sessionId: string; promise: Promise<void> } | null>(null);
   const casePlanRequestedRef = useRef<string | null>(null);
   const unmountedRef = useRef(false);
+  const clearedOnLeaveRef = useRef(false);
   // Rounds whose argument the Backend already accepted: a retry must never submit them again
   const argumentsSubmittedRoundsRef = useRef<Set<number>>(new Set());
 
@@ -762,12 +768,15 @@ const DebateRoom: React.FC = () => {
     confirmLeave,
     cancelLeave,
   } = useDebateNavigationGuard({
-    when: isDebateActivelyInProgress,
+    // Leaving a waiting room cancels it too, once the Backend can: then it needs the same confirmation
+    when: isDebateActivelyInProgress || (isDebateLeaveEnabled() && isWaitingInLobby),
     defaultExitPath: "/debater/dashboard",
-    onBeforeLeave: () => {
-      clearActiveDebateSession(sessionId);
+    onBeforeLeave: async () => {
+      clearedOnLeaveRef.current = await leaveDebateRoom(sessionId, isBackendSession ? numSessionId : null);
     },
   });
+
+  const isSessionCancelled = sessionDetails?.status === 4 || String(sessionDetails?.status) === "Cancelled";
 
   // Persist active session metadata for recovery after refresh/reconnect; clear when terminal
   useEffect(() => {
@@ -952,8 +961,12 @@ const DebateRoom: React.FC = () => {
     unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
+      // The room's effects can still save state between the clear on leaving and this unmount
+      if (clearedOnLeaveRef.current) {
+        clearDebateRoomStorage(sessionId);
+      }
     };
-  }, []);
+  }, [sessionId]);
 
   // Initialize session with AI Opponent Service (only for AI mode when debate is active).
   // Any failure blocks the debate (no simulated opponent) until the user retries.
@@ -1211,8 +1224,11 @@ const DebateRoom: React.FC = () => {
         const nextRound = roundBeingCompleted + 1;
         const nextTurnKey = `${sessionId}_ai_r${nextRound}_${debaterSide}`;
         const nextDeadlineMs = Date.now() + SUBSEQUENT_ROUND_SECONDS * 1000;
-        writeStoredValue(DEADLINE_STORAGE_PREFIX + nextTurnKey, String(nextDeadlineMs));
-        removeStoredValue(EXPIRED_STORAGE_PREFIX + nextTurnKey);
+        // An AI reply can land after the room is gone: it must not save state back for a room that was left
+        if (!unmountedRef.current) {
+          writeStoredValue(DEADLINE_STORAGE_PREFIX + nextTurnKey, String(nextDeadlineMs));
+          removeStoredValue(EXPIRED_STORAGE_PREFIX + nextTurnKey);
+        }
 
         handledTimeoutKeyRef.current = null;
         setIsTurnExpired(false);
@@ -1849,6 +1865,16 @@ const DebateRoom: React.FC = () => {
         </div>
       )}
 
+      {isSessionCancelled && (
+        <div
+          role="status"
+          data-testid="debate-cancelled-notice"
+          className="px-4 py-2 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200/80 dark:border-rose-800/50 text-xs font-semibold text-rose-700 dark:text-rose-300"
+        >
+          Phiên tranh biện này đã bị huỷ vì có người rời trận. Không thể tiếp tục.
+        </div>
+      )}
+
       {/* Compact Toast / Timeout / Error Strip */}
       {bannerText && (
         <div
@@ -2230,8 +2256,8 @@ const DebateRoom: React.FC = () => {
               isRecording={isRecording}
               isTurnExpired={EffectiveExpired}
               isDebateCompleted={EffectiveDebateCompleted}
-              canSpeak={canSpeak}
-              cannotSpeakReason={cannotSpeakReason}
+              canSpeak={canSpeak && !isSessionCancelled}
+              cannotSpeakReason={isSessionCancelled ? "Phiên tranh biện đã bị huỷ." : cannotSpeakReason}
               userRoleInRoom="Debater"
               activeSidebarTab={isSidebarOpen ? sidebarTab : null}
               hasNewEvaluation={hasNewEvaluation}
@@ -2275,6 +2301,14 @@ const DebateRoom: React.FC = () => {
         isLeaving={isLeaving}
         onStay={cancelLeave}
         onConfirmLeave={confirmLeave}
+        {...(isDebateLeaveEnabled() && isBackendSession
+          ? {
+              title: isWaitingInLobby ? "Bạn có chắc muốn rời phòng chờ?" : "Bạn có chắc muốn rời trận tranh biện?",
+              description: isP2pOr2v2
+                ? "Nếu rời đi, phiên này sẽ bị huỷ cho tất cả người chơi và không thể tiếp tục."
+                : "Nếu rời đi, phiên này sẽ bị huỷ và không thể tiếp tục. Lần sau vào lại chủ đề sẽ là một phiên mới.",
+            }
+          : {})}
       />
     </div>
   );

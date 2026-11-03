@@ -114,6 +114,17 @@ export const getLocalOpponentSessionId = (roomId: string): string => {
   return created;
 };
 
+/** Leaving a room ends its opponent session: the next entry gets a new one. */
+export const clearLocalOpponentSessionId = (roomId: string): void => {
+  const key = LOCAL_OPPONENT_SESSION_PREFIX + roomId;
+  localOpponentSessionFallback.delete(key);
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // Nothing else holds the id
+  }
+};
+
 type OpponentError = { status?: number; statusCode?: number; detail?: unknown; message?: unknown } | null | undefined;
 
 const errorStatus = (error: unknown): number | undefined => {
