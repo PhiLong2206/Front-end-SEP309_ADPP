@@ -21,7 +21,7 @@ import LeaveDebateConfirmModal from "../../../components/debate/LeaveDebateConfi
 import GradingOverlay from "../../../components/debate/GradingOverlay";
 import { aiApi, debateApi } from "../../../api";
 import { useAuth } from "../../../hooks/useAuth";
-import { getSpeakerRelation, UnattributedSpeechError } from "../../../utils/debateSpeaker";
+import { getSpeakerRelation, isSameUserId, UnattributedSpeechError } from "../../../utils/debateSpeaker";
 import {
   useDebateNavigationGuard,
   saveActiveDebateSession,
@@ -111,8 +111,8 @@ export interface DebateRoomMessage {
   timestamp: string;
   content: string;
   isCurrentUser?: boolean;
-  /** Set only on speeches this client just submitted; Backend transcript entries carry no userId. */
-  speakerUserId?: number;
+  /** The transcript's userId, or the account id on a speech this client just submitted. */
+  speakerUserId?: string | number;
 }
 
 const ROUND_1_DEFAULT_SECONDS = 135; // 02:15
@@ -270,7 +270,8 @@ const DebateRoom: React.FC = () => {
 
   // Auth & Backend Session Details State
   const { user } = useAuth();
-  const currentUserId = user?.userId || (user?.id ? parseInt(String(user.id), 10) : 0);
+  // Not parsed to a number: compare it with isSameUserId. null = the account has not loaded yet.
+  const currentUserId = user?.userId ?? user?.id ?? null;
 
   const [sessionDetails, setSessionDetails] = useState<DebateSessionResponse | null>(null);
   const [pendingSwapRequests, setPendingSwapRequests] = useState<SideSwapRequestResponse[]>([]);
@@ -313,7 +314,7 @@ const DebateRoom: React.FC = () => {
     ? "1v1"
     : "ai";
 
-  const isHost = Boolean(sessionDetails && sessionDetails.createdByUserId === currentUserId);
+  const isHost = Boolean(sessionDetails && isSameUserId(sessionDetails.createdByUserId, currentUserId));
   const proParticipants =
     sessionDetails?.participants.filter((p) => p.side === 1 || String(p.side) === "PRO") || [];
   const conParticipants =
@@ -325,7 +326,7 @@ const DebateRoom: React.FC = () => {
         : proParticipants.length >= 1 && conParticipants.length >= 1)
   );
 
-  const myParticipant = sessionDetails?.participants.find((p) => p.userId === currentUserId);
+  const myParticipant = sessionDetails?.participants.find((p) => isSameUserId(p.userId, currentUserId));
   const mySide = myParticipant?.side;
 
   // ONE source for the session data sent to the AI services: the Backend session first, then the URL.
@@ -568,8 +569,8 @@ const DebateRoom: React.FC = () => {
                 : "",
               content: arg.content,
               isCurrentUser:
-                typeof arg.userId === "number"
-                  ? arg.userId === currentUserId
+                arg.userId !== undefined && arg.userId !== null
+                  ? isSameUserId(arg.userId, currentUserId)
                   : !arg.isAI && (!user?.fullName || arg.speakerName === user.fullName || !isP2pOr2v2),
               speakerUserId: arg.userId ?? undefined,
             };
@@ -1451,7 +1452,7 @@ const DebateRoom: React.FC = () => {
       timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
       content: currentText,
       isCurrentUser: true,
-      speakerUserId: currentUserId,
+      speakerUserId: currentUserId ?? undefined,
     };
 
     setMessages((prev) => [...prev, newDebaterMsg]);
@@ -1598,7 +1599,7 @@ const DebateRoom: React.FC = () => {
       }
 
       // Without the account every speech looks unidentifiable, which must not count as a data error.
-      if (isP2pOr2v2 && !currentUserId) {
+      if (isP2pOr2v2 && currentUserId === null) {
         throw new Error("chưa tải xong thông tin tài khoản");
       }
 
@@ -1733,8 +1734,8 @@ const DebateRoom: React.FC = () => {
       proParticipants.length > 0
         ? proParticipants.map((p, idx) => ({
             speakerName: p.speakerName || `Debater PRO ${idx + 1}`,
-            isCurrentUser: p.userId === currentUserId,
-            roleTag: p.userId === sessionDetails?.createdByUserId ? "Chủ phòng" : `PRO ${idx + 1}`,
+            isCurrentUser: isSameUserId(p.userId, currentUserId),
+            roleTag: isSameUserId(p.userId, sessionDetails?.createdByUserId) ? "Chủ phòng" : `PRO ${idx + 1}`,
             isAI: p.isAI,
           }))
         : [
@@ -1753,8 +1754,8 @@ const DebateRoom: React.FC = () => {
       conParticipants.length > 0
         ? conParticipants.map((p, idx) => ({
             speakerName: p.speakerName || `Debater CON ${idx + 1}`,
-            isCurrentUser: p.userId === currentUserId,
-            roleTag: p.userId === sessionDetails?.createdByUserId ? "Chủ phòng" : `CON ${idx + 1}`,
+            isCurrentUser: isSameUserId(p.userId, currentUserId),
+            roleTag: isSameUserId(p.userId, sessionDetails?.createdByUserId) ? "Chủ phòng" : `CON ${idx + 1}`,
             isAI: p.isAI,
           }))
         : [
@@ -2050,16 +2051,16 @@ const DebateRoom: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">
-                          {p.speakerName} {p.userId === currentUserId && "(Bạn)"}
+                          {p.speakerName} {isSameUserId(p.userId, currentUserId) && "(Bạn)"}
                         </p>
                         <p className="text-[11px] text-slate-400">
-                          {p.userId === sessionDetails.createdByUserId
+                          {isSameUserId(p.userId, sessionDetails.createdByUserId)
                             ? "Chủ phòng (Host)"
                             : `Debater PRO ${idx + 1}`}
                         </p>
                       </div>
                     </div>
-                    {is2v2 && mySide === 2 && p.userId && (
+                    {is2v2 && mySide === 2 && p.userId !== undefined && p.userId !== null && (
                       <button
                         type="button"
                         onClick={() => handleSendSwapRequest(p.userId!)}
@@ -2100,16 +2101,16 @@ const DebateRoom: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">
-                          {p.speakerName} {p.userId === currentUserId && "(Bạn)"}
+                          {p.speakerName} {isSameUserId(p.userId, currentUserId) && "(Bạn)"}
                         </p>
                         <p className="text-[11px] text-slate-400">
-                          {p.userId === sessionDetails.createdByUserId
+                          {isSameUserId(p.userId, sessionDetails.createdByUserId)
                             ? "Chủ phòng (Host)"
                             : `Debater CON ${idx + 1}`}
                         </p>
                       </div>
                     </div>
-                    {is2v2 && mySide === 1 && p.userId && (
+                    {is2v2 && mySide === 1 && p.userId !== undefined && p.userId !== null && (
                       <button
                         type="button"
                         onClick={() => handleSendSwapRequest(p.userId!)}

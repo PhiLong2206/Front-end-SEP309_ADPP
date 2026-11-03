@@ -14,7 +14,8 @@ const ME = 1;
 const MY_NAME = "Nguyen Van A";
 
 const SIGNED_IN_USER = { userId: 1, id: 1, fullName: "Nguyen Van A", role: "Debater" };
-let mockAuthUser: typeof SIGNED_IN_USER | null = SIGNED_IN_USER;
+let mockAuthUser: { userId?: number; id?: string | number; fullName: string; role: string } | null =
+  SIGNED_IN_USER;
 
 vi.mock("../hooks/useAuth", () => ({
   useAuth: () => ({
@@ -439,6 +440,60 @@ describe("Final grading attributes every speech to the right person", () => {
       expect(screen.getByTestId("header-submit-debate-btn")).toBeDisabled();
       expect(screen.getByTestId("submit-and-view-result-btn")).toBeDisabled();
       expect(screen.queryByTestId("result-page")).not.toBeInTheDocument();
+      expect(mockEvaluateDebateRound).not.toHaveBeenCalled();
+    });
+
+    it("a string account id matches the numeric participant id, so grading works", async () => {
+      seedSession(2, oneVsOne, fullOneVsOne());
+      mockAuthUser = { id: "1", fullName: MY_NAME, role: "Debater" };
+      renderRoom();
+      await submitOnceLoaded("Tôi vòng 1");
+
+      expect(turnsOfStage("opening")?.[0]).toEqual({ speaker: "learner", text: "Tôi vòng 1" });
+    });
+
+    it("account id 0 is a real id, not 'still loading'", async () => {
+      seedSession(
+        2,
+        [
+          { userId: 0, side: PRO, speakerName: MY_NAME },
+          { userId: 2, side: CON, speakerName: OPPONENT },
+        ],
+        fullOneVsOne()
+      );
+      mockAuthUser = { userId: 0, fullName: MY_NAME, role: "Debater" };
+      renderRoom();
+      await submitOnceLoaded("Tôi vòng 1");
+
+      expect(turnsOfStage("opening")?.[0]).toEqual({ speaker: "learner", text: "Tôi vòng 1" });
+    });
+
+    it("a non-numeric account id is not 'still loading': it is not a participant, so it is a data error with no retry", async () => {
+      seedSession(2, oneVsOne, fullOneVsOne());
+      mockAuthUser = { id: "abc-123", fullName: MY_NAME, role: "Debater" };
+      renderRoom();
+      await clickSubmitOnce("Tôi vòng 1");
+
+      expect(await screen.findByText(/Thử lại sẽ không khắc phục được/)).toBeInTheDocument();
+      expect(screen.queryByTestId("retry-finish-evaluation-btn")).not.toBeInTheDocument();
+      expect(screen.queryByText(/chưa tải xong thông tin tài khoản/)).not.toBeInTheDocument();
+      expect(mockEvaluateDebateRound).not.toHaveBeenCalled();
+    });
+
+    it("a signed-in user missing from the participants stays a data error", async () => {
+      seedSession(
+        2,
+        [
+          { userId: 7, side: PRO, speakerName: "Người khác" },
+          { userId: 2, side: CON, speakerName: OPPONENT },
+        ],
+        fullOneVsOne()
+      );
+      renderRoom();
+      await clickSubmitOnce("Tôi vòng 1");
+
+      expect(await screen.findByText(/Thử lại sẽ không khắc phục được/)).toBeInTheDocument();
+      expect(screen.queryByTestId("retry-finish-evaluation-btn")).not.toBeInTheDocument();
       expect(mockEvaluateDebateRound).not.toHaveBeenCalled();
     });
 

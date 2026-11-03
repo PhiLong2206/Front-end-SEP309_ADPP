@@ -14,6 +14,12 @@ export class UnattributedSpeechError extends Error {
   }
 }
 
+type UserId = string | number | null | undefined;
+
+/** Ids are compared as text: an account id may be a string, or not numeric at all. A missing id matches nothing. */
+export const isSameUserId = (a: UserId, b: UserId): boolean =>
+  a !== null && a !== undefined && b !== null && b !== undefined && String(a) === String(b);
+
 const toSideCode = (side: unknown): 1 | 2 | null => {
   if (side === 1 || side === "PRO" || side === "Ủng hộ") return 1;
   if (side === 2 || side === "CON" || side === "Phản đối") return 2;
@@ -29,16 +35,16 @@ const toSideCode = (side: unknown): 1 | 2 | null => {
  * them. A speech that cannot be pinned on one person is "unknown" and must never be graded as the user's own.
  */
 export const getSpeakerRelation = (
-  speech: { side: unknown; speakerName?: string; speakerUserId?: number | null },
+  speech: { side: unknown; speakerName?: string; speakerUserId?: UserId },
   participants: (Pick<ParticipantDto, "side" | "speakerName"> & { userId?: number | null })[],
-  currentUserId: number
+  currentUserId: UserId
 ): SpeakerRelation => {
-  const me = participants.find((p) => p.userId === currentUserId);
+  const me = participants.find((p) => isSameUserId(p.userId, currentUserId));
   const mySide = toSideCode(me?.side);
 
   if (speech.speakerUserId !== undefined && speech.speakerUserId !== null) {
-    if (speech.speakerUserId === currentUserId) return "self";
-    const author = participants.find((p) => p.userId === speech.speakerUserId);
+    if (isSameUserId(speech.speakerUserId, currentUserId)) return "self";
+    const author = participants.find((p) => isSameUserId(p.userId, speech.speakerUserId));
     const authorSide = toSideCode(author?.side);
     if (mySide === null || authorSide === null) return "unknown";
     return authorSide === mySide ? "teammate" : "opponent";
@@ -52,5 +58,5 @@ export const getSpeakerRelation = (
   const candidates =
     sameSide.length === 1 ? sameSide : sameSide.filter((p) => p.speakerName === speech.speakerName);
   if (candidates.length !== 1) return "unknown";
-  return candidates[0].userId === currentUserId ? "self" : "teammate";
+  return isSameUserId(candidates[0].userId, currentUserId) ? "self" : "teammate";
 };
