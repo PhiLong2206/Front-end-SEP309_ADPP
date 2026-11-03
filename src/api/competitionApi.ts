@@ -1,6 +1,7 @@
 import axiosClient from "./axiosClient";
 import {
   ApiResponse,
+  AssignMatchJudgeRequest,
   CompetitionDetail,
   CompetitionJudge,
   CompetitionListItem,
@@ -10,7 +11,12 @@ import {
   CompetitionTeamDetail,
   CompetitionTeamRequest,
   CreateCompetitionDto,
+  FinalizeMatchRequest,
+  MatchReviewResponse,
   PatchCompetitionDto,
+  PrepareDebateRequest,
+  PrepareDebateResponse,
+  TournamentBracketResponse,
 } from "../types";
 
 const competitionApi = {
@@ -275,6 +281,75 @@ const competitionApi = {
     data: { userId: number }
   ): Promise<ApiResponse<CompetitionJudge | object>> =>
     axiosClient.post(`/competitions/${competitionId}/judges`, data),
+
+  // ── Tournament Bracket & Matches ──────────────────────────────
+  /**
+   * POST /api/competitions/{competitionId}/bracket [Authorized - Creator]
+   * Generates single-elimination tournament bracket for the competition.
+   */
+  generateBracket: (
+    competitionId: number | string
+  ): Promise<ApiResponse<TournamentBracketResponse>> =>
+    axiosClient.post(`/competitions/${competitionId}/bracket`),
+
+  /**
+   * GET /api/competitions/{competitionId}/bracket
+   * Retrieves tournament bracket rounds, matches, and champion if determined.
+   */
+  getBracket: (
+    competitionId: number | string
+  ): Promise<ApiResponse<TournamentBracketResponse>> =>
+    axiosClient.get(`/competitions/${competitionId}/bracket`),
+
+  /**
+   * PUT /api/competitions/{competitionId}/matches/{matchId}/judge [Authorized - Creator]
+   * Assigns a judge to a scheduled/ready match.
+   */
+  assignMatchJudge: (
+    competitionId: number | string,
+    matchId: number | string,
+    data: AssignMatchJudgeRequest
+  ): Promise<ApiResponse<object>> =>
+    axiosClient.put(
+      `/competitions/${competitionId}/matches/${matchId}/judge`,
+      data
+    ),
+
+  /**
+   * POST /api/Competitions/matches/{matchId}/prepare-debate [Authorized - Creator / Assigned Judge]
+   * Prepares debate session for a ready match using active topic from catalog.
+   */
+  prepareDebate: (
+    matchId: number | string,
+    data: PrepareDebateRequest
+  ): Promise<ApiResponse<PrepareDebateResponse>> =>
+    axiosClient.post(`/competitions/matches/${matchId}/prepare-debate`, data),
+
+  /**
+   * GET /api/competitions/{competitionId}/matches/{matchId}/review [Authorized - Creator / Assigned Judge]
+   * Retrieves review dossier for a completed debate match including criteria and AI suggestions.
+   */
+  getMatchReview: (
+    competitionId: number | string,
+    matchId: number | string
+  ): Promise<ApiResponse<MatchReviewResponse>> =>
+    axiosClient.get(
+      `/competitions/${competitionId}/matches/${matchId}/review`
+    ),
+
+  /**
+   * POST /api/competitions/{competitionId}/matches/{matchId}/finalize [Authorized - Assigned Judge]
+   * Submits official judge scoring and finalizes match result.
+   */
+  finalizeMatch: (
+    competitionId: number | string,
+    matchId: number | string,
+    data: FinalizeMatchRequest
+  ): Promise<ApiResponse<object>> =>
+    axiosClient.post(
+      `/competitions/${competitionId}/matches/${matchId}/finalize`,
+      data
+    ),
 };
 
 export default competitionApi;

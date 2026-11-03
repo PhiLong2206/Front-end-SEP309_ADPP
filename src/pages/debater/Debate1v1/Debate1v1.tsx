@@ -80,7 +80,7 @@ const Debate1v1: React.FC = () => {
         setSentChallenges(sentRes.value.data);
       }
       if (histRes.status === "fulfilled" && histRes.value?.success && Array.isArray(histRes.value.data)) {
-        setHistoryList(histRes.value.data.filter((h) => h.debateType === 2 || h.debateType === 3));
+        setHistoryList(histRes.value.data);
       }
     } catch (err) {
       console.warn("Failed fetching challenge data:", err);
@@ -723,7 +723,11 @@ const Debate1v1: React.FC = () => {
                         <div className="text-slate-400 text-[11px]">#{item.sessionId}</div>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap font-medium text-slate-700">
-                        {item.debateType === 2 ? "P2P Trực tiếp" : "Thách đấu 1v1"}
+                        {item.title?.toLowerCase().includes("2v2") || item.title?.toLowerCase().includes("2 vs 2")
+                          ? "Đồng đội 2v2"
+                          : item.debateType === 3
+                          ? "Thách đấu 1v1"
+                          : "P2P Trực tiếp"}
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <Badge variant={item.userSide === 1 ? "primary" : "secondary"}>

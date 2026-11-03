@@ -225,21 +225,25 @@ const DebateRoom: React.FC = () => {
 
   const numSessionId = parseInt(sessionId, 10);
   const isBackendSession = !isNaN(numSessionId) && numSessionId > 0;
-  const isAiSession = Boolean(
-    sessionDetails?.participants.some((p) => p.isAI) ||
-      sessionDetails?.debateType === 1 ||
-      String(sessionDetails?.debateType) === "AiPractice"
-  );
-  const isP2pOr2v2 = Boolean(
-    sessionDetails &&
-      !isAiSession &&
-      (sessionDetails.debateType === 2 ||
-        sessionDetails.debateType === 3 ||
-        String(sessionDetails.debateType) === "P2pMatch" ||
-        String(sessionDetails.debateType) === "Direct1v1")
-  );
+  // Determine whether this is an AI Practice session or a P2P (1v1 / 2v2) session.
+  // Note: Backend SystemService's MapToSessionResponse currently returns `debateType = 1` (AiPractice)
+  // even for P2P and 2v2 sessions. However, AI Practice sessions always create an AI participant (`isAI: true`)
+  // and navigate with `?motion=...` in the URL, whereas P2P/2v2 sessions have only human participants (`isAI: false`).
+  const hasExplicitAiQuery = Boolean(searchParams.get("motion") || searchParams.get("difficulty"));
+  const hasAiParticipant = Boolean(sessionDetails?.participants?.some((p) => p.isAI));
+  const isLoadingBackendSession = isBackendSession && !sessionDetails && !hasExplicitAiQuery;
+
+  const isAiSession = sessionDetails
+    ? hasAiParticipant
+    : !isBackendSession || hasExplicitAiQuery;
+
+  const isP2pOr2v2 = sessionDetails
+    ? !hasAiParticipant
+    : isBackendSession && !hasExplicitAiQuery;
+
   const is2v2 = Boolean(
     sessionDetails &&
+      !hasAiParticipant &&
       (sessionDetails.participants.length > 2 ||
         (sessionDetails.title &&
           (sessionDetails.title.toLowerCase().includes("2 vs 2") ||
@@ -394,19 +398,13 @@ const DebateRoom: React.FC = () => {
         if (res.data.topic || res.data.title) {
           setMotionText(res.data.topic || res.data.title);
         }
-        // Sync server-owned status and round ONLY for P2P/2v2 sessions
-        const serverHasAi =
-          res.data.participants?.some((p) => p.isAI) ||
-          res.data.debateType === 1 ||
-          String(res.data.debateType) === "AiPractice";
-        const serverIsP2p =
-          !serverHasAi &&
-          (res.data.debateType === 2 ||
-            res.data.debateType === 3 ||
-            String(res.data.debateType) === "P2pMatch" ||
-            String(res.data.debateType) === "Direct1v1");
+        // Sync server-owned status and round ONLY for P2P/2v2 sessions.
+        // Note: Backend MapToSessionResponse currently returns debateType=1 for all sessions,
+        // so check `participants.some(p => p.isAI)` as the authoritative indicator of AI vs P2P/2v2.
+        const serverHasAi = Boolean(res.data.participants?.some((p) => p.isAI));
+        const serverIsP2p = !serverHasAi;
 
-        if (serverHasAi && res.data.status === 1) {
+        if (serverHasAi && (res.data.status === 1 || String(res.data.status) === "Waiting")) {
           debateApi.startDebateSession(numId).catch(() => {});
         }
 
@@ -587,7 +585,9 @@ const DebateRoom: React.FC = () => {
   const isWaitingInLobby =
     isBackendSession &&
     isP2pOr2v2 &&
-    (sessionDetails?.status === 1 || String(sessionDetails?.status) === "Waiting");
+    (isLoadingBackendSession ||
+      sessionDetails?.status === 1 ||
+      String(sessionDetails?.status) === "Waiting");
 
   const isTerminalBackendStatus =
     sessionDetails?.status === 3 ||
@@ -599,6 +599,7 @@ const DebateRoom: React.FC = () => {
   // - Never blocks while waiting for players in the P2P/2v2 lobby
   // - Automatically disabled once the debate is completed, canceled, or terminal
   const isDebateActivelyInProgress =
+    !isLoadingBackendSession &&
     !EffectiveDebateCompleted &&
     !isTerminalBackendStatus &&
     !isWaitingInLobby &&
@@ -789,8 +790,9 @@ const DebateRoom: React.FC = () => {
 
   // Initialize session with AI Opponent Service on mount (only for AI mode when debate is active)
   useEffect(() => {
+    if (!isAiSession) return;
     if (isP2pOr2v2) return;
-    if (isWaitingInLobby) return;
+    if (isWaitingInLobby || isLoadingBackendSession) return;
 
     let isMounted = true;
     const initOpponent = async () => {
@@ -915,7 +917,17 @@ const DebateRoom: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [sessionId, motionParam, debaterSide, aiSide, difficulty, isP2pOr2v2, isWaitingInLobby]);
+  }, [
+    sessionId,
+    motionParam,
+    debaterSide,
+    aiSide,
+    difficulty,
+    isAiSession,
+    isP2pOr2v2,
+    isWaitingInLobby,
+    isLoadingBackendSession,
+  ]);
 
   const handleStartDebateSession = async () => {
     if (!isBackendSession) return;
@@ -1609,7 +1621,17 @@ const DebateRoom: React.FC = () => {
       )}
 
       {/* ── LOBBY / WAITING ROOM (Khi phòng P2P / 2v2 chưa bắt đầu) ── */}
-      {isWaitingInLobby && sessionDetails ? (
+      {isLoadingBackendSession ? (
+        <div
+          data-testid="debate-lobby-loading"
+          className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3"
+        >
+          <Loader2 size={28} className="animate-spin text-[#008A64]" />
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+            Đang kết nối vào phòng chờ tranh biện...
+          </p>
+        </div>
+      ) : isWaitingInLobby && sessionDetails ? (
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
             <div className="space-y-1">

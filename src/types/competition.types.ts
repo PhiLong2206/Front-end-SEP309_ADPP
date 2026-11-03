@@ -161,3 +161,121 @@ export interface CompetitionMatchDetail {
   roundStage?: string;
   judges?: CompetitionMatchJudge[];
 }
+
+// ── Tournament Bracket & Matches ──────────────────────────────
+export type MatchStatus =
+  | "Scheduled"
+  | "Ready"
+  | "Ongoing"
+  | "Evaluating"
+  | "Completed"
+  | "Bye"
+  | string;
+
+export interface MatchParticipant {
+  matchParticipantId: number;
+  matchId: number;
+  userId?: number | null;
+  userName?: string | null;
+  teamId?: number | null;
+  teamName?: string | null;
+  side: "PRO" | "CON" | string;
+  finalScore?: number | null;
+  isWinner?: boolean;
+}
+
+export interface TournamentMatch {
+  matchId: number;
+  competitionId?: number;
+  roundId?: number;
+  roundNumber?: number;
+  roundName?: string;
+  matchNumber?: number;
+  debateSessionId?: number | null;
+  assignedJudgeUserId?: number | null;
+  assignedJudgeName?: string | null;
+  nextMatchId?: number | null;
+  status: MatchStatus;
+  winnerMatchParticipantId?: number | null;
+  winnerName?: string | null;
+  proParticipant?: MatchParticipant | null;
+  conParticipant?: MatchParticipant | null;
+  participants?: MatchParticipant[];
+}
+
+export interface TournamentRound {
+  roundId?: number;
+  roundNumber: number;
+  roundName: string;
+  matches: TournamentMatch[];
+}
+
+export interface TournamentBracketResponse {
+  competitionId: number;
+  rounds: TournamentRound[];
+  championUserId?: number | null;
+  championTeamId?: number | null;
+  championName?: string | null;
+}
+
+export interface AssignMatchJudgeRequest {
+  judgeUserId: number;
+}
+
+export interface PrepareDebateRequest {
+  topicId: number;
+}
+
+export interface PrepareDebateResponse {
+  sessionId: number;
+  debateSessionId?: number;
+}
+
+export interface DebateCriteria {
+  criteriaId: number;
+  name: string;
+  description?: string;
+  maxScore: number;
+  weight: number;
+}
+
+export interface MatchReviewParticipant {
+  matchParticipantId: number;
+  side: "PRO" | "CON" | string;
+  userId?: number | null;
+  userName?: string | null;
+  teamId?: number | null;
+  teamName?: string | null;
+  currentScore?: number | null;
+}
+
+export interface AiJudgementSuggestion {
+  summary?: string;
+  recommendedWinnerSide?: string;
+  winnerSuggestion?: string;
+  confidenceScore?: number;
+  feedback?: string;
+  [key: string]: unknown;
+}
+
+export interface MatchReviewResponse {
+  matchId: number;
+  competitionId: number;
+  participants: MatchReviewParticipant[];
+  criteria: DebateCriteria[];
+  aiJudgement?: AiJudgementSuggestion | null;
+  [key: string]: unknown;
+}
+
+export interface JudgeScoreItem {
+  matchParticipantId: number;
+  criteriaId: number;
+  score: number;
+  feedback?: string;
+}
+
+export interface FinalizeMatchRequest {
+  scores: JudgeScoreItem[];
+  winnerMatchParticipantId: number;
+  decisionReason?: string;
+}

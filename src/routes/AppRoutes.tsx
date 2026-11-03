@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import PublicLayout from "../components/layout/PublicLayout";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import AdminLayout from "../components/layout/AdminLayout";
@@ -46,6 +46,15 @@ const ProfileRedirect: React.FC = () => {
   return <Navigate to="/debater/profile" replace />;
 };
 
+/**
+ * PayOS redirect handler: forwards user back to /debater/payments with query params intact.
+ */
+const PaymentReturnRedirect: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.toString();
+  return <Navigate to={`/debater/payments${query ? `?${query}` : ""}`} replace />;
+};
+
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
@@ -58,6 +67,10 @@ const AppRoutes: React.FC = () => {
           </RoleProtectedRoute>
         }
       />
+
+      {/* PayOS Return & Cancel redirects */}
+      <Route path="/payment/success" element={<PaymentReturnRedirect />} />
+      <Route path="/payment/cancel" element={<PaymentReturnRedirect />} />
 
       {/* Public Pages wrapped in PublicLayout */}
       <Route element={<PublicLayout />}>

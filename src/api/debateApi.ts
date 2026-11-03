@@ -20,6 +20,7 @@ import {
   DebateHistoryItemDto,
   CreateChallengeRequest,
   ChallengeResponse,
+  DebateAiEvaluationResponse,
 } from "../types";
 
 const debateApi = {
@@ -142,6 +143,36 @@ const debateApi = {
     data: SubmitArgumentRequest
   ): Promise<ApiResponse<DebateSessionResponse>> =>
     axiosClient.post(`/debate/${sessionId}/arguments`, data),
+
+  /**
+   * POST /api/Debate/{sessionId}/evaluate [Authorized]
+   * Triggers or retries AI evaluation for a completed debate session.
+   */
+  evaluateDebate: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateAiEvaluationResponse | object>> =>
+    axiosClient.post(`/debate/${sessionId}/evaluate`),
+
+  // Alias for evaluateDebate
+  triggerAiEvaluation: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateAiEvaluationResponse | object>> =>
+    axiosClient.post(`/debate/${sessionId}/evaluate`),
+
+  /**
+   * GET /api/Debate/{sessionId}/evaluation [Authorized]
+   * Retrieves the AI evaluation results and judgement for a debate session.
+   */
+  getEvaluation: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateAiEvaluationResponse | object>> =>
+    axiosClient.get(`/debate/${sessionId}/evaluation`),
+
+  // Alias for getEvaluation
+  getAiEvaluation: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateAiEvaluationResponse | object>> =>
+    axiosClient.get(`/debate/${sessionId}/evaluation`),
 
   /**
    * GET /api/Debate/{sessionId}/transcript [Authorized]

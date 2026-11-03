@@ -278,3 +278,23 @@ export interface ChallengeResponse {
   respondedAt?: string;
   expiresAt?: string;
 }
+
+// ── AI Evaluation DTOs ─────────────────────────────────────
+export interface DebateEvaluationCriteriaScore {
+  criteriaId?: number;
+  name?: string;
+  score: number;
+  weight?: number;
+  feedback?: string;
+}
+
+export interface DebateAiEvaluationResponse {
+  sessionId: number;
+  summary?: string;
+  winnerSide?: string;
+  proScore?: number;
+  conScore?: number;
+  scores?: DebateEvaluationCriteriaScore[];
+  evaluatedAt?: string;
+  [key: string]: unknown;
+}

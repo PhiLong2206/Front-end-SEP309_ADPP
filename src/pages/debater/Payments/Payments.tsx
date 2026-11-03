@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Coins,
   CreditCard,
@@ -11,36 +12,29 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownLeft,
-  X,
-  QrCode,
   ShieldCheck,
-  Check,
+  X,
 } from "lucide-react";
 import paymentApi from "../../../api/paymentApi";
 import {
   DebaterCreditPackage,
   WalletInfo,
   WalletTransactionItem,
-  PaymentLinkResponse,
 } from "../../../types";
 
 const Payments: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Data states
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [packages, setPackages] = useState<DebaterCreditPackage[]>([]);
   const [transactions, setTransactions] = useState<WalletTransactionItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [actionLoading, setActionLoading] = useState<boolean>(false);
-  const [checkingStatus, setCheckingStatus] = useState<boolean>(false);
+  const [redirectingPackageId, setRedirectingPackageId] = useState<number | null>(null);
 
   // Messages
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
-
-  // PayOS Checkout Modal State
-  const [selectedPackage, setSelectedPackage] = useState<DebaterCreditPackage | null>(null);
-  const [paymentLink, setPaymentLink] = useState<PaymentLinkResponse | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   // Active Tab: Gói nạp vs Lịch sử giao dịch
   const [activeTab, setActiveTab] = useState<"PACKAGES" | "HISTORY">("PACKAGES");
@@ -79,54 +73,44 @@ const Payments: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Handle Select Package to Top Up: POST /api/payments/top-up
+  // Handle PayOS redirect return params (?status=PAID / ?cancel=true / ?code=00)
+  useEffect(() => {
+    const status = searchParams.get("status");
+    const cancel = searchParams.get("cancel");
+    const code = searchParams.get("code");
+    const orderCode = searchParams.get("orderCode");
+
+    if (status === "PAID" || code === "00") {
+      setSuccessMsg(
+        `Thanh toán đơn hàng ${orderCode ? `#${orderCode} ` : ""}thành công qua PayOS! Điểm tín chỉ đã được cộng vào ví của bạn.`
+      );
+      fetchData();
+      setSearchParams({}, { replace: true });
+    } else if (cancel === "true" || status === "CANCELLED") {
+      setErrorMsg(`Giao dịch đơn hàng ${orderCode ? `#${orderCode} ` : ""}đã bị hủy.`);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, fetchData]);
+
+  // Handle Select Package to Top Up: POST /api/payments/top-up -> trực tiếp chuyển hướng sang PayOS
   const handleSelectPackage = async (pkg: DebaterCreditPackage) => {
-    setSelectedPackage(pkg);
-    setPaymentLink(null);
-    setIsModalOpen(true);
-    setActionLoading(true);
+    setRedirectingPackageId(pkg.packageId);
     setErrorMsg("");
+    setSuccessMsg("");
 
     try {
       const res = await paymentApi.createTopUpPayment({ packageId: pkg.packageId });
-      if (res && res.success && res.data) {
-        setPaymentLink(res.data);
+      if (res && res.success && res.data?.checkoutUrl) {
+        // Chuyển hướng trực tiếp tới trang thanh toán chính thức của PayOS
+        window.location.href = res.data.checkoutUrl;
       } else {
         setErrorMsg(res?.message || "Không thể tạo liên kết thanh toán PayOS.");
-        setIsModalOpen(false);
+        setRedirectingPackageId(null);
       }
     } catch (err: unknown) {
       const errObj = err as { message?: string };
-      setErrorMsg(errObj?.message || "Lỗi khi khởi tạo thanh toán.");
-      setIsModalOpen(false);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Check Payment Status: GET /api/payments/{id}
-  const handleCheckStatus = async () => {
-    if (!paymentLink) return;
-    setCheckingStatus(true);
-    setErrorMsg("");
-    try {
-      const res = await paymentApi.getPaymentStatus(paymentLink.paymentId);
-      if (res && res.success && res.data) {
-        if (res.data.isCompleted || res.data.status?.toLowerCase() === "paid" || res.data.status?.toLowerCase() === "success") {
-          setSuccessMsg("Thanh toán thành công! Điểm tín chỉ đã được cộng vào ví của bạn.");
-          setIsModalOpen(false);
-          // Refresh wallet balance and transactions
-          fetchData();
-        } else {
-          setErrorMsg("Giao dịch đang chờ thanh toán qua cổng PayOS. Vui lòng quét mã QR hoặc mở trang thanh toán.");
-        }
-      } else {
-        setErrorMsg(res?.message || "Chưa nhận được xác nhận thanh toán.");
-      }
-    } catch {
-      setErrorMsg("Chưa tìm thấy trạng thái thanh toán thành công. Vui lòng thử lại sau giây lát.");
-    } finally {
-      setCheckingStatus(false);
+      setErrorMsg(errObj?.message || "Lỗi khi khởi tạo liên kết thanh toán PayOS.");
+      setRedirectingPackageId(null);
     }
   };
 
@@ -347,10 +331,20 @@ const Payments: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleSelectPackage(pkg)}
-                      className="mt-5 w-full py-2.5 rounded-xl bg-[#008A64] hover:bg-[#007454] text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 group-hover:shadow-md group-hover:shadow-[#008A64]/20"
+                      disabled={redirectingPackageId !== null}
+                      className="mt-5 w-full py-2.5 rounded-xl bg-[#008A64] hover:bg-[#007454] disabled:opacity-60 text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 group-hover:shadow-md group-hover:shadow-[#008A64]/20"
                     >
-                      <CreditCard size={14} />
-                      <span>Nạp ngay gói này</span>
+                      {redirectingPackageId === pkg.packageId ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>Đang chuyển sang PayOS...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard size={14} />
+                          <span>Nạp ngay qua PayOS</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 );
@@ -425,120 +419,25 @@ const Payments: React.FC = () => {
         </div>
       )}
 
-      {/* PayOS Checkout Modal */}
-      {isModalOpen && selectedPackage && (
+      {/* PayOS Redirecting Overlay */}
+      {redirectingPackageId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white dark:bg-[#12231C] w-full max-w-md rounded-3xl border border-slate-200 dark:border-[rgba(148,163,184,0.18)] shadow-2xl p-6 space-y-4 animate-scale-up">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[rgba(148,163,184,0.12)]">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-[#008A64] flex items-center justify-center">
-                  <QrCode size={16} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    Thanh toán qua PayOS
-                  </h3>
-                  <p className="text-[11px] text-slate-400">Quét mã VietQR chuyển khoản tự động</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X size={18} />
-              </button>
+          <div className="bg-white dark:bg-[#12231C] w-full max-w-sm rounded-3xl border border-slate-200 dark:border-[rgba(148,163,184,0.18)] shadow-2xl p-7 text-center space-y-4 animate-scale-up">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-[#008A64] flex items-center justify-center animate-pulse">
+              <ExternalLink size={28} />
             </div>
-
-            {actionLoading ? (
-              <div className="p-8 text-center space-y-3">
-                <RefreshCw size={28} className="animate-spin text-[#008A64] mx-auto" />
-                <p className="text-xs text-slate-500">Đang khởi tạo liên kết thanh toán PayOS...</p>
-              </div>
-            ) : paymentLink ? (
-              <div className="space-y-4 text-xs">
-                {/* Package Recap */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0B1713] border border-slate-100 dark:border-slate-800 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Gói nạp:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {selectedPackage.packageName}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Số điểm nhận được:</span>
-                    <span className="font-bold text-[#008A64]">
-                      {(selectedPackage.creditAmount + selectedPackage.bonusCredit).toLocaleString()} Credit
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800">
-                    <span className="font-bold text-slate-700 dark:text-slate-300">Tổng thanh toán:</span>
-                    <span className="text-base font-black text-rose-600 font-mono">
-                      {paymentLink.amount.toLocaleString("vi-VN")} VNĐ
-                    </span>
-                  </div>
-                </div>
-
-                {/* QR Code Display (if QrCode is an image link or available) */}
-                <div className="text-center p-3 bg-white dark:bg-[#0B1713] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                  <p className="font-bold text-slate-700 dark:text-slate-300">
-                    Quét mã QR bằng ứng dụng Ngân hàng (VietQR)
-                  </p>
-
-                  <div className="flex justify-center p-2">
-                    {paymentLink.qrCode?.startsWith("http") ? (
-                      <img
-                        src={paymentLink.qrCode}
-                        alt="PayOS VietQR"
-                        className="w-48 h-48 object-contain rounded-xl border border-slate-100"
-                      />
-                    ) : (
-                      // VietQR fallback image using quick qr API
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                          paymentLink.checkoutUrl || paymentLink.qrCode || "https://pay.payos.vn"
-                        )}`}
-                        alt="PayOS QR"
-                        className="w-44 h-44 object-contain rounded-xl"
-                      />
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-slate-400">
-                    Mã đơn hàng: <span className="font-mono font-bold text-slate-600 dark:text-slate-300">#{paymentLink.providerOrderCode}</span>
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="space-y-2 pt-1">
-                  {paymentLink.checkoutUrl && (
-                    <a
-                      href={paymentLink.checkoutUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 rounded-xl bg-[#008A64] hover:bg-[#007454] text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 text-center cursor-pointer"
-                    >
-                      <span>Mở trang thanh toán bảo mật PayOS</span>
-                      <ExternalLink size={13} />
-                    </a>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleCheckStatus}
-                    disabled={checkingStatus}
-                    className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    {checkingStatus ? (
-                      <RefreshCw size={13} className="animate-spin text-[#008A64]" />
-                    ) : (
-                      <Check size={14} className="text-[#008A64]" />
-                    )}
-                    <span>Tôi đã chuyển khoản xong (Kiểm tra ngay)</span>
-                  </button>
-                </div>
-              </div>
-            ) : null}
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                Đang chuyển sang PayOS...
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Hệ thống đang mở trang thanh toán chính thức của PayOS để bạn quét mã VietQR và thanh toán an toàn.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-bold text-[#008A64] pt-1">
+              <RefreshCw size={14} className="animate-spin" />
+              <span>Đang kết nối cổng thanh toán...</span>
+            </div>
           </div>
         </div>
       )}

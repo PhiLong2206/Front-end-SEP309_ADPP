@@ -170,14 +170,14 @@ describe("Active-Debate Navigation Protection (AI 1v1, P2P 1v1, P2P 2v2)", () =>
   });
 
   it("3. P2P Debate 1v1: does NOT block navigation while waiting for players (status=1), blocks when active (status=2), and unblocks when completed (status=3)", async () => {
-    // Step 1: Room is Waiting (status = 1)
+    // Step 1: Room is Waiting (status = 1) — note: Backend returns debateType=1 even for P2P, with isAI=false
     mockGetSessionDetails.mockResolvedValueOnce({
       success: true,
       data: {
         sessionId: 101,
         title: "Phòng 1v1 P2P",
         topic: "Kiến nghị 1v1",
-        debateType: 2,
+        debateType: 1,
         currentStage: 1,
         currentTurnSide: 1,
         status: 1, // Waiting
@@ -275,7 +275,7 @@ describe("Active-Debate Navigation Protection (AI 1v1, P2P 1v1, P2P 2v2)", () =>
         sessionId: 202,
         title: "[2v2] Trận tranh biện đồng đội",
         topic: "Kiến nghị 2v2",
-        debateType: 2,
+        debateType: 1,
         currentStage: 1,
         currentTurnSide: 1,
         status: 2, // InProgress
