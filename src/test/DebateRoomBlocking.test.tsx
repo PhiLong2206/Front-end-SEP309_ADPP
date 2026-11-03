@@ -96,6 +96,7 @@ describe("DebateRoom blocks the flow when the Backend / AI services fail", () =>
         status: 2,
         debateType: 1,
         createdByUserId: 1,
+        createdAt: "2026-11-03T10:15:30.123Z",
         participants: [
           { userId: 1, side: 1, isAI: false, speakerName: "Debater Test" },
           { userId: null, side: 2, isAI: true, speakerName: "AI" },
@@ -313,6 +314,7 @@ describe("DebateRoom waits for the AI opponent case plan and retries only the fa
     status: 2,
     debateType: 1,
     createdByUserId: 1,
+    createdAt: "2026-11-03T10:15:30.123Z",
     participants: [
       { userId: 1, side: 1, isAI: false, speakerName: "Debater Test" },
       { userId: null, side: 2, isAI: true, speakerName: "AI" },
@@ -465,6 +467,7 @@ describe("DebateRoom input is locked until the opponent session is ready", () =>
     status: 2,
     debateType: 1,
     createdByUserId: 1,
+    createdAt: "2026-11-03T10:15:30.123Z",
     participants: [
       { userId: 1, side: 1, isAI: false, speakerName: "Debater Test" },
       { userId: null, side: 2, isAI: true, speakerName: "AI" },

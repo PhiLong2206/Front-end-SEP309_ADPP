@@ -76,6 +76,7 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
     status: 2,
     debateType: 1,
     createdByUserId: 1,
+    createdAt: "2026-11-03T10:15:30.123Z",
     participants: [
       { userId: 1, side: 2, isAI: false, speakerName: "Debater Test" }, // the learner is CON
       { userId: null, side: 1, isAI: true, speakerName: "AI" },
@@ -136,7 +137,7 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
 
     expect(mockCreateOpponentSession).toHaveBeenCalledTimes(1);
     expect(mockCreateOpponentSession).toHaveBeenCalledWith({
-      external_session_id: "12",
+      external_session_id: "be-12-20261103T101530123Z",
       motion: MOTION_NFC,
       learner_side: "con", // from the Backend participant, the URL default would have said "pro"
       ai_side: "pro",
@@ -152,24 +153,6 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
 
     expect(mockCreateOpponentSession).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Lập luận của bạn")).toBeDisabled();
-  });
-
-  it("reuses the existing opponent session when the service reports other data, without an error banner", async () => {
-    mockCreateOpponentSession.mockRejectedValue({
-      status: 409,
-      detail: "external_session_id '12' da ton tai voi du lieu khac: motion",
-    });
-    mockGetOpponentSession.mockResolvedValue({ status: "ready" });
-
-    await renderRoom("/debater/debate/12");
-
-    expect(mockCreateOpponentSession).toHaveBeenCalledTimes(1);
-    expect(mockGetOpponentSession).toHaveBeenCalledWith("12");
-    expect(screen.queryByTestId("debate-feedback-banner")).not.toBeInTheDocument();
-    // The reused session works: the AI (PRO) opened the debate and it is now the learner's turn
-    expect(mockGenerateOpponentTurn).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Mở đầu của AI.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Lập luận của bạn")).not.toBeDisabled();
   });
 
   it("does not ask the AI for its opening again after a reload in the middle of the debate", async () => {

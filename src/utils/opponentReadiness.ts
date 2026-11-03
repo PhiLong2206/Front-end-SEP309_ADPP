@@ -71,6 +71,49 @@ export async function retryWhilePlanning<T>(
  */
 export const normalizeMotion = (motion: string): string => motion.normalize("NFC").trim();
 
+/**
+ * The opponent session of a Backend session. Deterministic, so a reload reconnects to the same opponent
+ * session; `createdAt` keeps a reused numeric id (the Backend DB was reset) from reaching an old debate's
+ * session. Without it there is no safe id: null, and the caller must not start.
+ */
+export const buildBackendOpponentSessionId = (sessionId: number, createdAt?: string | null): string | null =>
+  createdAt ? `be-${sessionId}-${createdAt.replace(/[^0-9A-Za-z]/g, "")}` : null;
+
+const LOCAL_OPPONENT_SESSION_PREFIX = "adpp_opponent_session_";
+// Used only when sessionStorage is unavailable: the id then lasts as long as the page
+const localOpponentSessionFallback = new Map<string, string>();
+
+const newUuid = (): string => {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  // randomUUID exists only in secure contexts
+  const hex = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+};
+
+/**
+ * The opponent session of a room with no Backend session (session-N, session-comp-N): their route id is
+ * shared by every practice of that topic, so each tab gets its own UUID, kept across reloads.
+ */
+export const getLocalOpponentSessionId = (roomId: string): string => {
+  const key = LOCAL_OPPONENT_SESSION_PREFIX + roomId;
+  try {
+    const stored = sessionStorage.getItem(key);
+    if (stored) return stored;
+  } catch {
+    // Falls through to the in-memory id
+  }
+  const remembered = localOpponentSessionFallback.get(key);
+  if (remembered) return remembered;
+
+  const created = newUuid();
+  try {
+    sessionStorage.setItem(key, created);
+  } catch {
+    localOpponentSessionFallback.set(key, created);
+  }
+  return created;
+};
+
 type OpponentError = { status?: number; statusCode?: number; detail?: unknown; message?: unknown } | null | undefined;
 
 const errorStatus = (error: unknown): number | undefined => {
@@ -86,6 +129,11 @@ const errorText = (error: unknown): string => {
 /** 409 "external_session_id '..' da ton tai voi du lieu khac: motion" — the session exists with other data. */
 export function isSessionDataConflict(error: unknown): boolean {
   return errorStatus(error) === 409 && /da ton tai voi du lieu khac/i.test(errorText(error));
+}
+
+/** 409 LEARNER_SPEECH_MISMATCH: this AI turn was generated from another speech, so calling again cannot help. */
+export function isLearnerSpeechMismatch(error: unknown): boolean {
+  return errorStatus(error) === 409 && (error as { code?: unknown } | null)?.code === "LEARNER_SPEECH_MISMATCH";
 }
 
 /** Vietnamese message for a failure of the AI Opponent Service, chosen by what the failure really is. */

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -58,9 +58,11 @@ import {
   toOpponentTurnIndex,
 } from "../../../utils/turnOrder";
 import {
+  buildBackendOpponentSessionId,
+  getLocalOpponentSessionId,
   getOpponentErrorMessage,
+  isLearnerSpeechMismatch,
   isPlanningConflict,
-  isSessionDataConflict,
   normalizeMotion,
   retryWhilePlanning,
   waitUntilOpponentReady,
@@ -91,6 +93,10 @@ const TURN_EVALUATION_ERROR = "Chưa chấm được lượt phát biểu này. 
 const FINISH_EVALUATION_ERROR = "Chưa chấm được kết quả tranh biện. Vui lòng thử lại.";
 const GRADING_BLOCKED_ERROR =
   "Không thể chấm điểm phiên này vì không xác định được người nói của một số lượt. Thử lại sẽ không khắc phục được, vui lòng liên hệ quản trị viên.";
+const OPPONENT_SPEECH_MISMATCH_ERROR =
+  "Đối thủ AI đã tạo lượt này từ một bài nói khác nên phiên này không thể tiếp tục. Thử lại sẽ không khắc phục được, vui lòng quay lại và tạo phiên tranh biện mới.";
+const OPPONENT_SESSION_ID_ERROR =
+  "Không thể khởi tạo Đối thủ AI vì máy chủ không trả về thời điểm tạo phiên tranh biện. Vui lòng liên hệ quản trị viên.";
 const ROUNDS_PER_SESSION = 3;
 const TRANSCRIPT_CHECK_ATTEMPTS = 3;
 const TRANSCRIPT_CHECK_DELAY_MS = 1000;
@@ -251,6 +257,8 @@ const DebateRoom: React.FC = () => {
   const [hasNewEvaluation, setHasNewEvaluation] = useState<boolean>(false);
   // AI Opponent service failed to initialise / produce its opening turn: the debate is blocked until retried
   const [opponentInitFailed, setOpponentInitFailed] = useState<boolean>(false);
+  // The current AI turn was generated from another speech: retrying cannot help, the debate cannot continue
+  const [isOpponentSpeechMismatch, setIsOpponentSpeechMismatch] = useState<boolean>(false);
   const [opponentInitNonce, setOpponentInitNonce] = useState<number>(0);
   // The input stays locked until the opponent session is READY (created AND case plan finished)
   const [opponentReady, setOpponentReady] = useState<boolean>(false);
@@ -281,6 +289,15 @@ const DebateRoom: React.FC = () => {
 
   const numSessionId = parseInt(sessionId, 10);
   const isBackendSession = !isNaN(numSessionId) && numSessionId > 0;
+  // One opponent session per debate. null: a Backend session that has not loaded yet (or has no createdAt).
+  const backendCreatedAt = sessionDetails?.createdAt;
+  const opponentSessionId = useMemo(
+    () =>
+      isBackendSession
+        ? buildBackendOpponentSessionId(numSessionId, backendCreatedAt)
+        : getLocalOpponentSessionId(sessionId),
+    [isBackendSession, numSessionId, backendCreatedAt, sessionId]
+  );
   // Determine whether this is an AI Practice session or a P2P (1v1 / 2v2) session.
   // Note: Backend SystemService's MapToSessionResponse currently returns `debateType = 1` (AiPractice)
   // even for P2P and 2v2 sessions. However, AI Practice sessions always create an AI participant (`isAI: true`)
@@ -458,6 +475,8 @@ const DebateRoom: React.FC = () => {
     ? "Đã hoàn thành 3 vòng tranh biện. Nhấn 'Nộp bài' ở góc trên để xem kết quả."
     : opponentInitFailed
     ? "Chưa kết nối được Đối thủ AI. Vui lòng nhấn 'Thử lại' ở thanh thông báo phía trên."
+    : opponentError === OPPONENT_SESSION_ID_ERROR
+    ? OPPONENT_SESSION_ID_ERROR
     : !isP2pOr2v2 && !opponentReady
     ? "AI đang chuẩn bị lập luận..."
     : pendingTurnEvaluation
@@ -466,6 +485,8 @@ const DebateRoom: React.FC = () => {
     ? "Đối thủ AI đang phản hồi..."
     : isSubmitting
     ? "Đang gửi lập luận..."
+    : isOpponentSpeechMismatch
+    ? "Phiên này không thể tiếp tục. Vui lòng quay lại và tạo phiên tranh biện mới."
     : isWaitingForOpponentInAiMode
     ? opponentError
       ? "Chưa nhận được phản hồi từ Đối thủ AI. Vui lòng nhấn 'Thử lại' ở thanh thông báo phía trên."
@@ -951,17 +972,23 @@ const DebateRoom: React.FC = () => {
         setOpponentError(null);
         setOpponentInitFailed(false);
 
+        // No retry: the same session data would give the same answer
+        if (!opponentSessionId) {
+          setOpponentError(OPPONENT_SESSION_ID_ERROR);
+          return;
+        }
+
         // Create the opponent session and wait until its case plan is READY. The in-flight work is
         // shared by StrictMode's double effect run and by retries; it is dropped on failure so a
         // retry starts over.
         let readiness = opponentReadyRef.current;
-        if (!readiness || readiness.sessionId !== sessionId) {
+        if (!readiness || readiness.sessionId !== opponentSessionId) {
           setAiOpponentStatus("planning");
           const promise = (async () => {
             let status: string;
             try {
               const created = await aiApi.createOpponentSession({
-                external_session_id: sessionId,
+                external_session_id: opponentSessionId,
                 motion: resolvedMotion,
                 learner_side: debaterSide,
                 ai_side: aiSide,
@@ -970,11 +997,7 @@ const DebateRoom: React.FC = () => {
               });
               status = created.status;
             } catch (createErr) {
-              if (isSessionDataConflict(createErr)) {
-                // The opponent session already exists (reload / revisit) with other data: that stored
-                // session is the truth for this debate, so reuse it instead of creating a new one.
-                status = (await aiApi.getOpponentSession(sessionId)).status;
-              } else if (isPlanningConflict(createErr)) {
+              if (isPlanningConflict(createErr)) {
                 // 409 "still preparing" = planning already running for this session: just wait for it
                 status = "planning";
               } else {
@@ -986,7 +1009,7 @@ const DebateRoom: React.FC = () => {
             }
             if (status !== "ready") {
               await waitUntilOpponentReady(
-                async () => (await aiApi.getOpponentSession(sessionId)).status,
+                async () => (await aiApi.getOpponentSession(opponentSessionId)).status,
                 { isCancelled: () => unmountedRef.current }
               );
             }
@@ -995,7 +1018,7 @@ const DebateRoom: React.FC = () => {
               opponentReadyRef.current = null;
               throw readyErr;
             });
-          readiness = { sessionId, promise };
+          readiness = { sessionId: opponentSessionId, promise };
           opponentReadyRef.current = readiness;
         }
         await readiness.promise;
@@ -1005,10 +1028,10 @@ const DebateRoom: React.FC = () => {
         }
 
         // Fetch the Case Plan once per session (the case file exists only after planning is READY)
-        if (casePlanRequestedRef.current !== sessionId) {
-          casePlanRequestedRef.current = sessionId;
+        if (casePlanRequestedRef.current !== opponentSessionId) {
+          casePlanRequestedRef.current = opponentSessionId;
           try {
-            const plan = await aiApi.getOpponentCasePlan(sessionId);
+            const plan = await aiApi.getOpponentCasePlan(opponentSessionId);
             if (isMounted && plan) {
               setCasePlan(plan);
             }
@@ -1025,7 +1048,7 @@ const DebateRoom: React.FC = () => {
           try {
             const firstTurnRes = await retryWhilePlanning(
               () =>
-                aiApi.generateOpponentTurn(sessionId, {
+                aiApi.generateOpponentTurn(opponentSessionId, {
                   turn_index: toOpponentTurnIndex(0),
                   new_learner_speeches: [],
                 }),
@@ -1077,7 +1100,7 @@ const DebateRoom: React.FC = () => {
       isMounted = false;
     };
   }, [
-    sessionId,
+    opponentSessionId,
     resolvedMotion,
     debaterSide,
     aiSide,
@@ -1246,10 +1269,13 @@ const DebateRoom: React.FC = () => {
 
         if (speechText === undefined) {
           try {
+            if (!opponentSessionId) {
+              throw new Error("Chưa có phiên Đối thủ AI.");
+            }
             // A 409 "still planning" is temporary: wait and call again instead of failing
             const turnRes = await retryWhilePlanning(
               () =>
-                aiApi.generateOpponentTurn(sessionId, {
+                aiApi.generateOpponentTurn(opponentSessionId, {
                   turn_index: toOpponentTurnIndex(ctx.aiTurnIndex),
                   new_learner_speeches: ctx.learnerSpeech ? [ctx.learnerSpeech] : [],
                 }),
@@ -1261,9 +1287,16 @@ const DebateRoom: React.FC = () => {
             }
           } catch (turnErr) {
             console.error("Error generating AI Opponent turn:", turnErr);
+            setPendingAiRecord(null);
+            if (isLearnerSpeechMismatch(turnErr)) {
+              // No pending turn: the retry button stays hidden, calling again cannot change the answer.
+              setPendingAiTurn(null);
+              setIsOpponentSpeechMismatch(true);
+              setOpponentError(OPPONENT_SPEECH_MISMATCH_ERROR);
+              return;
+            }
             // Keep session in waiting-for-opponent state on error/timeout — do NOT mark round or debate complete
             // and never substitute a simulated opponent speech.
-            setPendingAiRecord(null);
             setPendingAiTurn(ctx);
             setOpponentError(
               "Không nhận được phản hồi từ Đối thủ AI (lỗi kết nối hoặc quá thời gian chờ). Vui lòng thử lại."
@@ -1321,7 +1354,7 @@ const DebateRoom: React.FC = () => {
         await runAiTurn(nextTurn);
       }
     },
-    [advanceToNextRoundOrComplete, aiSide, appendOpponentMessage, isBackendSession, numSessionId, sessionId]
+    [advanceToNextRoundOrComplete, aiSide, appendOpponentMessage, isBackendSession, numSessionId, opponentSessionId]
   );
 
   // Evaluate one submitted turn. On failure the debate is blocked (see pendingTurnEvaluation) until a retry succeeds.

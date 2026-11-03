@@ -55,6 +55,7 @@ describe("AI practice against a simulated Backend: the Backend decides whose tur
     status: done >= 6 ? 3 : 2,
     debateType: 1,
     createdByUserId: 1,
+    createdAt: "2026-11-03T10:15:30.123Z",
     participants: [
       { userId: 1, side: userSide, isAI: false, speakerName: "Debater Test" },
       { userId: null, side: userSide === 1 ? 2 : 1, isAI: true, speakerName: "AI" },
