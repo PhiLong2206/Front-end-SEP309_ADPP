@@ -229,6 +229,17 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
     await renderRoom("/debater/debate/12");
 
     expect(mockCreateOpponentSession).not.toHaveBeenCalled();
+    expect(screen.getByTestId("debate-lobby-loading")).toBeInTheDocument();
+    expect(mockGetTranscript).not.toHaveBeenCalled(); // the session type is not known yet
+  });
+
+  it("with an AI query string, keeps the input locked and creates nothing until the Backend session has loaded", async () => {
+    mockGetSessionDetails.mockReturnValue(new Promise(() => {})); // never resolves
+
+    await renderRoom(`/debater/debate/12?motion=${encodeURIComponent(MOTION_NFC)}`);
+
+    expect(mockCreateOpponentSession).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("debate-lobby-loading")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Lập luận của bạn")).toBeDisabled();
   });
 

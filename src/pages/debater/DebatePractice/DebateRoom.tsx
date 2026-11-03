@@ -937,7 +937,8 @@ const DebateRoom: React.FC = () => {
     if (!isBackendSession) return;
 
     loadBackendSession(numSessionId);
-    if (isP2pOr2v2) {
+    // While the session is loading its type is unknown: an AI room's messages must not be replaced by the transcript
+    if (isP2pOr2v2 && !isLoadingBackendSession) {
       loadBackendTranscript(numSessionId);
     }
 
@@ -966,6 +967,7 @@ const DebateRoom: React.FC = () => {
   }, [
     isBackendSession,
     isP2pOr2v2,
+    isLoadingBackendSession,
     numSessionId,
     sessionDetails?.status,
     loadBackendSession,

@@ -144,9 +144,9 @@ const seedSession = (
   currentTranscript = args;
 };
 
-const renderRoom = () =>
+const renderRoom = (entry = "/debater/debate/123") =>
   render(
-    <MemoryRouter initialEntries={["/debater/debate/123"]}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/debater/debate/:sessionId" element={<DebateRoom />} />
         <Route
@@ -522,6 +522,19 @@ describe("Final grading attributes every speech to the right person", () => {
       expect(turnsOfStage("opening")?.[0]).toEqual({ speaker: "learner", text: "Tôi vòng 1" });
     });
 
+    it("no query string: shows the loading screen while the session fails to load, and the room once it loads", async () => {
+      seedSession(2, oneVsOne, fullOneVsOne(), { status: IN_PROGRESS });
+      mockGetSessionDetails.mockRejectedValueOnce(new Error("mạng lỗi"));
+
+      renderRoom();
+
+      expect(await screen.findByTestId("debate-lobby-loading")).toBeInTheDocument();
+      expect(mockGetTranscript).not.toHaveBeenCalled();
+
+      expect(await screen.findByText("Tôi vòng 1")).toBeInTheDocument(); // the next poll succeeds
+      expect(screen.queryByTestId("debate-lobby-loading")).not.toBeInTheDocument();
+    });
+
     it("temporary error (session not loaded yet): offers a retry, which works once the session is back", async () => {
       seedSession(2, oneVsOne, fullOneVsOne());
       const local = (id: string, speaker: string, content: string) => ({
@@ -542,7 +555,8 @@ describe("Final grading attributes every speech to the right person", () => {
       sessionStorage.setItem("adpp_current_round_123", "3");
       mockGetSessionDetails.mockRejectedValueOnce(new Error("mạng lỗi"));
 
-      renderRoom();
+      // With no query string the room only shows the loading screen, so grading is reachable only with one
+      renderRoom("/debater/debate/123?motion=x");
       await clickSubmitOnce("Tôi đã lưu");
 
       const retry = await screen.findByTestId("retry-finish-evaluation-btn");
