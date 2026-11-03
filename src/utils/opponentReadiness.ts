@@ -165,7 +165,7 @@ export function isLearnerSpeechMismatch(error: unknown): boolean {
 /** Vietnamese message for a failure of the AI Opponent Service, chosen by what the failure really is. */
 export function getOpponentErrorMessage(error: unknown, fallbackDetail = "lỗi không xác định"): string {
   if (isSessionDataConflict(error)) {
-    return "Dữ liệu phiên Đối thủ AI không khớp với phiên đã tạo trước đó (kiến nghị, phe hoặc độ khó). Vui lòng tải lại trang hoặc tạo phiên mới.";
+    return "Dữ liệu phiên Đối thủ AI không khớp với phiên đã tạo trước đó (kiến nghị, phe hoặc độ khó). Thử lại sẽ không khắc phục được, vui lòng quay lại và tạo phiên tranh biện mới.";
   }
   switch (errorStatus(error)) {
     case 400:

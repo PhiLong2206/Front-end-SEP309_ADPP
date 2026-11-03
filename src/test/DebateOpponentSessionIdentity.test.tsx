@@ -233,6 +233,40 @@ describe("each debate has its own opponent session", () => {
       expect(screen.getAllByText(/không khớp/).length).toBeGreaterThan(0);
       expect(screen.getByLabelText("Lập luận của bạn")).toBeDisabled();
     });
+
+    it("offers no retry on a data conflict and stops calling the service, even as the session keeps polling", async () => {
+      mockCreateOpponentSession.mockRejectedValue({
+        status: 409,
+        detail: "external_session_id 'x' da ton tai voi du lieu khac: difficulty",
+      });
+
+      await renderRoom("/debater/debate/12");
+
+      expect(screen.queryByTestId("retry-opponent-init-btn")).not.toBeInTheDocument();
+      expect(screen.getByTestId("debate-feedback-banner")).toHaveTextContent("Thử lại sẽ không khắc phục được");
+      expect(screen.getByLabelText("Lập luận của bạn")).toBeDisabled();
+      expect(screen.getByLabelText("Lập luận của bạn")).toHaveAttribute(
+        "placeholder",
+        expect.stringContaining("tạo phiên tranh biện mới")
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+      await flush();
+
+      expect(mockCreateOpponentSession).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId("retry-opponent-init-btn")).not.toBeInTheDocument();
+      expect(screen.getByTestId("debate-feedback-banner")).toHaveTextContent("không khớp");
+    });
+
+    it("still offers a retry on a temporary failure to create the session", async () => {
+      mockCreateOpponentSession.mockRejectedValue({ status: 504, detail: "timeout" });
+
+      await renderRoom("/debater/debate/12");
+
+      expect(screen.getByTestId("retry-opponent-init-btn")).toBeInTheDocument();
+    });
   });
 
   describe("the 'generated from another speech' conflict on /turns", () => {

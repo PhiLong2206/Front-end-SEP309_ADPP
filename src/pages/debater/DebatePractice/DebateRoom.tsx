@@ -75,6 +75,7 @@ import {
   getOpponentErrorMessage,
   isLearnerSpeechMismatch,
   isPlanningConflict,
+  isSessionDataConflict,
   normalizeMotion,
   retryWhilePlanning,
   waitUntilOpponentReady,
@@ -265,6 +266,8 @@ const DebateRoom: React.FC = () => {
   const [opponentInitFailed, setOpponentInitFailed] = useState<boolean>(false);
   // The current AI turn was generated from another speech: retrying cannot help, the debate cannot continue
   const [isOpponentSpeechMismatch, setIsOpponentSpeechMismatch] = useState<boolean>(false);
+  // The opponent session exists with other data: creating it again cannot help, the debate cannot start
+  const [isOpponentDataConflict, setIsOpponentDataConflict] = useState<boolean>(false);
   const [opponentInitNonce, setOpponentInitNonce] = useState<number>(0);
   // The input stays locked until the opponent session is READY (created AND case plan finished)
   const [opponentReady, setOpponentReady] = useState<boolean>(false);
@@ -500,6 +503,8 @@ const DebateRoom: React.FC = () => {
     ? "Chưa kết nối được Đối thủ AI. Vui lòng nhấn 'Thử lại' ở thanh thông báo phía trên."
     : opponentError === OPPONENT_SESSION_ID_ERROR
     ? OPPONENT_SESSION_ID_ERROR
+    : isOpponentDataConflict
+    ? "Phiên này không thể tiếp tục. Vui lòng quay lại và tạo phiên tranh biện mới."
     : !isP2pOr2v2 && !opponentReady
     ? "AI đang chuẩn bị lập luận..."
     : pendingTurnEvaluation
@@ -997,6 +1002,8 @@ const DebateRoom: React.FC = () => {
     if (isBackendSession && !sessionDetails) return;
     // A finished debate never (re)creates an opponent session
     if (EffectiveDebateCompleted || isTerminalBackendStatus) return;
+    // Each poll of the session runs this effect again: a conflict must not call the service every time
+    if (isOpponentDataConflict) return;
 
     let isMounted = true;
     const initOpponent = async () => {
@@ -1121,7 +1128,11 @@ const DebateRoom: React.FC = () => {
         console.error("Error initialising AI Opponent:", initErr);
         if (isMounted) {
           setAiOpponentStatus("error");
-          setOpponentInitFailed(true);
+          if (isSessionDataConflict(initErr)) {
+            setIsOpponentDataConflict(true);
+          } else {
+            setOpponentInitFailed(true);
+          }
           setOpponentError(getOpponentErrorMessage(initErr));
         }
       }
@@ -1141,6 +1152,7 @@ const DebateRoom: React.FC = () => {
     isP2pOr2v2,
     isWaitingInLobby,
     isLoadingBackendSession,
+    isOpponentDataConflict,
     opponentInitNonce,
     isBackendSession,
     numSessionId,
