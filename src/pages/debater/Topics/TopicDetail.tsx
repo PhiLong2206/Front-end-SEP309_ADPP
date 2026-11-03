@@ -63,17 +63,21 @@ const TopicDetail: React.FC = () => {
     );
   }
 
+  // With a topicId the Backend debates Topic.Description, or the title when there is none.
+  const motion = topic.motion || topic.description || topic.title;
+
   // Always a new Backend session: continuing an unfinished one is the user's choice, through the banner below.
   const handleStartDebate = async () => {
     if (submitting) return;
     setSubmitting(true);
     setApiError(null);
 
-    const motion = topic.motion || topic.title;
     const role = selectedSide === "Ủng hộ" ? "PRO" : "CON";
+    const topicId = Number(topic.topicId ?? topic.id ?? id);
 
     try {
       const res = await debateApi.createAiPracticeSession({
+        topicId: Number.isInteger(topicId) && topicId > 0 ? topicId : undefined,
         title: topic.title,
         topic: motion,
         userSide: role === "PRO" ? 1 : 2,
@@ -149,7 +153,7 @@ const TopicDetail: React.FC = () => {
 
         {(topic.motion || topic.description) && (
           <p className="text-xs sm:text-sm text-slate-600 italic">
-            Kiến nghị: &ldquo;{topic.motion || topic.title}&rdquo;
+            Kiến nghị: &ldquo;{motion}&rdquo;
           </p>
         )}
       </div>

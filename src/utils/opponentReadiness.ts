@@ -1,3 +1,5 @@
+import type { BackendDifficulty } from "../types/ai.types";
+
 /**
  * Helpers for the AI Opponent Service lifecycle (ai-opponent-service, `SessionStatus`):
  *   created | planning | ready | failed
@@ -70,6 +72,19 @@ export async function retryWhilePlanning<T>(
  * another Unicode form (NFD vs NFC) or with stray spaces would be a "different" session.
  */
 export const normalizeMotion = (motion: string): string => motion.normalize("NFC").trim();
+
+const DIFFICULTY_BY_LABEL: Record<string, BackendDifficulty> = {
+  easy: "easy",
+  medium: "medium",
+  hard: "hard",
+  "dễ": "easy",
+  "trung bình": "medium",
+  "khó": "hard",
+};
+
+/** Accepts the labels of the Backend and of the UI; anything else is null, so the next source is used. */
+export const parseDifficulty = (value: unknown): BackendDifficulty | null =>
+  DIFFICULTY_BY_LABEL[String(value ?? "").normalize("NFC").trim().toLowerCase()] ?? null;
 
 /**
  * The opponent session of a Backend session. Deterministic, so a reload reconnects to the same opponent

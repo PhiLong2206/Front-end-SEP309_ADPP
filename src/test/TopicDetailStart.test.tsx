@@ -49,6 +49,7 @@ describe("TopicDetail: starting a debate", () => {
 
     await waitFor(() => expect(screen.getByTestId("room-url")).toBeInTheDocument());
     expect(mockCreateSession).toHaveBeenCalledWith({
+      topicId: 7,
       title: "Luật AI",
       topic: topic.motion,
       userSide: 1,
@@ -88,6 +89,56 @@ describe("TopicDetail: starting a debate", () => {
 
     await waitFor(() => expect(mockCreateSession).toHaveBeenCalled());
     expect(mockCreateSession.mock.calls[0][0].topic).toBe("Luật AI");
+  });
+
+  it("shows and sends the description as the motion, because that is what the Backend debates", async () => {
+    const withDescription = { topicId: 7, title: "Luật AI", description: "AI cần luật quốc tế", category: "Công nghệ" };
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/debater/topics/7", state: { topic: withDescription } }]}>
+        <Routes>
+          <Route path="/debater/topics/:id" element={<TopicDetail />} />
+          <Route path="*" element={<CurrentUrl />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Kiến nghị:/)).toHaveTextContent("AI cần luật quốc tế");
+    start();
+
+    await waitFor(() => expect(mockCreateSession).toHaveBeenCalled());
+    expect(mockCreateSession.mock.calls[0][0]).toMatchObject({ topicId: 7, topic: "AI cần luật quốc tế" });
+  });
+
+  it("takes the topic id from the route when the topic object has none", async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/debater/topics/7", state: { topic: { ...topic, topicId: undefined } } }]}>
+        <Routes>
+          <Route path="/debater/topics/:id" element={<TopicDetail />} />
+          <Route path="*" element={<CurrentUrl />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    start();
+
+    await waitFor(() => expect(mockCreateSession).toHaveBeenCalled());
+    expect(mockCreateSession.mock.calls[0][0].topicId).toBe(7);
+  });
+
+  it("sends no topic id when the route id is not a number", async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/debater/topics/abc", state: { topic: { ...topic, topicId: undefined } } }]}>
+        <Routes>
+          <Route path="/debater/topics/:id" element={<TopicDetail />} />
+          <Route path="*" element={<CurrentUrl />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    start();
+
+    await waitFor(() => expect(mockCreateSession).toHaveBeenCalled());
+    expect(mockCreateSession.mock.calls[0][0].topicId).toBeUndefined();
   });
 
   it("creates a new session every time: an old room's state cannot be reused", async () => {

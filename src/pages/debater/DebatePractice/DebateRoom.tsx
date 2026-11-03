@@ -31,6 +31,7 @@ import {
   COMPLETED_STORAGE_PREFIX,
   CURRENT_ROUND_PREFIX,
   DEADLINE_STORAGE_PREFIX,
+  DIFFICULTY_STORAGE_PREFIX,
   EXPIRED_STORAGE_PREFIX,
   MESSAGES_STORAGE_PREFIX,
   TIMED_OUT_ROUNDS_PREFIX,
@@ -77,6 +78,7 @@ import {
   normalizeMotion,
   retryWhilePlanning,
   waitUntilOpponentReady,
+  parseDifficulty,
 } from "../../../utils/opponentReadiness";
 
 /** One AI turn of a chain that follows a learner turn (see getAiTurnsAfterLearnerTurn). */
@@ -169,7 +171,6 @@ const DebateRoom: React.FC = () => {
 
   const roleParam = searchParams.get("role") || "PRO";
   const normalizedRole = roleParam.trim().toUpperCase();
-  const difficultyParam = searchParams.get("difficulty") || "Trung bình";
   const motionParam = searchParams.get("motion") || "Mạng xã hội có gây hại nhiều hơn lợi ích?";
   const [motionText, setMotionText] = useState(motionParam);
 
@@ -179,8 +180,7 @@ const DebateRoom: React.FC = () => {
     normalizedRole === "CON" || normalizedRole === "PHẢN ĐỐI" || normalizedRole === "2"
       ? "con"
       : "pro";
-  const urlDifficulty: BackendDifficulty =
-    difficultyParam === "Khó" ? "hard" : difficultyParam === "Dễ" ? "easy" : "medium";
+  const urlDifficulty = parseDifficulty(searchParams.get("difficulty"));
 
   // Restore round & timeout state across page refreshes for the same sessionId
   const [currentRound, setCurrentRound] = useState<number>(() => {
@@ -357,11 +357,24 @@ const DebateRoom: React.FC = () => {
     mySide === 1 || String(mySide) === "PRO" ? "pro" : mySide === 2 || String(mySide) === "CON" ? "con" : null;
   const debaterSide: BackendDebateSide = backendLearnerSide ?? urlSide;
   const aiSide: BackendDebateSide = debaterSide === "pro" ? "con" : "pro";
-  const backendDifficulty = String(sessionDetails?.difficulty ?? "").toLowerCase();
+  // Links from the history and result pages have no query string, so the URL's value is kept for them: another
+  // difficulty for the same debate would be refused by the opponent service (409). createdAt ties it to this
+  // debate, because a numeric id can come back after a Backend DB reset.
+  const difficultyStamp = `${sessionDetails?.createdAt ?? ""}|`;
+  const storedDifficulty = useMemo(() => {
+    try {
+      const stored = sessionStorage.getItem(DIFFICULTY_STORAGE_PREFIX + sessionId);
+      return stored?.startsWith(difficultyStamp) ? parseDifficulty(stored.slice(difficultyStamp.length)) : null;
+    } catch {
+      return null;
+    }
+  }, [sessionId, difficultyStamp]);
   const difficulty: BackendDifficulty =
-    backendDifficulty === "hard" || backendDifficulty === "easy" || backendDifficulty === "medium"
-      ? backendDifficulty
-      : urlDifficulty;
+    parseDifficulty(sessionDetails?.sessionDifficulty) ??
+    urlDifficulty ??
+    storedDifficulty ??
+    parseDifficulty(sessionDetails?.difficulty) ??
+    "medium";
   const resolvedMotion = normalizeMotion(sessionDetails?.topic || motionParam);
   const isMyP2pTurn =
     !isP2pOr2v2 || !sessionDetails
@@ -442,6 +455,10 @@ const DebateRoom: React.FC = () => {
   useEffect(() => {
     writeStoredValue(TIMED_OUT_ROUNDS_PREFIX + sessionId, JSON.stringify(timedOutRounds));
   }, [sessionId, timedOutRounds]);
+
+  useEffect(() => {
+    if (urlDifficulty) writeStoredValue(DIFFICULTY_STORAGE_PREFIX + sessionId, difficultyStamp + urlDifficulty);
+  }, [sessionId, urlDifficulty, difficultyStamp]);
 
   useEffect(() => {
     writeStoredValue(MESSAGES_STORAGE_PREFIX + sessionId, JSON.stringify(messages));

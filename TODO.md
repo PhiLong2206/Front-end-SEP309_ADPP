@@ -1,5 +1,9 @@
 # Việc tồn đọng
 
+## Chủ đề
+
+- [ ] **Topic nên có trường `Motion` riêng, tách khỏi `Description`.** Khi tạo phiên AI theo `topicId`, Backend đang lấy kiến nghị từ `Topic.Description` (không có thì lấy `Title`). Đây là cách làm tạm. Việc này liên quan đến motion catalog.
+
 ## Phòng tranh biện
 
 - [ ] **Vào lại `session-comp-N` vẫn thấy trận đã xong.** State của phòng chỉ bị xoá khi xác nhận rời lúc trận còn dở. Trận đã xong thì không có hộp xác nhận, nên `adpp_debate_completed_` và các key khác còn lại trong `sessionStorage` của tab đó. Id phòng cố định theo giải đấu, và phòng giải đấu chưa có phiên Backend thật.

@@ -3,6 +3,7 @@ import { render, screen, act } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import DebateRoom from "../pages/debater/DebatePractice/DebateRoom";
 import { getOpponentErrorMessage, normalizeMotion } from "../utils/opponentReadiness";
+import { clearDebateRoomStorage } from "../utils/debateLeave";
 
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
@@ -93,8 +94,8 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
     }
   };
 
-  const renderRoom = async (entry: string) => {
-    render(
+  const renderRoomAndKeep = async (entry: string) => {
+    const view = render(
       <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/debater/debate/:sessionId" element={<DebateRoom />} />
@@ -102,6 +103,11 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
       </MemoryRouter>
     );
     await flush();
+    return view;
+  };
+
+  const renderRoom = async (entry: string) => {
+    await renderRoomAndKeep(entry);
   };
 
   beforeEach(() => {
@@ -131,7 +137,78 @@ describe("DebateRoom (AI practice) and the opponent session when the room is ope
     vi.clearAllMocks();
   });
 
-  it("builds the opponent session from the Backend session (NFC motion, its side and difficulty), not from the URL", async () => {
+  describe("difficulty sent to the opponent service", () => {
+    const sentDifficulty = () => mockCreateOpponentSession.mock.calls[0][0].difficulty;
+
+    it("prefers the difficulty of the session over the URL and the topic", async () => {
+      mockGetSessionDetails.mockResolvedValue({ success: true, data: session({ sessionDifficulty: "Easy" }) });
+      await renderRoom(`/debater/debate/12?difficulty=${encodeURIComponent("Trung bình")}`);
+      expect(sentDifficulty()).toBe("easy");
+    });
+
+    it("prefers the URL over the topic while the Backend has no session difficulty", async () => {
+      await renderRoom(`/debater/debate/12?difficulty=${encodeURIComponent("Dễ")}`);
+      expect(sentDifficulty()).toBe("easy"); // the topic is Hard
+    });
+
+    it("uses the topic when there is no other source", async () => {
+      await renderRoom("/debater/debate/12");
+      expect(sentDifficulty()).toBe("hard");
+    });
+
+    it("ignores an unknown URL value and uses the topic", async () => {
+      await renderRoom("/debater/debate/12?difficulty=abc");
+      expect(sentDifficulty()).toBe("hard");
+    });
+
+    it("keeps the chosen difficulty when the room is opened again without a query string", async () => {
+      const first = await renderRoomAndKeep(`/debater/debate/12?difficulty=${encodeURIComponent("Dễ")}`);
+      first.unmount();
+      mockCreateOpponentSession.mockClear();
+
+      await renderRoom("/debater/debate/12");
+
+      expect(sentDifficulty()).toBe("easy");
+    });
+
+    it("does not apply a kept difficulty to another debate that reuses the id", async () => {
+      const first = await renderRoomAndKeep(`/debater/debate/12?difficulty=${encodeURIComponent("Dễ")}`);
+      first.unmount();
+      mockCreateOpponentSession.mockClear();
+      mockGetSessionDetails.mockResolvedValue({
+        success: true,
+        data: session({ createdAt: "2026-11-04T08:00:00.000Z" }),
+      });
+
+      await renderRoom("/debater/debate/12");
+
+      expect(sentDifficulty()).toBe("hard");
+    });
+
+    it("does not apply a kept difficulty to another room", async () => {
+      const first = await renderRoomAndKeep(`/debater/debate/12?difficulty=${encodeURIComponent("Dễ")}`);
+      first.unmount();
+      mockCreateOpponentSession.mockClear();
+      mockGetSessionDetails.mockResolvedValue({ success: true, data: session({ sessionId: 13 }) });
+
+      await renderRoom("/debater/debate/13");
+
+      expect(sentDifficulty()).toBe("hard");
+    });
+
+    it("forgets the kept difficulty with the rest of the room's state", async () => {
+      const first = await renderRoomAndKeep(`/debater/debate/12?difficulty=${encodeURIComponent("Dễ")}`);
+      first.unmount();
+      clearDebateRoomStorage("12");
+      mockCreateOpponentSession.mockClear();
+
+      await renderRoom("/debater/debate/12");
+
+      expect(sentDifficulty()).toBe("hard");
+    });
+  });
+
+  it("builds the opponent session from the Backend session (NFC motion and side), not from the URL", async () => {
     // Re-entering from the result page: no query string at all, and a URL motion in another Unicode form
     await renderRoom(`/debater/debate/12?motion=${encodeURIComponent(MOTION_NFD + "  ")}`);
 

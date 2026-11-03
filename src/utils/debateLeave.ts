@@ -8,6 +8,7 @@ export const TIMED_OUT_ROUNDS_PREFIX = "adpp_timed_out_rounds_";
 export const CURRENT_ROUND_PREFIX = "adpp_current_round_";
 export const COMPLETED_STORAGE_PREFIX = "adpp_debate_completed_";
 export const MESSAGES_STORAGE_PREFIX = "adpp_messages_";
+export const DIFFICULTY_STORAGE_PREFIX = "adpp_difficulty_";
 
 /** Off until the Backend has POST /debate/{id}/leave: see .env.example. */
 export const isDebateLeaveEnabled = (): boolean => import.meta.env.VITE_DEBATE_LEAVE_ENABLED === "true";
@@ -17,9 +18,13 @@ export const clearDebateRoomStorage = (roomId: string): void => {
   clearActiveDebateSession(roomId);
   clearLocalOpponentSessionId(roomId);
   try {
-    [TIMED_OUT_ROUNDS_PREFIX, CURRENT_ROUND_PREFIX, COMPLETED_STORAGE_PREFIX, MESSAGES_STORAGE_PREFIX].forEach((prefix) =>
-      sessionStorage.removeItem(prefix + roomId)
-    );
+    [
+      TIMED_OUT_ROUNDS_PREFIX,
+      CURRENT_ROUND_PREFIX,
+      COMPLETED_STORAGE_PREFIX,
+      MESSAGES_STORAGE_PREFIX,
+      DIFFICULTY_STORAGE_PREFIX,
+    ].forEach((prefix) => sessionStorage.removeItem(prefix + roomId));
     // Turn keys are `${roomId}_...`: the separator keeps room 1 from matching room 11
     const turnKeyPrefixes = [DEADLINE_STORAGE_PREFIX, EXPIRED_STORAGE_PREFIX].map((prefix) => `${prefix}${roomId}_`);
     Object.keys(sessionStorage)

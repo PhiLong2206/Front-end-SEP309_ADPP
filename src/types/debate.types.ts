@@ -224,7 +224,10 @@ export interface DebateSessionResponse {
   title: string;
   topic: string;
   debateType: BackendDebateType | number;
+  /** The difficulty of the TOPIC: the Backend fills it from Topic.Difficulty. */
   difficulty?: string;
+  /** The difficulty chosen for this session. The Backend does not send it yet. */
+  sessionDifficulty?: string;
   currentStage: BackendDebateStage | number;
   currentTurnSide: SystemDebateSide | number;
   status: BackendSessionStatus | number;
