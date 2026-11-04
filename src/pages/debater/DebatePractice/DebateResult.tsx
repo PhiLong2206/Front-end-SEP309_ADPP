@@ -2,25 +2,7 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import ScoreBreakdown from "../../../components/debate/ScoreBreakdown";
 import { CheckCircle2, AlertCircle, RotateCcw, ArrowRight, FileText } from "lucide-react";
-
-export interface DebateResultData {
-  sessionId: string;
-  topicTitle: string;
-  overallScore: number;
-  ratingText: string;
-  scores: {
-    logic: number;
-    evidence: number;
-    relevance: number;
-    structure: number;
-    persuasiveness: number;
-  };
-  strengths: string[];
-  improvements: string[];
-  progressTrend?: string;
-  stageBreakdown?: Record<string, number>;
-  criteriaList?: Array<{ name: string; score: number; reasoning: string }>;
-}
+import { DebateResultData, PERCENT_MAX } from "../../../utils/debateScoring";
 
 const DebateResult: React.FC = () => {
   const navigate = useNavigate();
@@ -46,6 +28,9 @@ const DebateResult: React.FC = () => {
     );
   }
 
+  const scoredCriteriaCount = result.criteria.filter((c) => c.score !== null).length;
+  const explainedCriteria = result.criteria.filter((c) => c.score !== null);
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
       {/* 3 Main Columns */}
@@ -67,26 +52,33 @@ const DebateResult: React.FC = () => {
               <span className="text-4xl font-black text-slate-900 dark:text-[#F8FAFC] font-mono leading-none">
                 {result.overallScore}
               </span>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-[#94A3B8] mt-1">/ 100</span>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-[#94A3B8] mt-1">/ {PERCENT_MAX}</span>
             </div>
             <span className="mt-4 px-3.5 py-1 rounded-full text-xs font-bold bg-[#ECFDF5] text-[#008A64] dark:bg-[rgba(16,185,129,0.15)] dark:text-[#34D399] border border-[#008A64]/30">
               {result.ratingText}
             </span>
+            <p className="mt-3 max-w-[220px] text-center text-[11px] leading-snug text-slate-500 dark:text-[#94A3B8]">
+              Điểm tổng được đánh giá toàn diện, không phải trung bình các tiêu chí.
+            </p>
           </div>
 
           {/* Stage breakdown if available */}
-          {result.stageBreakdown && Object.keys(result.stageBreakdown).length > 0 && (
+          {result.stageBreakdown && result.stageBreakdown.length > 0 && (
             <div className="p-3 bg-slate-50 dark:bg-[#091713] rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2 mb-3">
               <p className="font-bold text-slate-700 dark:text-slate-300">Điểm theo giai đoạn:</p>
               <div className="grid grid-cols-3 gap-2 text-center">
-                {Object.entries(result.stageBreakdown).map(([stage, sc]) => (
-                  <div key={stage} className="p-1.5 bg-white dark:bg-[#123326] rounded-xl border border-slate-100 dark:border-slate-800">
-                    <span className="capitalize text-slate-500 dark:text-slate-400 block text-[10px]">
-                      {stage === "opening" ? "Mở đầu" : stage === "rebuttal" ? "Phản biện" : "Kết luận"}
-                    </span>
-                    <span className="font-bold text-[#008A64] dark:text-[#34D399] text-xs">
-                      {sc}/10
-                    </span>
+                {result.stageBreakdown.map((s) => (
+                  <div key={s.stage} className="p-1.5 bg-white dark:bg-[#123326] rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400 block text-[10px]">{s.label}</span>
+                    {s.score === null ? (
+                      <span className="font-semibold text-slate-500 dark:text-slate-400 text-[10px]">
+                        Không phát biểu
+                      </span>
+                    ) : (
+                      <span className="font-bold text-[#008A64] dark:text-[#34D399] text-xs">
+                        {s.score}/{s.maxScore}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -94,7 +86,8 @@ const DebateResult: React.FC = () => {
           )}
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500 dark:text-[#94A3B8] text-center">
-            Đánh giá tự động bởi AI Evaluator Service • Tiêu chuẩn Rubric 5 tiêu chí
+            Đánh giá tự động bởi AI Evaluator Service
+            {scoredCriteriaCount > 0 && ` • Rubric ${scoredCriteriaCount} tiêu chí`}
           </div>
         </div>
 
@@ -104,20 +97,22 @@ const DebateResult: React.FC = () => {
             Điểm theo tiêu chí
           </h2>
           <div className="pt-2">
-            <ScoreBreakdown scores={result.scores} />
+            <ScoreBreakdown criteria={result.criteria} />
           </div>
 
-          {result.criteriaList && result.criteriaList.length > 0 && (
+          {explainedCriteria.length > 0 && (
             <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
               <p className="font-bold text-slate-700 dark:text-slate-300">Giải trình tiêu chí:</p>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {result.criteriaList.map((c, i) => (
-                  <div key={i} className="p-2 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-0.5">
+                {explainedCriteria.map((c) => (
+                  <div key={c.key} className="p-2 bg-slate-50 dark:bg-[#091713] rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-0.5">
                     <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                      <span>{c.name}</span>
-                      <span className="text-[#008A64] dark:text-[#34D399]">{c.score}/5</span>
+                      <span>{c.label}</span>
+                      <span className="text-[#008A64] dark:text-[#34D399]">{c.score}/{c.maxScore}</span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">{c.reasoning}</p>
+                    {c.reasoning && (
+                      <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">{c.reasoning}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -150,6 +145,9 @@ const DebateResult: React.FC = () => {
                 Điểm mạnh
               </span>
               <ul className="space-y-1.5 pl-1">
+                {result.strengths.length === 0 && (
+                  <li className="text-xs text-slate-400">Chưa có dữ liệu.</li>
+                )}
                 {result.strengths.map((str, idx) => (
                   <li key={idx} className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed flex items-start gap-1.5">
                     <span className="text-[#008A64] font-bold mt-0.5">•</span>
@@ -166,6 +164,9 @@ const DebateResult: React.FC = () => {
                 Cần cải thiện
               </span>
               <ul className="space-y-1.5 pl-1">
+                {result.improvements.length === 0 && (
+                  <li className="text-xs text-slate-400">Chưa có dữ liệu.</li>
+                )}
                 {result.improvements.map((imp, idx) => (
                   <li key={idx} className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed flex items-start gap-1.5">
                     <span className="text-amber-500 font-bold mt-0.5">•</span>

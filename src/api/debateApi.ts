@@ -15,6 +15,8 @@ import {
   RespondSwapSideRequest,
   SideSwapRequestResponse,
   SubmitArgumentRequest,
+  SubmitAiArgumentRequest,
+  SubmitAiArgumentResponse,
   DebateSessionResponse,
   DebateTranscriptResponse,
   DebateHistoryItemDto,
@@ -120,6 +122,15 @@ const debateApi = {
     axiosClient.post(`/debate/${sessionId}/start`),
 
   /**
+   * POST /api/Debate/{sessionId}/leave [Authorized]
+   * Cancels the session for every participant. The timeout keeps a slow server from trapping the user in the room.
+   */
+  leaveSession: (
+    sessionId: number | string
+  ): Promise<ApiResponse<DebateSessionResponse>> =>
+    axiosClient.post(`/debate/${sessionId}/leave`, undefined, { timeout: 5000 }),
+
+  /**
    * GET /api/Debate/{sessionId} [Authorized]
    * Retrieves debate session details, participants and turns.
    */
@@ -173,6 +184,18 @@ const debateApi = {
     sessionId: number | string
   ): Promise<ApiResponse<DebateAiEvaluationResponse | object>> =>
     axiosClient.get(`/debate/${sessionId}/evaluation`),
+
+  /**
+   * POST /api/Debate/{sessionId}/ai-arguments [Authorized]
+   * Records the AI opponent's argument for `turnIndex` (idempotent: a repeated call returns alreadyRecorded).
+   * Errors carry `errors.code`: INVALID_REQUEST, NOT_AI_SESSION, NOT_AI_TURN, NOT_PARTICIPANT,
+   * SESSION_NOT_FOUND, TURN_OUT_OF_ORDER, SESSION_NOT_IN_PROGRESS, CONCURRENT_SUBMISSION.
+   */
+  submitAiArgument: (
+    sessionId: number | string,
+    data: SubmitAiArgumentRequest
+  ): Promise<ApiResponse<SubmitAiArgumentResponse>> =>
+    axiosClient.post(`/debate/${sessionId}/ai-arguments`, data),
 
   /**
    * GET /api/Debate/{sessionId}/transcript [Authorized]

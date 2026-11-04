@@ -183,6 +183,21 @@ export interface SubmitArgumentRequest {
   content: string;
 }
 
+/** POST /api/debate/{sessionId}/ai-arguments — records the AI opponent's turn. */
+export interface SubmitAiArgumentRequest {
+  content: string;
+  /** 0-based: 0 opening PRO, 1 opening CON, 2 rebuttal PRO, 3 rebuttal CON, 4 closing CON, 5 closing PRO. */
+  turnIndex: number;
+}
+
+export interface SubmitAiArgumentResponse {
+  turnIndex: number;
+  /** true when this turn had already been recorded (idempotent retry). */
+  alreadyRecorded: boolean;
+  argument: ArgumentDetailDto;
+  session: DebateSessionResponse;
+}
+
 export interface ParticipantDto {
   participantId: number;
   userId?: number;
@@ -197,6 +212,8 @@ export interface TurnDto {
   stage: BackendDebateStage | number;
   side: SystemDebateSide | number;
   turnOrder: number;
+  /** 0-based index into the 1v1 turn order (0..5); absent for 2v2. This is the `turnIndex` of /ai-arguments. */
+  turnIndex?: number | null;
   timeLimitSeconds: number;
   status: BackendTurnStatus | number;
   startedAt?: string;
@@ -207,7 +224,10 @@ export interface DebateSessionResponse {
   title: string;
   topic: string;
   debateType: BackendDebateType | number;
+  /** The difficulty of the TOPIC: the Backend fills it from Topic.Difficulty. */
   difficulty?: string;
+  /** The difficulty chosen for this session. The Backend does not send it yet. */
+  sessionDifficulty?: string;
   currentStage: BackendDebateStage | number;
   currentTurnSide: SystemDebateSide | number;
   status: BackendSessionStatus | number;
@@ -224,6 +244,8 @@ export interface ArgumentDetailDto {
   turnOrder: number;
   stage: BackendDebateStage | number;
   side: SystemDebateSide | number;
+  /** Author of the speech; null for the AI. Absent until the Backend ships this field. */
+  userId?: number | null;
   speakerName: string;
   isAI: boolean;
   content: string;
